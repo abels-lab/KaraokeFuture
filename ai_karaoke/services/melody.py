@@ -78,6 +78,21 @@ def _notes(midi: np.ndarray, voiced: np.ndarray) -> list[dict]:
     return notes
 
 
+def _hold_words(song_id: str, midi: np.ndarray) -> None:
+    """Stretch lyric words over the notes the singer holds (see word_timing.hold_notes)."""
+    from services import word_timing
+    path = cache_manager.song_file(song_id, LYRICS_FILE)
+    try:
+        lines = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        return
+    if extended := word_timing.hold_notes(lines, midi.tolist(), HOP):
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(lines, ensure_ascii=False), encoding="utf-8")
+        tmp.replace(path)  # atomic: the stage may be reading it
+        log.info("Held notes: %d lyric words of %s extended", extended, song_id)
+
+
 def _tag_words(notes: list[dict], song_id: str) -> None:
     try:
         lines = json.loads(cache_manager.song_file(song_id, LYRICS_FILE).read_text(encoding="utf-8"))
@@ -117,6 +132,7 @@ def extract(song_id: str) -> dict:
     peak = float(np.percentile(db, 95))
     energy = np.clip((db - (peak - 40.0)) / 40.0, 0.0, 1.0)
     notes = _notes(midi, voiced)
+    _hold_words(song_id, midi)
     _tag_words(notes, song_id)
     notes = _clean(notes, song_id)
     melody = {"hop": HOP, "pitch": [round(float(m), 2) for m in midi],

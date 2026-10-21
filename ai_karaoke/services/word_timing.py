@@ -4,13 +4,16 @@ Forced alignment leaves a few typical glitches that look broken on stage:
   - zero-length words (often a line's first word): they flash instead of filling;
   - a line's last word stranded seconds later, right before the next line, so the line
     hangs through an instrumental break (or a first word stranded long before the rest);
-  - words timed after the end of the audio (lyrics for a longer version of the song).
+  - words timed after the end of the audio (lyrics for a longer version of the song);
+  - words that end while the singer still holds the note (hold_notes, run once the melody exists).
 Only timings change here, never the text.
 """
 MIN_WORD = 0.15     # shortest word duration shown (s)
 STRAY_GAP = 2.0     # an edge word this far from the rest of its line is misplaced
 STRAY_MAX = 1.0     # duration given to a moved word at most (s), without a vocal map
 HOLD_MAX = 4.0      # ... with one: held to the end of the sung phrase, at most this long
+HOLD_SEMITONES = 2.0   # a held note may drift (vibrato, slides) this far before it counts as a new one
+HOLD_GAP_FRAMES = 4    # unvoiced pitch frames (80 ms) that don't end a held note
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -64,6 +67,39 @@ def _lengthen_short(words: list[dict]) -> None:
             shift = min(need, spare)
             word["end"] += shift
             nxt["start"] = max(nxt["start"], word["end"])
+
+
+def hold_notes(segments: list[dict], pitch: list[float], hop: float) -> int:
+    """Alignment ends a word soon after it starts, but singers hold the vowel: extend each word
+    while the pitch track (melody.json, MIDI or 0) stays on the same note, never into the next
+    word. Without this the line on screen switches while its last word is still being sung.
+    Returns the number of words extended (in place)."""
+    words = [w for seg in segments for w in seg["words"]]
+    extended = 0
+    for i, word in enumerate(words):
+        limit = min(words[i + 1]["start"] - 0.05 if i + 1 < len(words) else word["end"] + HOLD_MAX,
+                    word["end"] + HOLD_MAX)
+        frame, gap = int(word["end"] / hop), 0
+        if not (0 <= frame < len(pitch)) or pitch[frame] <= 0:
+            continue  # not singing a clear note at the word's end
+        # The note the word itself ends on (running twice must not stretch into the next note)
+        ref = pitch[frame - 1] if frame > 0 and pitch[frame - 1] > 0 else pitch[frame]
+        while frame < len(pitch) and frame * hop < limit:
+            if pitch[frame] > 0:
+                if abs(pitch[frame] - ref) > HOLD_SEMITONES:
+                    break  # a new note: probably the next syllable
+                ref, gap = 0.8 * ref + 0.2 * pitch[frame], 0
+            elif (gap := gap + 1) > HOLD_GAP_FRAMES:
+                break
+            frame += 1
+        end = min((frame - gap) * hop, limit)
+        if end - word["end"] >= 0.1:
+            word["end"] = round(end, 3)
+            extended += 1
+    for seg in segments:
+        if seg["words"]:
+            seg["end"] = seg["words"][-1]["end"]
+    return extended
 
 
 def polish(segments: list[dict], duration: float | None = None, regions=()) -> list[dict]:
