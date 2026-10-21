@@ -3,16 +3,20 @@
 Output lyrics.json: [{start, end, text, words: [{word, start, end}]}]; words keep
 Whisper's leading spaces so CJK and Latin text both join correctly.
 Text comes from services.lyrics_source (pasted > online > none). Lines with LRC
-timestamps are checked against them and repaired by services.anchored_align.
+timestamps are checked against them and repaired by services.anchored_align; LRC timed
+past the end of the audio (another version of the song) is aligned as plain text.
+Glitches are cleaned up by services.word_timing before saving.
 """
 import json
 import logging
 import re
 
+import soundfile as sf
+
 from config import (ALIGN_FAILURE_THRESHOLD, CONDITION_ON_PREVIOUS_TEXT, LYRICS_FILE,
                     MAX_CHARS_PER_SEC, VOCALS_FILE, WHISPER_COMPUTE_TYPE, WHISPER_MODEL, free_vram)
 from core import cache_manager
-from services import anchored_align, lyrics_source, vocal_activity
+from services import anchored_align, lrclib, lyrics_source, vocal_activity, word_timing
 
 log = logging.getLogger(__name__)
 
@@ -113,12 +117,16 @@ def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
         log.warning("Vocal map failed for %s: %s", song_id, exc)
         vocal_map = {"regions": [], "loud": []}
     regions = vocal_map["regions"]
+    duration = sf.info(str(vocals)).duration
 
     # Pasted lyrics win; otherwise search online (network first, GPU stays free)
     raw, origin = lyrics_source.load_user(song_id), "user"
     if not raw:
-        raw, origin = lyrics_source.online_for(song_id, title, channel), "synced"
+        raw, origin = lyrics_source.online_for(song_id, title, channel, duration), "synced"
     lines = lyrics_source.parse_lines(raw) if raw else []
+    if lyrics_source.timed(lines) and not lrclib.fits(raw, duration):
+        log.info("LRC of %s outlasts the audio (%.0f s): another version, timestamps ignored", song_id, duration)
+        lines = [(None, text) for _, text in lines]
     aligned = _run_with_model(_align, str(vocals), lines, regions) if lines else None
     segments = _to_segments(aligned, drop_dense=False) if aligned else []
     timing = timing_quality(segments, regions)
@@ -128,6 +136,7 @@ def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
         origin = "transcribed"
         segments = _to_segments(_run_with_model(_transcribe, str(vocals)), drop_dense=True, regions=regions)
         timing = timing_quality(segments, regions)
+    segments = word_timing.polish(segments, duration, regions)  # after QA: timing reports the raw alignment
     missing = vocal_activity.unmatched(vocal_map["loud"], segments)
 
     tmp = target.with_suffix(".tmp")
