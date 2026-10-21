@@ -2,7 +2,7 @@
 
 A single asyncio task consumes jobs; each blocking step runs in a thread via
 asyncio.to_thread and is awaited before the next starts, so the separator and
-Whisper are never in VRAM together. Jobs: process | lyrics (re-align) | rebuild | video.
+Whisper are never in VRAM together. Jobs: process | lyrics | rebuild | video | melody.
 """
 import asyncio
 import contextlib
@@ -13,7 +13,7 @@ from config import DOWNLOAD_VIDEO
 from core import cache_manager
 from core.hub import hub
 from core.queue_manager import queue
-from services import downloader, lyrics_aligner, separator
+from services import downloader, lyrics_aligner, melody, separator
 
 log = logging.getLogger(__name__)
 
@@ -47,13 +47,20 @@ class Worker:
         """Re-align lyrics (pasted, edited or reset to automatic), after earlier jobs."""
         await self._put(("lyrics", song_id))
 
-    async def submit_rebuild(self, song_id: str) -> None:
-        """Throw away the cached audio + lyrics and run the whole pipeline again."""
+    async def submit_rebuild(self, song_id: str) -> None:  # throw away the cache, run it all again
         await self._put(("rebuild", song_id))
 
-    async def submit_video(self, song_id: str) -> None:
-        """Fetch the muted video for a song cached before videos existed."""
+    async def submit_video(self, song_id: str) -> None:  # songs cached before videos existed
         await self._put(("video", song_id))
+
+    async def submit_melody(self, song_id: str) -> None:  # songs cached before the singing game
+        await self._put(("melody", song_id))
+
+    async def _melody(self, song_id: str) -> None:  # never fails the song: it plays without scoring
+        try:
+            await asyncio.to_thread(melody.extract, song_id)
+        except Exception:
+            log.exception("Melody extraction failed for %s", song_id)
 
     async def _put(self, job: tuple[str, str]) -> None:
         if job not in self._pending:
@@ -78,6 +85,10 @@ class Worker:
                     await self._stage(song_id, "downloading")
                     if await asyncio.to_thread(downloader.download_video, song_id):
                         await queue.media_updated(song_id)
+                elif kind == "melody" and cache_manager.is_ready(song_id):
+                    await self._stage(song_id, "melody")
+                    await self._melody(song_id)
+                    await queue.media_updated(song_id)
                 elif kind == "rebuild":
                     cache_manager.evict(song_id)
                     await queue.reset_song(song_id)
@@ -109,6 +120,7 @@ class Worker:
         meta = cache_manager.read_meta(song_id)
         await asyncio.to_thread(lyrics_aligner.generate_lyrics, song_id,
                                 meta.get("title", ""), meta.get("channel", ""))
+        await self._melody(song_id)  # notes are tagged with lyric words: refresh them too
         await queue.media_updated(song_id)
 
     async def _process(self, song_id: str) -> None:
@@ -128,6 +140,8 @@ class Worker:
         meta = cache_manager.read_meta(song_id)
         await asyncio.to_thread(lyrics_aligner.generate_lyrics, song_id,
                                 meta.get("title", ""), meta.get("channel", ""))
+        await self._stage(song_id, "melody")
+        await self._melody(song_id)
         cache_manager.update_meta(song_id, status="ready", last_accessed=time.time())
         await queue.set_song_status(song_id, "ready")
         log.info("%s ready in %.0fs", song_id, time.perf_counter() - started)

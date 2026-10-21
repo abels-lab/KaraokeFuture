@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from config import MAX_DURATION_SEC, MAX_QUEUE_LENGTH, qr_svg_data_uri, remote_url
+from config import MAX_DURATION_SEC, MAX_QUEUE_LENGTH, MELODY_FILE, qr_svg_data_uri, remote_url
 from core import cache_manager
 from core.queue_manager import queue
 from core.worker import worker
@@ -65,6 +65,8 @@ async def add_to_queue(req: QueueRequest):
     entry = await queue.add(req.song_id, req.title.strip(), req.channel.strip(),
                             req.duration, singer)
     await worker.submit(req.song_id)
+    if cache_manager.is_ready(req.song_id) and not cache_manager.song_file(req.song_id, MELODY_FILE).is_file():
+        await worker.submit_melody(req.song_id)  # cached before the singing game existed
     return entry
 
 

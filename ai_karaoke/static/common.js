@@ -7,7 +7,8 @@ const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k)
 const STATUS = {
   waiting: ["Waiting", "bg-stone-600"], queued: ["Queued", "bg-stone-600"],
   downloading: ["Downloading", "bg-sky-800"], separating: ["Removing vocals", "bg-amber-700"],
-  aligning: ["Syncing lyrics", "bg-orange-700"], ready: ["Ready", "bg-emerald-700"], error: ["Failed", "bg-red-800"],
+  aligning: ["Syncing lyrics", "bg-orange-700"], melody: ["Reading the melody", "bg-orange-800"],
+  ready: ["Ready", "bg-emerald-700"], error: ["Failed", "bg-red-800"],
 };
 const LYRICS_SOURCE = {
   synced: ["🌐 Online lyrics", "bg-emerald-900/70 text-emerald-200"],

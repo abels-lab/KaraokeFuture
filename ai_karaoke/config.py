@@ -24,6 +24,7 @@ LYRICS_FILE = "lyrics.json"
 META_FILE = "meta.json"
 VOCAL_MAP_FILE = "vocals.json"   # where singing actually happens: {"regions": [[start, end], ...]}
 ONLINE_LYRICS_FILE = "online.lrc"  # lyrics found online, kept so re-syncs don't depend on flaky providers
+MELODY_FILE = "melody.json"      # reference pitch, loudness and notes for the singing game
 VIDEO_STEM = "video"             # muted video track: video.mp4 / video.webm
 
 # ── Server ───────────────────────────────────────────────────────────────────
