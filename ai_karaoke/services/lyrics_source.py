@@ -22,6 +22,9 @@ _TITLE_NOISE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\|.*$|\b(official|music|video|l
 _CREDITS = re.compile(r"^([぀-ヿ一-鿿]{1,6}|(lyrics?|music|composer|composed|written|"
                       r"arranger|arranged|producer|produced|vocals?|mix(ed|ing)?|master(ed|ing)?|"
                       r"recorded|engineer(ed)?)(\s+by)?)\s*[:：]", re.IGNORECASE)
+# Section labels some providers keep as lines ("CHORUS:", "(Verse 2)", "Припев:", "x2"): not sung
+_SECTION = re.compile(r"^[(\[]?\s*((pre-?)?chorus|verse|bridge|refrain|hook|intro|outro|interlude|instrumental|"
+                      r"solo|strophe|припев|куплет|бридж)?\s*\d*\s*[:.]?\s*(\(?[x×]\s*\d+\)?)?\s*[)\]]?$", re.IGNORECASE)
 
 
 def build_query(title: str, channel: str = "") -> str:
@@ -42,7 +45,7 @@ def parse_lines(raw: str) -> list[tuple[float | None, str]]:
     for raw_line in (raw or "").splitlines():
         stamps = [int(m) * 60 + float(s.replace(":", ".")) for m, s in _STAMP.findall(raw_line)]
         text = _LRC_TAGS.sub("", raw_line).strip()
-        if text and not _CREDITS.match(text):
+        if text and not _CREDITS.match(text) and not _SECTION.match(text):
             lines += [(t, text) for t in stamps] if stamps else [(None, text)]
     if lines and all(t is not None for t, _ in lines):
         lines.sort(key=lambda line: line[0])
