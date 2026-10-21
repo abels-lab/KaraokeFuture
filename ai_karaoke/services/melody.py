@@ -87,9 +87,8 @@ def _hold_words(song_id: str, midi: np.ndarray) -> None:
     except (FileNotFoundError, ValueError):
         return
     if extended := word_timing.hold_notes(lines, midi.tolist(), HOP):
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(lines, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(path)  # atomic: the stage may be reading it
+        path.with_suffix(".tmp").write_text(json.dumps(lines, ensure_ascii=False), encoding="utf-8")
+        path.with_suffix(".tmp").replace(path)  # atomic: the stage may be reading it
         log.info("Held notes: %d lyric words of %s extended", extended, song_id)
 
 
@@ -99,9 +98,10 @@ def _tag_words(notes: list[dict], song_id: str) -> None:
     except (FileNotFoundError, ValueError):
         lines = []
     words = [w for line in lines for w in line["words"]]
-    for note in notes:
-        mid = (note["start"] + note["end"]) / 2
-        note["word"] = next((i for i, w in enumerate(words) if w["start"] - 0.15 <= mid <= w["end"] + 0.15), -1)
+    for note in notes:  # the word sharing most time with the note (a long held note can outlast its middle)
+        overlap = [min(note["end"], w["end"] + 0.15) - max(note["start"], w["start"] - 0.15) for w in words]
+        best = int(np.argmax(overlap)) if overlap else -1
+        note["word"] = best if best >= 0 and overlap[best] > 0 else -1
 
 
 def _clean(notes: list[dict], song_id: str) -> list[dict]:
