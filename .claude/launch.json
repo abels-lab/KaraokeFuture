@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "karaoke",
+      "runtimeExecutable": "ai_karaoke/.venv/Scripts/python.exe",
+      "runtimeArgs": ["ai_karaoke/main.py"],
+      "env": { "KARAOKE_PORT": "8010", "PYTHONUNBUFFERED": "1" },
+      "port": 8010
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+/* Shared theater theme: velvet-and-gold palette over the stage photo. No purple. */
+:root {
+  --gold: #f4c25b;
+  --gold-deep: #d99a2b;
+  --velvet: #8f1d1d;
+  --ink: #f6efe4;
+}
+
+html { background: #0b0705; }
+body { color: var(--ink); font-family: "Inter", system-ui, sans-serif; min-height: 100vh; }
+
+/* Stage photo + darkening layer, fixed so it never scrolls (works on iOS too) */
+body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; }
+body::before { z-index: -2; background: url("/static/img/theater.jpg") center 30% / cover no-repeat; }
+body::after {
+  z-index: -1;
+  background: linear-gradient(180deg, rgba(11, 7, 5, .62) 0%, rgba(11, 7, 5, .84) 55%, rgba(11, 7, 5, .96) 100%);
+}
+/* The TV keeps more of the stage visible, darkening the edges like a spotlight */
+body.tv::after {
+  background: radial-gradient(ellipse 70% 60% at 42% 45%, rgba(11, 7, 5, .38), rgba(11, 7, 5, .9));
+}
+
+.font-display { font-family: "Playfair Display", Georgia, serif; }
+.text-gold { color: var(--gold); }
+.panel {
+  background: rgba(14, 9, 6, .62);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(244, 194, 91, .14);
+  border-radius: 1rem;
+}
+.btn-gold { background: linear-gradient(180deg, var(--gold), var(--gold-deep)); color: #1c1206; font-weight: 700; }
+.btn-gold:hover { filter: brightness(1.08); }
+.btn-gold:disabled { filter: grayscale(.8) brightness(.6); }
+
+/* Sliders: gold track fill, round thumb */
+input[type=range] { accent-color: var(--gold); cursor: pointer; }
+input[type=range]:disabled { cursor: default; opacity: .4; }
+
+/* Karaoke word fill: --p runs 0% -> 100% while the word is sung */
+.word {
+  white-space: pre-wrap;
+  background: linear-gradient(90deg, var(--gold) var(--p, 0%), rgba(255, 248, 236, .95) var(--p, 0%));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.lyric-shadow { filter: drop-shadow(0 3px 12px rgba(0, 0, 0, .85)); }
+
+.mic-glow { filter: drop-shadow(0 10px 40px rgba(244, 194, 91, .35)); }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(244, 194, 91, .25); border-radius: 8px; }

@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Karaoke – setup notes (Windows 11, RTX 3060 Laptop 6GB, Python 3.10–3.12)
+#
+# 1) Create & activate a venv:
+#      python -m venv .venv
+#      .venv\Scripts\activate
+#
+# 2) Install PyTorch with CUDA FIRST — all three packages, pinned together.
+#    (audio-separator pulls torchvision; without a matching CUDA torchvision,
+#     pip silently swaps torch for a newer CPU-only build.)
+#      pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+#    Verify:  python -c "import torch; print(torch.cuda.is_available())"   -> True
+#    (torch cu12x wheels ship cuDNN 9 + cuBLAS 12, which faster-whisper's
+#     CTranslate2 backend reuses; lyrics_aligner imports torch first so the
+#     DLLs are on the search path.)
+#
+# 3) Install FFmpeg and make sure it's on PATH (used by yt-dlp and Whisper):
+#      winget install Gyan.FFmpeg        then reopen the terminal:  ffmpeg -version
+#
+# 4) Recommended: a JavaScript runtime for yt-dlp's YouTube extraction:
+#      winget install DenoLand.Deno
+#
+# 5) Install the rest, then remove the CPU onnxruntime that faster-whisper drags
+#    in (it clashes with onnxruntime-gpu) and re-check torch is still CUDA:
+#      pip install -r requirements.txt
+#      pip uninstall -y onnxruntime
+#      pip install --force-reinstall --no-deps onnxruntime-gpu
+#
+# 6) Laptop GPUs: run in the vendor's Performance mode on the original charger.
+#    If nvidia-smi shows ~210 MHz under load, the GPU is power-capped (~20x slower).
+#
+# First run downloads models: the separator checkpoint into ./models and
+# Whisper large-v3-turbo into the Hugging Face cache (~1.6 GB).
+# Keep yt-dlp fresh — YouTube changes often:  pip install -U "yt-dlp[default]"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Web server
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# Download / search
+yt-dlp[default]
+
+# Vocal separation (uses the torch you installed in step 2)
+audio-separator[gpu]>=0.21
+soundfile>=0.12
+numpy
+
+# Lyrics: fetch + alignment / transcription
+syncedlyrics>=1.0
+stable-ts>=2.17
+faster-whisper>=1.1.0
+langdetect>=1.0.9
+
+# QR code for the TV screen (pure Python, renders SVG)
+segno>=1.6
+
+# torch 2.6 pins sympy; newer sympy only triggers a pip warning, but keep it aligned
+sympy==1.13.1

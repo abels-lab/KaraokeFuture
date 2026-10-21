@@ -1,0 +1,21 @@
+# Python
+.venv/
+ai_karaoke/.venv/
+__pycache__/
+*.pyc
+
+# Runtime data created by the app (large, copyrighted or private)
+ai_karaoke/cache/
+ai_karaoke/models/
+ai_karaoke/lyrics_store/
+*.tmp
+*.part
+
+# Original AI-generated design sources (processed copies live in ai_karaoke/static/img/)
+Gemini_Generated_Image_*.jpeg
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0705">
+  <title>Song Library</title>
+  <link rel="icon" href="/static/img/microphone.png">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;900&display=swap">
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body class="antialiased">
+  <div class="mx-auto max-w-6xl space-y-5 px-4 pb-24 pt-5">
+    <header class="flex flex-wrap items-center gap-3">
+      <img src="/static/img/microphone.png" alt="" class="mic-glow h-12 w-auto -rotate-12">
+      <div class="flex-1">
+        <h1 class="font-display text-3xl font-black text-gold">Song Library</h1>
+        <p class="text-sm text-stone-400">Every processed song, its lyrics, and the tools to fix them</p>
+      </div>
+      <a href="/remote" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">📱 Remote</a>
+      <a href="/tv" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">📺 Stage</a>
+    </header>
+
+    <section class="panel grid gap-4 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-widest text-gold">Cache</p>
+        <p id="storage-text" class="mt-1 text-sm text-stone-300">…</p>
+        <div class="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+          <div id="storage-bar" class="h-full w-0 rounded-full bg-gradient-to-r from-amber-300 to-amber-600"></div>
+        </div>
+      </div>
+      <label class="block">
+        <span class="text-xs font-semibold text-stone-400">Singer name (for 🎤 Queue)</span>
+        <input id="singer" maxlength="32" placeholder="e.g. Freddie"
+               class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400 sm:w-48">
+      </label>
+      <label class="block">
+        <span class="text-xs font-semibold text-stone-400">Filter</span>
+        <input id="filter" type="search" placeholder="Title or artist…"
+               class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400 sm:w-56">
+      </label>
+    </section>
+
+    <div id="songs" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+    <p id="empty" class="hidden panel p-6 text-center text-stone-400">No songs yet — queue something from the remote and it will appear here.</p>
+  </div>
+
+  <script src="/static/common.js"></script>
+  <script src="/static/lyrics.js"></script>
+  <script src="/static/library.js"></script>
+</body>
+</html>
