@@ -1,11 +1,11 @@
 """Lyric TIMING: forced alignment of known text, else Whisper transcription.
 
-Output lyrics.json: [{start, end, text, words: [{word, start, end}]}]; words keep
-Whisper's leading spaces so CJK and Latin text both join correctly.
-Text comes from services.lyrics_source (pasted > online > none). Lines with LRC
-timestamps are checked against them and repaired by services.anchored_align; LRC timed
-past the end of the audio (another version of the song) is aligned as plain text.
-Glitches are cleaned up by services.word_timing before saving.
+Output lyrics.json: [{start, end, text, words: [{word, start, end}]}]; words keep leading
+spaces so CJK and Latin text both join correctly. Text comes from services.lyrics_source
+(pasted > online > none). Known text is aligned by services.mms_align, or by stable-ts
+(repaired with LRC anchors by services.anchored_align) for scripts MMS can't read or when
+MMS loses the voice. LRC timed past the end of the audio (another version) is aligned as
+plain text. Glitches are cleaned up by services.word_timing before saving.
 """
 import json
 import logging
@@ -13,10 +13,10 @@ import re
 
 import soundfile as sf
 
-from config import (ALIGN_FAILURE_THRESHOLD, CONDITION_ON_PREVIOUS_TEXT, LYRICS_FILE,
+from config import (ALIGN_FAILURE_THRESHOLD, CONDITION_ON_PREVIOUS_TEXT, LYRICS_ALIGNER, LYRICS_FILE,
                     MAX_CHARS_PER_SEC, VOCALS_FILE, WHISPER_COMPUTE_TYPE, WHISPER_MODEL, free_vram)
 from core import cache_manager
-from services import anchored_align, lrclib, lyrics_source, vocal_activity, word_timing
+from services import anchored_align, lrclib, lyrics_source, mms_align, vocal_activity, word_timing
 
 log = logging.getLogger(__name__)
 
@@ -61,11 +61,21 @@ def _align(model, vocals: str, lines, regions):
     if lyrics_source.timed(lines):  # LRC anchors: redo every line that strayed from its timestamp
         repaired = anchored_align.repair(model, vocals, segments, lines, regions, language)
         # Safety net: keep whichever version lines up better with the actual singing
-        badness = lambda segs: sum(list(timing_quality(segs, regions).values())[:2])  # noqa: E731
+        badness = lambda segs: sum(list(vocal_activity.timing_quality(segs, regions).values())[:2])  # noqa: E731
         if not any(s["words"] for s in segments) or badness(repaired) < badness(segments):
             return repaired
         log.info("Kept the global alignment: it matches the vocals better than the repair")
     return segments if any(s["words"] for s in segments) else None
+
+
+def _align_known(vocals: str, lines, regions):
+    """MMS first (does not drift on repetitive or half-spoken songs), else stable-ts."""
+    aligned = mms_align.align(vocals, lines) if LYRICS_ALIGNER == "mms" else None
+    if aligned and not vocal_activity.timing_quality(_to_segments(aligned, drop_dense=False), regions)["poor"]:
+        return aligned, "mms"
+    if LYRICS_ALIGNER == "mms":
+        log.info("MMS could not align these lyrics%s: using stable-ts", " well" if aligned else "")
+    return _run_with_model(_align, vocals, lines, regions), "stable-ts"
 
 
 def _transcribe(model, vocals: str):
@@ -95,16 +105,6 @@ def _to_segments(raw: list[dict], drop_dense: bool, regions=()) -> list[dict]:
     return segments
 
 
-def timing_quality(segments: list[dict], regions) -> dict:
-    """Share of words with no duration / not on the vocals. High values = alignment got lost."""
-    words = [w for s in segments for w in s["words"]]
-    n = max(len(words), 1)
-    zero = float(sum(w["end"] - w["start"] < 0.02 for w in words) / n)
-    off = float(sum(vocal_activity.vocal_fraction(w["start"], max(w["end"], w["start"] + 0.05), regions) < 0.2
-                    for w in words) / n) if regions else 0.0
-    return {"zero_words": round(zero, 3), "off_vocals": round(off, 3), "poor": bool(zero > 0.2 or off > 0.25)}
-
-
 def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
     """Write lyrics.json for a separated song. Returns {source, lines, timing}."""
     target = cache_manager.song_file(song_id, LYRICS_FILE)
@@ -127,15 +127,15 @@ def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
     if lyrics_source.timed(lines) and not lrclib.fits(raw, duration):
         log.info("LRC of %s outlasts the audio (%.0f s): another version, timestamps ignored", song_id, duration)
         lines = [(None, text) for _, text in lines]
-    aligned = _run_with_model(_align, str(vocals), lines, regions) if lines else None
+    aligned, aligner = _align_known(str(vocals), lines, regions) if lines else (None, None)
     segments = _to_segments(aligned, drop_dense=False) if aligned else []
-    timing = timing_quality(segments, regions)
+    timing = vocal_activity.timing_quality(segments, regions)
     # Plain online text that would not line up: timing beats words for karaoke -> transcribe.
     # The guest's own text is kept (flagged in the library) — they chose it on purpose.
     if not segments or (timing["poor"] and origin == "synced" and not lyrics_source.timed(lines)):
-        origin = "transcribed"
+        origin, aligner = "transcribed", "whisper"
         segments = _to_segments(_run_with_model(_transcribe, str(vocals)), drop_dense=True, regions=regions)
-        timing = timing_quality(segments, regions)
+        timing = vocal_activity.timing_quality(segments, regions)
     segments = word_timing.polish(segments, duration, regions)  # after QA: timing reports the raw alignment
     missing = vocal_activity.unmatched(vocal_map["loud"], segments)
 
@@ -143,8 +143,8 @@ def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
     tmp.write_text(json.dumps(segments, ensure_ascii=False), encoding="utf-8")
     tmp.replace(target)  # atomic swap: the TV never reads a half-written file
 
-    cache_manager.update_meta(song_id, lyrics_source=origin, lyric_lines=len(segments), timing=timing,
+    cache_manager.update_meta(song_id, lyrics_source=origin, aligner=aligner, lyric_lines=len(segments), timing=timing,
                               unmatched_vocals=missing, unmatched_seconds=round(sum(e - s for s, e in missing), 1))
-    log.info("Lyrics for %s: %d lines (%s), timing %s, %d sung parts without lyrics",
-             song_id, len(segments), origin, timing, len(missing))
+    log.info("Lyrics for %s: %d lines (%s, %s), timing %s, %d sung parts without lyrics",
+             song_id, len(segments), origin, aligner, timing, len(missing))
     return {"source": origin, "lines": len(segments), "timing": timing}

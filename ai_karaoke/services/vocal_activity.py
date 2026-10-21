@@ -94,3 +94,13 @@ def unmatched(loud, segments) -> list[list[float]]:
         else:
             merged.append([start, end])
     return [[round(s, 1), round(e, 1)] for s, e in merged if e - s >= MIN_UNMATCHED]
+
+
+def timing_quality(segments: list[dict], regions) -> dict:
+    """Share of words with no duration / not on the vocals. High values = alignment got lost."""
+    words = [w for s in segments for w in s["words"]]
+    n = max(len(words), 1)
+    zero = float(sum(w["end"] - w["start"] < 0.02 for w in words) / n)
+    off = float(sum(vocal_fraction(w["start"], max(w["end"], w["start"] + 0.05), regions) < 0.2
+                    for w in words) / n) if regions else 0.0
+    return {"zero_words": round(zero, 3), "off_vocals": round(off, 3), "poor": bool(zero > 0.2 or off > 0.25)}
