@@ -5,6 +5,7 @@ Server -> client:  {"type": "state", "data": {...}}
                    {"type": "media", "song_id"}                             (lyrics/video changed)
                    {"type": "control", "action", "value"}                   (control panel only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (screens + phones, 4 Hz)
+                   {"type": "game" | "game_result", ...}                    (screens: singing game)
 Client -> server:  {"type": "ping"}
                    {"type": "control", "action": "play|pause|restart|skip|seek|seek_by", "value"}
                    {"type": "ended", "uid": "..."}                         (TV only)
@@ -54,6 +55,8 @@ async def _handle(ws: WebSocket, role: str, msg: dict) -> None:
             "duration": _num(msg.get("duration")),
             "paused": bool(msg.get("paused")),
         }, "remote", "screen")
+    elif kind in ("game", "game_result") and len(json.dumps(msg)) < 16_000:
+        await hub.broadcast(msg, "screen")  # singing game: live state 25 Hz + results, for projectors
 
 
 @router.websocket("/ws")

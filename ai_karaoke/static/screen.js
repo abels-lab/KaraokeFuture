@@ -4,6 +4,13 @@
 const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $("hint"),
                             noLyrics: $("no-lyrics"), video: $("video") });
 let current = null, clock = { uid: null, time: 0, paused: true, at: 0 }, lastClockAt = 0;
+// Singing game: effects / note lanes over the stage, results card at the end of a song
+const gameView = createGameView(document.body, stage);
+let game = null, gameAt = 0;
+function onGame(m) {
+  if (m.type === "game_result") gameView.showResults(m);
+  else if (m.uid === current?.uid) { game = m; gameAt = performance.now(); }
+}
 
 const now = () => clock.paused ? clock.time : clock.time + (performance.now() - clock.at) / 1000;
 
@@ -21,13 +28,17 @@ connectWS("screen", (msg) => {
   if (msg.type === "state") onState(msg.data);
   else if (msg.type === "playback") onClock(msg);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
+  else if (msg.type === "game" || msg.type === "game_result") onGame(msg);
 });
-if ("BroadcastChannel" in window) new BroadcastChannel("karaoke-clock").onmessage = (e) => onClock(e.data);
+if ("BroadcastChannel" in window) {
+  new BroadcastChannel("karaoke-clock").onmessage = (e) => onClock(e.data);
+  new BroadcastChannel("karaoke-game").onmessage = (e) => onGame(e.data);
+}
 
 function onState({ now_playing: np, queue }) {
   renderUpNext(queue);
   if (!np) {
-    if (current) stage.clear();
+    if (current) { stage.clear(); gameView.clear(); }
     current = null;
   } else if (current?.uid !== np.uid) {
     current = np;
@@ -35,6 +46,7 @@ function onState({ now_playing: np, queue }) {
     $("singer").textContent = np.singer;
     $("title").textContent = np.title;
     stage.load(np);
+    gameView.load(np);
   }
   $("stage").classList.toggle("hidden", !current);
   $("stage").classList.toggle("flex", Boolean(current));
@@ -53,6 +65,7 @@ function tick() {
   requestAnimationFrame(tick);
   if (!current) return;
   stage.render(now(), !clock.paused);
+  gameView.render(now(), performance.now() - gameAt < 1000 ? game : null); // stale = nobody singing
   // No clock for 3 s while a song should be playing: the control panel is gone or reconnecting
   $("lost").classList.toggle("hidden", clock.paused || performance.now() - lastClockAt < 3000);
 }

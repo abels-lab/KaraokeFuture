@@ -12,6 +12,7 @@ const send = connectWS("tv", (msg) => {
   else if (msg.type === "control") onControl(msg.action, msg.value);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
 });
+GamePanel.init(send);
 
 function sendClock() {
   if (!current) return;
@@ -45,12 +46,12 @@ async function loadSong(entry) {
   $("np-singer").textContent = entry.singer; $("np-title").textContent = entry.title;
   showStage(true);
   inst.src = entry.media.instrumental; voc.src = entry.media.vocals;
-  await stage.load(entry);
+  await Promise.all([stage.load(entry), GamePanel.load(entry)]);
   if (current === entry) play(); // unless another song started while lyrics loaded
 }
 
 function stopSong() {
-  current = null; pause(); stage.clear();
+  current = null; pause(); stage.clear(); GamePanel.clear();
   [inst, voc].forEach((a) => { a.removeAttribute("src"); a.load(); });
 }
 
@@ -69,7 +70,7 @@ function seekTo(t) {
 }
 
 const reportEnded = (delay = 0) => { const uid = current?.uid; if (uid) setTimeout(() => send({ type: "ended", uid }), delay); };
-inst.onended = () => reportEnded();
+inst.onended = () => reportEnded(GamePanel.finish()); // game on: results stay up before the next song
 inst.onerror = () => inst.getAttribute("src") && reportEnded(3000); // broken file -> skip
 inst.onplay = inst.onpause = () => { setIcon($("btn-play"), inst.paused ? "play" : "pause"); sendClock(); };
 inst.onseeked = sendClock; // screens jump at once instead of waiting for the next tick
@@ -93,6 +94,7 @@ function tick() {
   const t = inst.currentTime;
   if (!scrubbing) { seek.value = t; $("time-cur").textContent = fmt(t); }
   stage.render(t, !inst.paused);
+  GamePanel.render(t);
 }
 
 function renderQueue(queue) {
