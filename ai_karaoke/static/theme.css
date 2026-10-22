@@ -46,5 +46,14 @@ input[type=range]:disabled { cursor: default; opacity: .4; }
 .lyric-shadow { filter: drop-shadow(0 3px 12px rgba(0, 0, 0, .85)); }
 
 .mic-glow { filter: drop-shadow(0 10px 40px rgba(244, 194, 91, .35)); }
+
+/* Party mode: when the singer is on it, sung words shimmer with a moving highlight */
+.vibe-shine .word {
+  background-image: linear-gradient(100deg, transparent 40%, rgba(255, 250, 230, .9) 50%, transparent 60%),
+                    linear-gradient(90deg, var(--gold) var(--p, 0%), rgba(255, 248, 236, .95) var(--p, 0%));
+  background-size: 250% 100%, 100% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+@keyframes shimmer { from { background-position: 150% 0, 0 0; } to { background-position: -100% 0, 0 0; } }
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-thumb { background: rgba(244, 194, 91, .25); border-radius: 8px; }

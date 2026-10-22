@@ -2,7 +2,7 @@
 // word-by-word fill, the muted video locked to a clock, and break / "♪" hints from the vocal map.
 // Needs common.js. createStage(elements) -> { load(entry), clear(), render(time, playing) }
 function createStage({ main, next, hint, noLyrics, video }) {
-  let song = null, lyrics = [], regions = [], lineIdx = -2, words = [], lastVideoSync = 0;
+  let song = null, lyrics = [], regions = [], lineIdx = -2, words = [], lastVideoSync = 0, lastT = 0;
   const getJSON = async (url, fallback) => {
     if (!url) return fallback;
     try { return await (await fetch(`${url}?v=${Date.now()}`)).json(); } catch { return fallback; } // cache-busted
@@ -60,6 +60,7 @@ function createStage({ main, next, hint, noLyrics, video }) {
 
   function render(t, playing) {
     if (!song) return;
+    lastT = t;
     syncVideo(t, playing);
     const idx = lyrics.findIndex((s) => s.end + 0.4 >= t); // current or upcoming line
     if (idx !== lineIdx) renderLines(idx);
@@ -79,5 +80,12 @@ function createStage({ main, next, hint, noLyrics, video }) {
     if (hint.textContent !== text) hint.textContent = text;
   }
 
-  return { load, clear, render, get song() { return song; } };
+  // The word being sung right now (party effects spark from it), else the whole line
+  function activeWord() {
+    const singing = words.find(({ w }) => w.start <= lastT && lastT <= w.end);
+    return singing ? singing.el : main.childElementCount ? main : null;
+  }
+
+  return { load, clear, render, get song() { return song; },
+           get main() { return main; }, get activeWord() { return activeWord(); } };
 }
