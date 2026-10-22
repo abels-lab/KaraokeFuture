@@ -66,6 +66,9 @@ ALIGN_FAILURE_THRESHOLD = 0.4   # abort align() if >40% of words get zero durati
 # Known lyrics: "mms" (CTC, robust on repetitive/spoken songs; stable-ts kept as fallback) or "stable-ts"
 LYRICS_ALIGNER = os.getenv("KARAOKE_ALIGNER", "mms")
 MIN_LYRIC_LINES = 4             # fewer fetched lines => treat as "not found"
+# Last-resort plain lyrics from Genius. Free token: https://genius.com/api-clients ("Client Access
+# Token"); set it as an environment variable, never in code. Unset => Genius is skipped.
+GENIUS_TOKEN = os.getenv("GENIUS_ACCESS_TOKEN", "").strip()
 
 
 def setup_logging(level: int = logging.INFO) -> None:

@@ -10,7 +10,7 @@ import syncedlyrics
 
 from config import LYRICS_FILE, LYRICS_STORE_DIR, MIN_LYRIC_LINES, ONLINE_LYRICS_FILE
 from core import cache_manager
-from services import lrclib
+from services import genius, lrclib
 
 log = logging.getLogger(__name__)
 
@@ -62,15 +62,18 @@ def _format(lines) -> str:
 
 def fetch_online(title: str, channel: str = "", duration: float | None = None) -> str | None:
     """Lyrics for this exact version from LRCLIB (matched by duration), else from syncedlyrics
-    (Musixmatch, LRCLIB, NetEase, Megalobiz, Genius). LRC timestamps kept."""
+    (Musixmatch, LRCLIB, NetEase, Megalobiz, Genius), else plain text from the Genius API.
+    LRC timestamps kept."""
     query = build_query(title, channel)
     raw = lrclib.search(query, duration) if duration else None
     try:
         raw = raw or syncedlyrics.search(query)
     except Exception as exc:  # providers fail in many ways; never block the pipeline
         log.warning("syncedlyrics failed for %r: %s", query, exc)
-        return None
+        raw = None
     lines = parse_lines(raw)
+    if len(lines) < MIN_LYRIC_LINES:
+        lines = parse_lines(genius.fetch(query))
     if len(lines) < MIN_LYRIC_LINES:
         return None
     log.info("Found %d lyric lines for %r (%s)", len(lines), query, "timed" if timed(lines) else "plain")
