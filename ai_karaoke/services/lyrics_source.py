@@ -73,7 +73,7 @@ def fetch_online(title: str, channel: str = "", duration: float | None = None) -
         raw = None
     lines = parse_lines(raw)
     if len(lines) < MIN_LYRIC_LINES:
-        lines = parse_lines(genius.fetch(query))
+        lines = parse_lines(genius.fetch(query, build_query(title)))
     if len(lines) < MIN_LYRIC_LINES:
         return None
     log.info("Found %d lyric lines for %r (%s)", len(lines), query, "timed" if timed(lines) else "plain")

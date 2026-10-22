@@ -4,6 +4,7 @@ Needs a free API token in GENIUS_ACCESS_TOKEN (see config.GENIUS_TOKEN); skipped
 Only a hit whose artist AND title both match the query is used: wrong-song lyrics are worse
 than none (Genius also lists translation pages such as "Genius Türkçe Çeviriler").
 """
+import difflib
 import logging
 import re
 import unicodedata
@@ -30,28 +31,50 @@ def clean(raw: str) -> str:
     return "\n".join(lines).strip()
 
 
+# Russian -> Latin, so YouTube's "Vintazh" matches Genius's "Винтаж (Vintage)"
+_CYR = dict(zip("абвгдеёжзийклмнопрстуфхцчшщъыьэюя", "a b v g d e e zh z i y k l m n o p r s t u f kh ts ch sh "
+                "shch _ y _ e yu ya".split()))
+
+
 def _tokens(text: str) -> list[str]:
-    text = unicodedata.normalize("NFKD", text or "").lower().replace("&", " and ")
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    return re.findall(r"\w+", re.sub(r"['’`]", "", text))
+    text = re.sub(r"['’`]", "", (text or "").lower().replace("&", " and "))
+    text = unicodedata.normalize("NFKD", "".join(_CYR.get(ch, ch).strip("_") for ch in text))
+    return re.findall(r"\w+", "".join(ch for ch in text if not unicodedata.combining(ch)))
+
+
+def _has(word: str, query: set[str]) -> bool:
+    """Exact, or a close spelling of a longer word (kh/h, yu/iu transliterations)."""
+    return word in query or len(word) >= 4 and any(
+        difflib.SequenceMatcher(None, word, q).ratio() >= 0.8 for q in query if len(q) >= 4)
 
 
 def _covered(part: str, query: set[str], share: float) -> bool:
     words = _tokens(part)
-    return bool(words) and sum(w in query for w in words) / len(words) >= share
+    return bool(words) and sum(_has(w, query) for w in words) / len(words) >= share
 
 
 def matches(query: str, song: dict) -> bool:
     """Every title word (minus "(Remastered)", "ft. X") and most of the artist's name
-    must appear in the query, e.g. "Bubble Guppies Cast" for "Bubble guppies - ..."."""
+    must appear in the query, e.g. "Bubble Guppies Cast" for "Bubble guppies - ...".
+    Genius artists may carry an alias in brackets, "Винтаж (Vintage)": either name counts."""
     words = set(_tokens(query))
     artist = (song.get("primary_artist") or {}).get("name", "")
+    names = [re.sub(r"\([^)]*\)", "", artist)] + re.findall(r"\(([^)]*)\)", artist)
     return (_covered(_TITLE_EXTRA.sub("", song.get("title", "")), words, 1.0)
-            and _covered(artist, words, 0.6))
+            and any(_covered(name, words, 0.6) for name in names))
 
 
-def fetch(query: str) -> str | None:
-    """Plain lyrics for the best matching Genius song, or None. Never raises."""
+def _find(genius, query: str, search: str) -> dict | None:
+    hits = genius.search_songs(search, per_page=20)["hits"]
+    return next((h["result"] for h in hits if h.get("type") == "song" and matches(query, h["result"])
+                 and h["result"].get("lyrics_state") == "complete"
+                 and not h["result"].get("instrumental")), None)
+
+
+def fetch(query: str, title: str = "") -> str | None:
+    """Plain lyrics for the best matching Genius song, or None. Never raises.
+    `title` (cleaned video title) is searched alone when the full query finds no match:
+    Genius search often misses mixed or transliterated queries like "Vintazh Спичка"."""
     global _skip_logged
     if not GENIUS_TOKEN:
         if not _skip_logged:
@@ -62,10 +85,10 @@ def fetch(query: str) -> str | None:
         from lyricsgenius import Genius
 
         genius = Genius(GENIUS_TOKEN, timeout=10, retries=1, verbose=False)
-        hits = genius.search_songs(query, per_page=10)["hits"]
-        song = next((h["result"] for h in hits if h.get("type") == "song" and matches(query, h["result"])
-                     and h["result"].get("lyrics_state") == "complete"
-                     and not h["result"].get("instrumental")), None)
+        alone = title.split(" - ", 1)[-1].strip()  # "Oasis - Wonderwall" -> "Wonderwall"
+        song = _find(genius, query, query)
+        if song is None and alone and alone.lower() != query.lower():
+            song = _find(genius, query, alone)
         if song is None:
             log.info("Genius: no confident match for %r", query)
             return None
