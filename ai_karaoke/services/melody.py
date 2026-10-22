@@ -13,17 +13,15 @@ import numpy as np
 import soundfile as sf
 
 from config import LYRICS_FILE, MELODY_FILE, VOCALS_FILE, free_vram
-from core import cache_manager
+from core import cache_manager, settings
 
 log = logging.getLogger(__name__)
 
 HOP = 0.02            # 50 frames per second
 SR = 16000            # CREPE's sample rate
-VOICED = 0.4          # periodicity above this = a clear sung pitch
 BRIDGE = 3            # unvoiced frames (60 ms) that don't break a note
 SPLIT = 0.8           # semitones away from the running note that start a new one ...
 SPLIT_FRAMES = 3      # ... when it lasts this many frames (60 ms)
-MIN_NOTE = 0.1        # seconds
 
 
 def _pitch_track(path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -54,7 +52,7 @@ def _notes(midi: np.ndarray, voiced: np.ndarray) -> list[dict]:
     notes, run = [], []
 
     def close():
-        if len(run) * HOP >= MIN_NOTE:
+        if len(run) * HOP >= settings.get("melody_min_note"):
             values = midi[[i for i in run if voiced[i]]]
             notes.append({"start": round(run[0] * HOP, 2), "end": round((run[-1] + 1) * HOP, 2),
                           "midi": int(round(float(np.median(values))))})
@@ -124,7 +122,7 @@ def _clean(notes: list[dict], song_id: str) -> list[dict]:
 def extract(song_id: str) -> dict:
     """Compute and save melody.json for a separated song. Returns a short summary."""
     f0, conf, db = _pitch_track(cache_manager.song_file(song_id, VOCALS_FILE))
-    voiced = (conf > VOICED) & (f0 > 0)
+    voiced = (conf > settings.get("melody_voiced")) & (f0 > 0)
     midi = np.where(voiced, 69 + 12 * np.log2(np.maximum(f0, 1.0) / 440.0), 0.0)
     # Smooth wobble inside voiced stretches (vibrato stays, CREPE jitter goes)
     smooth = np.convolve(midi, np.ones(3) / 3, mode="same")

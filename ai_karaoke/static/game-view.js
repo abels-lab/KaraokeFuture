@@ -34,7 +34,7 @@ function createGameView(container, stage) {
     if (mode === "hard") notes.render(t, game.players);
   }
 
-  function showResults(message, ms = 12000) {
+  function showResults(message, ms = Settings.get("game_results_seconds", 12) * 1000) {
     overlay.replaceChildren(resultsCard(message));
     overlay.classList.replace("hidden", "flex");
     clearTimeout(hideTimer);

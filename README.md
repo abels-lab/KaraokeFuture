@@ -19,6 +19,7 @@ Target hardware: Windows 11 with an RTX 3060 (6 GB VRAM). Only one model is held
 | `/screen` | Projector / TV display (lyrics and video) |
 | `/remote` | Guest phones: search and queue songs |
 | `/library` | Song and lyrics manager |
+| `/settings` | Advanced settings (processing, lyrics, game, playback) with per-setting, per-group and full reset; only the laptop can change them unless allowed. Changes are stored in `ai_karaoke/settings.json` (not in git) |
 
 ## Setup (Windows)
 

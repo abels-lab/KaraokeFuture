@@ -29,13 +29,30 @@ async function api(path, { method = "GET", body } = {}) {
   return data;
 }
 
+// Browser-side settings (singing game, playback) from the Settings page; reloaded on every change.
+// Settings.get(key, fallback) works before they arrive; onChange(fn) runs after each (re)load.
+const Settings = (() => {
+  let values = {}, ready = null;
+  const listeners = [];
+  const load = () => (ready = api("/api/settings/client")
+    .then((v) => { values = v; listeners.forEach((fn) => fn(v)); return v; })
+    .catch(() => values));
+  load();
+  return { load, get ready() { return ready; }, get: (key, fallback) => values[key] ?? fallback,
+           onChange: (fn) => listeners.push(fn) };
+})();
+
 // Auto-reconnecting WebSocket; returns send(msg)
 function connectWS(role, onMessage) {
   let ws = null;
   const send = (msg) => ws && ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg));
   const open = () => {
     ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?role=${role}`);
-    ws.onmessage = (ev) => onMessage(JSON.parse(ev.data));
+    ws.onmessage = (ev) => {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === "settings") Settings.load();   // changed on the Settings page
+      onMessage(msg);
+    };
     ws.onclose = () => setTimeout(open, 2000);
   };
   open();

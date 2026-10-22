@@ -10,7 +10,10 @@ const VERDICTS = [ // [threshold, roast metaphor, plain level]
   [0.35, "Car-radio crooner 🚗", "Beginner"], [0.2, "Cat on a hot tin roof 🐈", "Beginner"],
   [0, "A dying duck 🦆", "Keep practising"],
 ];
-const partyPercent = (overall) => Math.round(52 + 46 * Math.min(1, overall / 0.85));
+const partyPercent = (overall) => {   // never below the Settings page's party minimum (default 52)
+  const floor = Math.min(98, Settings.get("party_min_percent", 52));
+  return Math.round(floor + (98 - floor) * Math.min(1, overall / 0.85));
+};
 const pick = (table, x) => table.find(([min]) => x >= min);
 const pct = (x) => (x === null || x === undefined ? "–" : `${Math.round(x * 100)}%`);
 

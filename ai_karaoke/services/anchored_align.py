@@ -12,10 +12,11 @@ import logging
 
 import numpy as np
 
+from core import settings
+
 log = logging.getLogger(__name__)
 
 SR = 16000            # Whisper's sample rate
-MAX_STRAY = 1.5       # aligned line may start this far from its anchor before it is redone
 PAD_BEFORE = 0.6      # window around an anchored line
 PAD_AFTER = 0.4
 MAX_WINDOW = 15.0
@@ -130,7 +131,7 @@ def repair(model, vocals_path: str, segments: list[dict], lines, regions, langua
         start = anchors[i]
         end = anchors[i + 1] if i + 1 < len(anchors) else start + 8.0
         words = segments[i]["words"] if usable else []
-        if (words and abs(words[0]["start"] - start) <= MAX_STRAY and _zero_share(words) < 0.5
+        if (words and abs(words[0]["start"] - start) <= settings.get("anchor_max_stray") and _zero_share(words) < 0.5
                 and not _crammed(words, voice, start, end)):
             out.append({"words": words})
             continue

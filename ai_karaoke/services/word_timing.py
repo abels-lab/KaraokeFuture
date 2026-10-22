@@ -7,12 +7,15 @@ Forced alignment leaves a few typical glitches that look broken on stage:
   - words timed after the end of the audio (lyrics for a longer version of the song);
   - a section's last word stretched across the following break (bleed in the vocal stem);
   - words that end while the singer still holds the note (hold_notes, run once the melody exists).
-Only timings change here, never the text.
+Only timings change here, never the text. The shortest word ("min_word") and the longest
+held word ("hold_max") come from the Settings page.
 """
-MIN_WORD = 0.15     # shortest word duration shown (s)
+from core import settings
+
+_min_word = lambda: settings.get("min_word")  # noqa: E731
+_hold_max = lambda: settings.get("hold_max")  # noqa: E731
 STRAY_GAP = 2.0     # an edge word this far from the rest of its line is misplaced
 STRAY_MAX = 1.0     # duration given to a moved word at most (s), without a vocal map
-HOLD_MAX = 4.0      # ... with one: held to the end of the sung phrase, at most this long
 HOLD_SEMITONES = 2.0   # a held note may drift (vibrato, slides) this far before it counts as a new one
 HOLD_GAP_FRAMES = 4    # unvoiced pitch frames (80 ms) that don't end a held note
 PHRASE_PAD = 0.3       # a word may end this far past the vocal phrase it starts in
@@ -60,13 +63,13 @@ def _cap_to_phrase(words: list[dict], regions) -> None:
     for word in words:
         held = _held_until(word["start"], regions)
         if held is not None and word["end"] > held + PHRASE_PAD:
-            word["end"] = max(held + PHRASE_PAD, word["start"] + MIN_WORD)
+            word["end"] = max(held + PHRASE_PAD, word["start"] + _min_word())
 
 
 def _lengthen_short(words: list[dict]) -> None:
-    """Give too-short words MIN_WORD: from free time before them, then after, then from the next word."""
+    """Give too-short words the minimum duration: from free time before them, then after, then from the next word."""
     for i, word in enumerate(words):
-        need = MIN_WORD - (word["end"] - word["start"])
+        need = _min_word() - (word["end"] - word["start"])
         if need <= 0:
             continue
         prev_end = words[i - 1]["end"] if i else max(0.0, word["start"] - 1.0)
@@ -82,7 +85,7 @@ def _lengthen_short(words: list[dict]) -> None:
         take = min(need, max(0.0, nxt["start"] - word["end"]))
         word["end"] += take
         need -= take
-        spare = (nxt["end"] - nxt["start"]) - MIN_WORD
+        spare = (nxt["end"] - nxt["start"]) - _min_word()
         if need > 0 and spare > 0:  # share the next word's time
             shift = min(need, spare)
             word["end"] += shift
@@ -97,8 +100,8 @@ def hold_notes(segments: list[dict], pitch: list[float], hop: float) -> int:
     words = [w for seg in segments for w in seg["words"]]
     extended = 0
     for i, word in enumerate(words):
-        limit = min(words[i + 1]["start"] - 0.05 if i + 1 < len(words) else word["end"] + HOLD_MAX,
-                    word["end"] + HOLD_MAX)
+        limit = min(words[i + 1]["start"] - 0.05 if i + 1 < len(words) else word["end"] + _hold_max(),
+                    word["end"] + _hold_max())
         frame, gap = int(word["end"] / hop), 0
         if not (0 <= frame < len(pitch)) or pitch[frame] <= 0:
             continue  # not singing a clear note at the word's end

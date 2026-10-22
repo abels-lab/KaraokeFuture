@@ -104,7 +104,13 @@ function renderQueue(queue) {
 }
 
 // ── Controls & startup ────────────────────────────────────────────────────
-const setGuide = (v) => { voc.volume = v / 100; $("guide").value = v; $("guide-value").textContent = `${v}%`; store("guideVolume", String(v)); };
+const setGuide = (v, remember = true) => {
+  voc.volume = v / 100; $("guide").value = v; $("guide-value").textContent = `${v}%`;
+  if (remember) store("guideVolume", String(v)); // moved by hand: this laptop keeps its own value
+};
+// Until the slider is moved here, follow the Settings page's default (also when it changes)
+const initGuide = () => setGuide(Number(store("guideVolume") ?? Settings.get("guide_default", 20)), false);
+Settings.onChange(initGuide);
 $("guide").oninput = (e) => setGuide(Number(e.target.value));
 $("btn-play").onclick = () => (inst.paused ? play() : pause());
 $("btn-restart").onclick = () => onControl("restart");
@@ -132,5 +138,5 @@ document.addEventListener("keydown", (e) => {
 api("/api/info").then(({ qr, remote_url: url }) => {
   $("qr").src = $("qr-big").src = qr; $("qr-url").textContent = $("qr-url-big").textContent = url;
 });
-setGuide(Number(store("guideVolume") ?? 20));
+initGuide();
 requestAnimationFrame(tick);

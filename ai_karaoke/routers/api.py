@@ -5,8 +5,8 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from config import MAX_DURATION_SEC, MAX_QUEUE_LENGTH, MELODY_FILE, qr_svg_data_uri, remote_url
-from core import cache_manager
+from config import MELODY_FILE, qr_svg_data_uri, remote_url
+from core import cache_manager, settings
 from core.queue_manager import queue
 from core.worker import worker
 from services import downloader
@@ -39,7 +39,7 @@ async def search(q: str = Query(min_length=1, max_length=120)):
     except Exception as exc:
         raise HTTPException(502, f"Search failed: {exc}") from exc
     for item in results:
-        item["too_long"] = (item["duration"] or 0) > MAX_DURATION_SEC
+        item["too_long"] = (item["duration"] or 0) > settings.get("max_duration_min") * 60
         item["cached"] = cache_manager.is_ready(item["id"])
     return {"results": results}
 
@@ -57,9 +57,9 @@ async def add_to_queue(req: QueueRequest):
         raise HTTPException(422, "Singer name is required")
     if not downloader.is_valid_id(req.song_id):
         raise HTTPException(400, "Invalid song id")
-    if (req.duration or 0) > MAX_DURATION_SEC:
+    if (req.duration or 0) > settings.get("max_duration_min") * 60:
         raise HTTPException(400, "Song is too long")
-    if len(queue.entries) >= MAX_QUEUE_LENGTH:
+    if len(queue.entries) >= settings.get("max_queue"):
         raise HTTPException(429, "The queue is full — try again later")
 
     entry = await queue.add(req.song_id, req.title.strip(), req.channel.strip(),

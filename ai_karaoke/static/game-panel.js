@@ -72,7 +72,7 @@ const GamePanel = (() => {
     channel?.postMessage(message);
     ensureView().showResults(message);
     Game.clear();
-    return 12000;
+    return Settings.get("game_results_seconds", 12) * 1000;
   }
 
   function clear() { Game.clear(); view?.clear(); entry = null; }

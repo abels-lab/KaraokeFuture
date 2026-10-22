@@ -12,7 +12,7 @@ import numpy as np
 import soundfile as sf
 
 from config import VOCAL_MAP_FILE, VOCALS_FILE
-from core import cache_manager
+from core import cache_manager, settings
 
 log = logging.getLogger(__name__)
 
@@ -20,10 +20,6 @@ FRAME = 0.05          # 50 ms loudness frames
 GRID = 10             # timeline resolution for coverage maths (10 steps per second)
 BRIDGE_GAP = 0.6      # breaths shorter than this don't split a vocal phrase
 MIN_PHRASE = 0.3      # shorter blips are clicks or bleed, not singing
-LENIENT_DB = 28.0     # "any vocal sound": this far below the singer's loud parts (95th pct)
-STRICT_DB = 10.0      # "clearly singing": close to the singer's loud parts
-HOLD_PAD = 1.2        # singers hold the last note past a line's end timestamp
-MIN_UNMATCHED = 2.5   # shorter sung stretches without lyrics are ignored
 
 
 def _runs(mask: np.ndarray, step: float) -> list[list[float]]:
@@ -48,7 +44,8 @@ def analyse(path) -> dict:
     frames = mono[: len(mono) // hop * hop].reshape(-1, hop)
     db = 20 * np.log10(np.sqrt((frames ** 2).mean(axis=1)) + 1e-9)
     peak = float(np.percentile(db, 95))
-    return {"regions": _phrases(db > max(peak - LENIENT_DB, -50.0)), "loud": _phrases(db > peak - STRICT_DB)}
+    return {"regions": _phrases(db > max(peak - settings.get("vocal_lenient_db"), -50.0)),
+            "loud": _phrases(db > peak - settings.get("vocal_strict_db"))}
 
 
 def map_for(song_id: str) -> dict:
@@ -86,14 +83,14 @@ def unmatched(loud, segments) -> list[list[float]]:
         return []
     length = int((loud[-1][1] + 2) * GRID)
     sung = _mask(loud, length)
-    covered = _mask(((s["start"], s["end"]) for s in segments), length, before=0.3, after=HOLD_PAD)
+    covered = _mask(((s["start"], s["end"]) for s in segments), length, before=0.3, after=settings.get("hold_pad"))
     merged: list[list[float]] = []
     for start, end in _runs(sung & ~covered, 1 / GRID):
         if merged and start - merged[-1][1] < BRIDGE_GAP:
             merged[-1][1] = end
         else:
             merged.append([start, end])
-    return [[round(s, 1), round(e, 1)] for s, e in merged if e - s >= MIN_UNMATCHED]
+    return [[round(s, 1), round(e, 1)] for s, e in merged if e - s >= settings.get("min_unmatched")]
 
 
 def timing_quality(segments: list[dict], regions) -> dict:

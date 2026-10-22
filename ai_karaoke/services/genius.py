@@ -10,6 +10,7 @@ import re
 import unicodedata
 
 from config import GENIUS_TOKEN
+from core import settings
 
 log = logging.getLogger(__name__)
 
@@ -76,6 +77,8 @@ def fetch(query: str, title: str = "") -> str | None:
     `title` (cleaned video title) is searched alone when the full query finds no match:
     Genius search often misses mixed or transliterated queries like "Vintazh Спичка"."""
     global _skip_logged
+    if not settings.get("use_genius"):
+        return None
     if not GENIUS_TOKEN:
         if not _skip_logged:
             log.info("GENIUS_ACCESS_TOKEN not set: skipping Genius lyrics")
