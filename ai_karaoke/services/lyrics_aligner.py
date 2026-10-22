@@ -13,9 +13,8 @@ import re
 
 import soundfile as sf
 
-from config import (ALIGN_FAILURE_THRESHOLD, CONDITION_ON_PREVIOUS_TEXT, LYRICS_ALIGNER, LYRICS_FILE,
-                    MAX_CHARS_PER_SEC, VOCALS_FILE, WHISPER_COMPUTE_TYPE, WHISPER_MODEL, free_vram)
-from core import cache_manager
+from config import LYRICS_FILE, VOCALS_FILE, free_vram
+from core import cache_manager, settings
 from services import anchored_align, lrclib, lyrics_source, mms_align, vocal_activity, word_timing
 
 log = logging.getLogger(__name__)
@@ -34,8 +33,8 @@ def _run_with_model(step, *args):
     model, on_gpu = None, torch.cuda.is_available()
     try:
         model = stable_whisper.load_faster_whisper(
-            WHISPER_MODEL, device="cuda" if on_gpu else "cpu",
-            compute_type=WHISPER_COMPUTE_TYPE if on_gpu else "int8")
+            settings.get("whisper_model"), device="cuda" if on_gpu else "cpu",
+            compute_type=settings.get("whisper_compute") if on_gpu else "int8")
         return step(model, *args)
     finally:
         del model
@@ -53,7 +52,7 @@ def _align(model, vocals: str, lines, regions):
     language = lyrics_source.detect_language(text)
     try:  # original_split keeps one segment per lyric line
         result = model.align(vocals, text, language=language, original_split=True,
-                             failure_threshold=ALIGN_FAILURE_THRESHOLD)
+                             failure_threshold=settings.get("align_failure_threshold"))
     except Exception as exc:
         log.warning("Global alignment failed: %s", exc)
         result = None
@@ -70,10 +69,10 @@ def _align(model, vocals: str, lines, regions):
 
 def _align_known(vocals: str, lines, regions):
     """MMS first (does not drift on repetitive or half-spoken songs), else stable-ts."""
-    aligned = mms_align.align(vocals, lines) if LYRICS_ALIGNER == "mms" else None
+    aligned = mms_align.align(vocals, lines) if settings.get("lyrics_aligner") == "mms" else None
     if aligned and not vocal_activity.timing_quality(_to_segments(aligned, drop_dense=False), regions)["poor"]:
         return aligned, "mms"
-    if LYRICS_ALIGNER == "mms":
+    if settings.get("lyrics_aligner") == "mms":
         log.info("MMS could not align these lyrics%s: using stable-ts", " well" if aligned else "")
     return _run_with_model(_align, vocals, lines, regions), "stable-ts"
 
@@ -81,7 +80,7 @@ def _align_known(vocals: str, lines, regions):
 def _transcribe(model, vocals: str):
     transcribe = getattr(model, "transcribe_stable", None) or model.transcribe
     result = transcribe(vocals, word_timestamps=True, vad=True,
-                        condition_on_previous_text=CONDITION_ON_PREVIOUS_TEXT)
+                        condition_on_previous_text=settings.get("condition_on_previous_text"))
     return _plain(result.split_by_gap(0.8).split_by_length(max_chars=48))
 
 
@@ -97,7 +96,7 @@ def _to_segments(raw: list[dict], drop_dense: bool, regions=()) -> list[dict]:
         text = "".join(w["word"] for w in words).strip()
         start, end = words[0]["start"], words[-1]["end"]
         silent = bool(regions) and vocal_activity.vocal_fraction(start, end, regions) < 0.2
-        if drop_dense and (len(text) > MAX_CHARS_PER_SEC * max(end - start, 0.1) or silent
+        if drop_dense and (len(text) > settings.get("max_chars_per_sec") * max(end - start, 0.1) or silent
                            or _HALLUCINATIONS.match(text)):
             log.info("Dropping implausible line (%.1fs%s): %s", end - start, ", silent" if silent else "", text)
             continue

@@ -5,16 +5,12 @@ from pathlib import Path
 
 from config import (
     INSTRUMENTAL_FILE,
-    KEEP_ORIGINAL,
     MODELS_DIR,
     ORIGINAL_FILE,
-    SEPARATOR_FP16,
-    SEPARATOR_MODEL,
-    SEPARATOR_OVERLAP,
     VOCALS_FILE,
     free_vram,
 )
-from core import cache_manager
+from core import cache_manager, settings
 
 log = logging.getLogger(__name__)
 
@@ -88,12 +84,12 @@ def separate(song_id: str) -> tuple[Path, Path]:
             output_format="WAV",
             model_file_dir=str(MODELS_DIR),
             log_level=logging.WARNING,
-            use_autocast=SEPARATOR_FP16,
+            use_autocast=settings.get("separator_fp16"),
             mdxc_params={"segment_size": 256, "override_model_segment_size": False,
-                         "batch_size": 1, "overlap": SEPARATOR_OVERLAP, "pitch_shift": 0},
+                         "batch_size": 1, "overlap": settings.get("separator_overlap"), "pitch_shift": 0},
         )
-        separator.load_model(model_filename=SEPARATOR_MODEL)
-        log.info("Separating %s with %s", song_id, SEPARATOR_MODEL)
+        separator.load_model(model_filename=(model := settings.get("separator_model")))
+        log.info("Separating %s with %s", song_id, model)
         outputs = separator.separate(str(source))
     except Exception as exc:
         raise SeparationError(f"Separation failed: {exc}") from exc
@@ -102,7 +98,7 @@ def separate(song_id: str) -> tuple[Path, Path]:
         free_vram()
 
     _organise_outputs(folder, outputs)
-    if not KEEP_ORIGINAL:
+    if not settings.get("keep_original"):
         source.unlink(missing_ok=True)
 
     cache_manager.update_meta(song_id, status="separated")

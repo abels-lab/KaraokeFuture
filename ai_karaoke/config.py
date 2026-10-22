@@ -12,6 +12,8 @@ MODELS_DIR = Path(os.getenv("KARAOKE_MODELS_DIR", BASE_DIR / "models"))
 STATIC_DIR = BASE_DIR / "static"
 # Guest-pasted lyrics, one <song_id>.txt each. Outside CACHE_DIR: never evicted.
 LYRICS_STORE_DIR = Path(os.getenv("KARAOKE_LYRICS_DIR", BASE_DIR / "lyrics_store"))
+# Changes made on the Settings page (only values that differ from the defaults below)
+SETTINGS_FILE = Path(os.getenv("KARAOKE_SETTINGS_FILE", BASE_DIR / "settings.json"))
 
 for _dir in (CACHE_DIR, MODELS_DIR, STATIC_DIR, LYRICS_STORE_DIR):
     _dir.mkdir(parents=True, exist_ok=True)

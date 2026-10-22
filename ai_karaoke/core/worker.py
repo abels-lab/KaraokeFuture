@@ -9,8 +9,7 @@ import contextlib
 import logging
 import time
 
-from config import DOWNLOAD_VIDEO
-from core import cache_manager
+from core import cache_manager, settings
 from core.hub import hub
 from core.queue_manager import queue
 from services import downloader, lyrics_aligner, melody, separator
@@ -132,7 +131,7 @@ class Worker:
         await asyncio.to_thread(downloader.download, song_id, queue.protected_ids())
         await self._stage(song_id, "separating")
         # Video is network-bound, separation is GPU-bound: fetch it meanwhile (no VRAM involved)
-        video = asyncio.create_task(asyncio.to_thread(downloader.download_video, song_id)) if DOWNLOAD_VIDEO else None
+        video = asyncio.create_task(asyncio.to_thread(downloader.download_video, song_id)) if settings.get("download_video") else None
         await asyncio.to_thread(separator.separate, song_id)
         if video:
             await video  # download_video never raises; a song without video still plays

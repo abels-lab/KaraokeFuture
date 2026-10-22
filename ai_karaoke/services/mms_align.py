@@ -16,6 +16,7 @@ import statistics
 import unicodedata
 
 from config import free_vram
+from core import settings
 from services import anchored_align
 
 log = logging.getLogger(__name__)
@@ -123,7 +124,7 @@ def _check_anchors(segments, conf, lines, texts, aligner, tokenizer, emission, s
     for i, (seg, line) in enumerate(zip(segments, texts)):
         around = diffs[max(0, i - NEIGHBOURS): i] + diffs[i + 1: i + 1 + NEIGHBOURS]
         local = statistics.median(around) if around else 0.0
-        if abs(diffs[i] - local) <= aa.MAX_STRAY:
+        if abs(diffs[i] - local) <= settings.get("anchor_max_stray"):
             continue
         start = lines[i][0] + local
         end = (lines[i + 1][0] + local) if i + 1 < len(lines) else start + 8.0

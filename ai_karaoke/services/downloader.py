@@ -5,8 +5,8 @@ from pathlib import Path
 
 from yt_dlp import YoutubeDL
 
-from config import MAX_DURATION_SEC, ORIGINAL_FILE, SEARCH_RESULTS, VIDEO_MAX_HEIGHT, VIDEO_STEM
-from core import cache_manager
+from config import ORIGINAL_FILE, VIDEO_STEM
+from core import cache_manager, settings
 
 log = logging.getLogger(__name__)
 
@@ -31,14 +31,14 @@ def _clean_channel(name: str) -> str:
     return re.sub(r"\s*-\s*Topic$|VEVO$", "", name or "").strip()
 
 
-def search(query: str, limit: int = SEARCH_RESULTS) -> list[dict]:
+def search(query: str, limit: int | None = None) -> list[dict]:
     """Fast flat search: returns [{id, title, channel, duration, thumbnail}]."""
     query = (query or "").strip()
     if not query:
         return []
     opts = {**_BASE_OPTS, "extract_flat": "in_playlist", "skip_download": True}
     with YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(f"ytsearch{limit}:{query}", download=False)
+        info = ydl.extract_info(f"ytsearch{limit or settings.get('search_results')}:{query}", download=False)
 
     results = []
     for entry in info.get("entries") or []:
@@ -80,9 +80,10 @@ def download(song_id: str, protect: set[str] | None = None) -> Path:
         with YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False)
             duration = info.get("duration") or 0
-            if duration > MAX_DURATION_SEC:
+            max_seconds = settings.get("max_duration_min") * 60
+            if duration > max_seconds:
                 raise DownloadError(
-                    f"Track is {duration // 60} min long (limit {MAX_DURATION_SEC // 60} min)"
+                    f"Track is {duration // 60} min long (limit {max_seconds // 60:.0f} min)"
                 )
             ydl.process_ie_result(info, download=True)
     except DownloadError:
@@ -122,7 +123,7 @@ def download_video(song_id: str) -> Path | None:
     """
     if (existing := find_video(song_id)) is not None:
         return existing
-    h = VIDEO_MAX_HEIGHT
+    h = settings.get("video_max_height")
     opts = {
         **_BASE_OPTS,
         "format": f"bv*[height<={h}][vcodec^=avc1]/bv*[height<={h}][ext=mp4]/bv*[height<={h}]/bv*",

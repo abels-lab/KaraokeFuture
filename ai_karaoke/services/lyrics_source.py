@@ -8,8 +8,8 @@ import re
 
 import syncedlyrics
 
-from config import LYRICS_FILE, LYRICS_STORE_DIR, MIN_LYRIC_LINES, ONLINE_LYRICS_FILE
-from core import cache_manager
+from config import LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
+from core import cache_manager, settings
 from services import genius, lrclib
 
 log = logging.getLogger(__name__)
@@ -72,9 +72,9 @@ def fetch_online(title: str, channel: str = "", duration: float | None = None) -
         log.warning("syncedlyrics failed for %r: %s", query, exc)
         raw = None
     lines = parse_lines(raw)
-    if len(lines) < MIN_LYRIC_LINES:
+    if len(lines) < settings.get("min_lyric_lines"):
         lines = parse_lines(genius.fetch(query, build_query(title)))
-    if len(lines) < MIN_LYRIC_LINES:
+    if len(lines) < settings.get("min_lyric_lines"):
         return None
     log.info("Found %d lyric lines for %r (%s)", len(lines), query, "timed" if timed(lines) else "plain")
     return _format(lines)
@@ -120,8 +120,8 @@ def _user_path(song_id: str):
 def save_user(song_id: str, raw: str) -> int:
     """Plain text or LRC; LRC timestamps are kept as alignment anchors."""
     lines = parse_lines(raw)
-    if len(lines) < MIN_LYRIC_LINES:
-        raise ValueError(f"Please paste at least {MIN_LYRIC_LINES} lines of lyrics")
+    if len(lines) < (least := settings.get("min_lyric_lines")):
+        raise ValueError(f"Please paste at least {least} lines of lyrics")
     _user_path(song_id).write_text(_format(lines), encoding="utf-8")
     return len(lines)
 

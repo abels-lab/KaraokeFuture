@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from config import CACHE_DIR, HOST, PORT, STATIC_DIR, get_local_ip, setup_logging
 from core import cache_manager
 from core.worker import worker
-from routers import api, library, ws
+from routers import api, library, settings, ws
 
 setup_logging()
 log = logging.getLogger("karaoke")
@@ -48,9 +48,11 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="AI Karaoke", lifespan=lifespan)
 app.include_router(api.router)
 app.include_router(library.router)
+app.include_router(settings.router)
 app.include_router(ws.router)
 
-PAGES = {"tv": "tv.html", "screen": "screen.html", "remote": "remote.html", "library": "library.html"}
+PAGES = {"tv": "tv.html", "screen": "screen.html", "remote": "remote.html", "library": "library.html",
+         "settings": "settings.html"}
 
 
 @app.middleware("http")

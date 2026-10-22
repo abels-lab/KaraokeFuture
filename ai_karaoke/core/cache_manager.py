@@ -11,12 +11,12 @@ from typing import Iterable
 from config import (
     CACHE_DIR,
     CACHE_HEADROOM_BYTES,
-    CACHE_LIMIT_BYTES,
     INSTRUMENTAL_FILE,
     LYRICS_FILE,
     META_FILE,
     VOCALS_FILE,
 )
+from core import settings
 
 log = logging.getLogger(__name__)
 _lock = threading.RLock()
@@ -118,7 +118,7 @@ def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYT
         sizes = {d: folder_size(d) for d in dirs}
         total = sum(sizes.values())
         for folder in sorted(dirs, key=_last_access):
-            if total + headroom <= CACHE_LIMIT_BYTES:
+            if total + headroom <= settings.get("cache_limit_gb") * 1024**3:
                 break
             if folder.name in protected:
                 continue

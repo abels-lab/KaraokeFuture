@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0705">
+  <title>Karaoke Settings</title>
+  <link rel="icon" href="/static/img/microphone.png">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;900&display=swap">
+  <link rel="stylesheet" href="/static/theme.css">
+</head>
+<body class="antialiased">
+  <div class="mx-auto max-w-4xl space-y-5 px-4 pb-24 pt-5">
+    <header class="flex flex-wrap items-center gap-3">
+      <img src="/static/img/microphone.png" alt="" class="mic-glow h-12 w-auto -rotate-12">
+      <div class="flex-1">
+        <h1 class="font-display text-3xl font-black text-gold">Advanced settings</h1>
+        <p class="text-sm text-stone-400">Fine-tune how songs are processed and scored. Every change is saved at once.</p>
+      </div>
+      <a href="/tv" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">📺 Stage</a>
+      <a href="/library" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20">📚 Library</a>
+    </header>
+
+    <p id="readonly" class="panel hidden border-amber-500/40 p-3 text-sm text-amber-200">
+      🔒 View only — settings can be changed on the laptop running the karaoke
+      (or switch on “Allow changes from other devices” there).</p>
+
+    <section class="panel flex flex-wrap items-center gap-3 p-3">
+      <input id="filter" type="search" placeholder="Find a setting…"
+             class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400">
+      <span id="changed" class="text-sm text-stone-400"></span>
+      <button id="reset-all" class="rounded-xl bg-red-900/70 px-4 py-2 text-sm font-semibold hover:bg-red-800 disabled:opacity-30">
+        ↺ Reset all to defaults</button>
+    </section>
+
+    <div id="groups" class="space-y-5"></div>
+  </div>
+
+  <script src="/static/common.js"></script>
+  <script src="/static/settings.js"></script>
+</body>
+</html>

@@ -5,8 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from config import CACHE_LIMIT_BYTES
-from core import cache_manager
+from core import cache_manager, settings
 from core.queue_manager import queue
 from core.worker import worker
 from services import downloader, lyrics_source
@@ -47,7 +46,7 @@ def _summary(meta: dict) -> dict:
 @router.get("/library")
 async def library():
     songs = [_summary(m) for m in await asyncio.to_thread(cache_manager.list_songs)]
-    return {"songs": songs, "used": sum(s["size"] for s in songs), "limit": CACHE_LIMIT_BYTES}
+    return {"songs": songs, "used": sum(s["size"] for s in songs), "limit": settings.get("cache_limit_gb") * 1024**3}
 
 
 @router.get("/songs/{song_id}/lyrics")

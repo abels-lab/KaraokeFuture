@@ -9,10 +9,11 @@ import re
 
 import requests
 
+from core import settings
+
 log = logging.getLogger(__name__)
 
 SEARCH_URL = "https://lrclib.net/api/search"
-MAX_DURATION_DIFF = 3.0   # seconds between LRCLIB's duration and our audio
 _STAMP = re.compile(r"\[(\d{1,3}):(\d{1,2}(?:\.\d{1,3})?)\]")
 
 
@@ -30,7 +31,7 @@ def fits(lrc: str, duration: float | None) -> bool:
 
 
 def search(query: str, duration: float) -> str | None:
-    """Synced LRC of the upload closest to `duration` (within MAX_DURATION_DIFF), else None."""
+    """Synced LRC of the upload closest to `duration` (within the "lrclib_duration_diff" setting), else None."""
     for _ in range(2):  # LRCLIB answers 503 "server busy" now and then
         try:
             response = requests.get(SEARCH_URL, params={"q": query}, timeout=15,
@@ -47,7 +48,7 @@ def search(query: str, duration: float) -> str | None:
         return None
     # Uploaded durations are sometimes wrong (album LRC labelled as the video edit): check the stamps too
     matches = [r for r in results if isinstance(r, dict) and r.get("syncedLyrics") and r.get("duration")
-               and abs(r["duration"] - duration) <= MAX_DURATION_DIFF and fits(r["syncedLyrics"], duration)]
+               and abs(r["duration"] - duration) <= settings.get("lrclib_duration_diff") and fits(r["syncedLyrics"], duration)]
     if not matches:
         return None
     best = min(matches, key=lambda r: abs(r["duration"] - duration))

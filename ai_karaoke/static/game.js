@@ -2,7 +2,8 @@
 // Pitch (octave-folded, so any voice can sing any song), timing (singing where the original
 // sings) and loudness (rising and falling with the original). No text recognition.
 const Game = (() => {
-  const GATE_DB = -48, PERFECT = 0.5, MISS = 2.0;   // semitones: full credit ... no credit
+  // From the Settings page, read at each song's start: noise gate (dB), pitch window (semitones)
+  let GATE_DB = -48, PERFECT = 0.5, MISS = 2.0;
   let melody = null, players = [], noteIdx = 0, sungFrames = 1;
 
   const fold = (d) => ((d % 12) + 18) % 12 - 6;      // nearest-octave difference in semitones
@@ -14,6 +15,9 @@ const Game = (() => {
   }
 
   function load(melodyJson, names) {
+    GATE_DB = Settings.get("game_gate_db", -48);
+    PERFECT = Settings.get("game_perfect", 0.5);
+    MISS = Math.max(PERFECT + 0.1, Settings.get("game_miss", 2.0));
     melody = melodyJson;
     noteIdx = 0;
     sungFrames = Math.max(1, melody.energy.filter((e) => e > 0.25).length); // points = share of these
