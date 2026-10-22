@@ -36,6 +36,16 @@ def _similar(song: dict, query: str) -> float:
     return len(want & got) / max(len(want), 1)
 
 
+def candidates(meta: dict) -> list[int]:
+    """USDB ids for a song: artist + title from the video title (or channel), then looser tries."""
+    clean = re.sub(r"\s+[—–]\s+", " - ", lyrics_source.build_query(meta.get("title", "")))
+    clean = re.sub(r"\s+(ft\.?|feat\.?|featuring)\s.*$", "", clean, flags=re.IGNORECASE)  # USDB lists the main artist
+    channel = re.sub(r"\s*(- topic|vevo|official)\s*$", "", meta.get("channel", ""), flags=re.IGNORECASE)
+    artist, _, title = (s.strip() for s in (clean.partition(" - ") if " - " in clean else (channel, "", clean)))
+    return (usdb.search(artist, title) or usdb.search(artist, title.replace("'", "").replace("’", ""))
+            or usdb.search("", title))
+
+
 def fetch_for(song_id: str) -> str | None:
     """Find, check and store an UltraStar file for a downloaded song: "video", "title" or None.
     Never raises: a song without a file is simply timed by the normal pipeline."""
@@ -52,10 +62,7 @@ def _fetch(song_id: str) -> str | None:
     if path.is_file() or not usdb.configured() or meta.get("usdb") is not None:
         return (meta.get("usdb") or {}).get("match")
     query = lyrics_source.build_query(meta.get("title", ""), meta.get("channel", ""))
-    clean = lyrics_source.build_query(meta.get("title", ""))
-    channel = re.sub(r"\s*(- topic|vevo|official)\s*$", "", meta.get("channel", ""), flags=re.IGNORECASE)
-    artist, _, title = clean.partition(" - ") if " - " in clean else (channel, "", clean)
-    found = usdb.search(artist.strip(), title.strip()) or usdb.search("", title.strip())
+    found = candidates(meta)
     best, why = None, None
     for usdb_id in found[:MAX_CANDIDATES]:
         try:
