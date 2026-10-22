@@ -1,8 +1,7 @@
-"""Sequential background worker: download -> separate -> align, one job at a time.
+"""Sequential background worker: download -> separate -> UltraStar file or align + melody.
 
-A single asyncio task consumes jobs; each blocking step runs in a thread via
-asyncio.to_thread and is awaited before the next starts, so the separator and
-Whisper are never in VRAM together. Jobs: process | lyrics | rebuild | video | melody.
+One asyncio task runs one job at a time, each blocking step in a thread, so no two models are
+ever in VRAM together. Jobs: process | lyrics | rebuild | video | melody.
 """
 import asyncio
 import contextlib
@@ -12,7 +11,7 @@ import time
 from core import cache_manager, settings
 from core.hub import hub
 from core.queue_manager import queue
-from services import downloader, lyrics_aligner, melody, separator
+from services import downloader, lyrics_aligner, melody, separator, ultrastar_source
 
 log = logging.getLogger(__name__)
 
@@ -68,9 +67,10 @@ class Worker:
             await self._jobs.put(job)
             await hub.broadcast({"type": "library"})
 
-    async def _stage(self, song_id: str, stage: str) -> None:
+    async def _stage(self, song_id: str, stage: str, status: bool = True) -> None:
         self.stages[song_id] = stage
-        await queue.set_song_status(song_id, stage)
+        if status:  # a re-sync keeps the song playable: its queue status stays untouched
+            await queue.set_song_status(song_id, stage)
         await hub.broadcast({"type": "library"})
 
     async def _run(self) -> None:
@@ -114,13 +114,17 @@ class Worker:
     async def _realign(self, song_id: str) -> None:
         if not cache_manager.is_ready(song_id):  # not processed yet: the pipeline reads the text
             return
-        self.stages[song_id] = "aligning"
-        await hub.broadcast({"type": "library"})
-        meta = cache_manager.read_meta(song_id)
-        await asyncio.to_thread(lyrics_aligner.generate_lyrics, song_id,
-                                meta.get("title", ""), meta.get("channel", ""))
-        await self._melody(song_id)  # notes are tagged with lyric words: refresh them too
+        await self._stage(song_id, "aligning", status=False)
+        await asyncio.to_thread(ultrastar_source.fetch_for, song_id)  # songs cached before USDB support
+        await self._time_lyrics(song_id, status=False)
         await queue.media_updated(song_id)
+
+    async def _time_lyrics(self, song_id: str, status: bool = True) -> None:  # UltraStar file, else align + pitch
+        if not await asyncio.to_thread(ultrastar_source.apply, song_id):
+            meta = cache_manager.read_meta(song_id)
+            await asyncio.to_thread(lyrics_aligner.generate_lyrics, song_id, meta.get("title", ""), meta.get("channel", ""))
+            await self._stage(song_id, "melody", status)
+            await self._melody(song_id)  # notes are tagged with lyric words: refresh them too
 
     async def _process(self, song_id: str) -> None:
         if cache_manager.is_ready(song_id):
@@ -130,17 +134,14 @@ class Worker:
         await self._stage(song_id, "downloading")
         await asyncio.to_thread(downloader.download, song_id, queue.protected_ids())
         await self._stage(song_id, "separating")
-        # Video is network-bound, separation is GPU-bound: fetch it meanwhile (no VRAM involved)
-        video = asyncio.create_task(asyncio.to_thread(downloader.download_video, song_id)) if settings.get("download_video") else None
+        # Network-only while the GPU separates: an UltraStar file and the video (neither raises)
+        side = [asyncio.create_task(asyncio.to_thread(ultrastar_source.fetch_for, song_id))]
+        if settings.get("download_video"):
+            side.append(asyncio.create_task(asyncio.to_thread(downloader.download_video, song_id)))
         await asyncio.to_thread(separator.separate, song_id)
-        if video:
-            await video  # download_video never raises; a song without video still plays
+        await asyncio.gather(*side)
         await self._stage(song_id, "aligning")
-        meta = cache_manager.read_meta(song_id)
-        await asyncio.to_thread(lyrics_aligner.generate_lyrics, song_id,
-                                meta.get("title", ""), meta.get("channel", ""))
-        await self._stage(song_id, "melody")
-        await self._melody(song_id)
+        await self._time_lyrics(song_id)
         cache_manager.update_meta(song_id, status="ready", last_accessed=time.time())
         await queue.set_song_status(song_id, "ready")
         log.info("%s ready in %.0fs", song_id, time.perf_counter() - started)

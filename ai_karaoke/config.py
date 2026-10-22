@@ -71,6 +71,8 @@ MIN_LYRIC_LINES = 4             # fewer fetched lines => treat as "not found"
 # Last-resort plain lyrics from Genius. Free token: https://genius.com/api-clients ("Client Access
 # Token"); set it as an environment variable, never in code. Unset => Genius is skipped.
 GENIUS_TOKEN = os.getenv("GENIUS_ACCESS_TOKEN", "").strip()
+# Ready-made UltraStar timing (lyrics, syllables, notes, duets) from usdb.animux.de: set USDB_USER and
+# USDB_PASSWORD (your free USDB account) in the environment; without them the lookup is skipped.
 
 
 def setup_logging(level: int = logging.INFO) -> None:

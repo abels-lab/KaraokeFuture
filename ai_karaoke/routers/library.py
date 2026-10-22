@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from core import cache_manager, settings
 from core.queue_manager import queue
 from core.worker import worker
-from services import downloader, lyrics_source
+from services import downloader, lyrics_source, ultrastar_source
 
 router = APIRouter(prefix="/api")
 
@@ -86,6 +86,7 @@ async def regenerate(song_id: str, req: RegenerateRequest):
         if req.reset:  # back to automatic: forget pasted text and search online afresh
             lyrics_source.delete_user(song_id)
             lyrics_source.forget_online(song_id)
+            ultrastar_source.forget(song_id)
         await worker.submit_lyrics(song_id)
     return {"ok": True}
 

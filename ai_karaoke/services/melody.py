@@ -121,6 +121,8 @@ def _clean(notes: list[dict], song_id: str) -> list[dict]:
 
 def extract(song_id: str) -> dict:
     """Compute and save melody.json for a separated song. Returns a short summary."""
+    if (meta := cache_manager.read_meta(song_id)).get("lyrics_source") == "ultrastar":
+        return meta.get("melody") or {}  # its notes came with the UltraStar file
     f0, conf, db = _pitch_track(cache_manager.song_file(song_id, VOCALS_FILE))
     voiced = (conf > settings.get("melody_voiced")) & (f0 > 0)
     midi = np.where(voiced, 69 + 12 * np.log2(np.maximum(f0, 1.0) / 440.0), 0.0)
