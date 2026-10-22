@@ -5,6 +5,7 @@ Forced alignment leaves a few typical glitches that look broken on stage:
   - a line's last word stranded seconds later, right before the next line, so the line
     hangs through an instrumental break (or a first word stranded long before the rest);
   - words timed after the end of the audio (lyrics for a longer version of the song);
+  - a section's last word stretched across the following break (bleed in the vocal stem);
   - words that end while the singer still holds the note (hold_notes, run once the melody exists).
 Only timings change here, never the text.
 """
@@ -14,6 +15,7 @@ STRAY_MAX = 1.0     # duration given to a moved word at most (s), without a voca
 HOLD_MAX = 4.0      # ... with one: held to the end of the sung phrase, at most this long
 HOLD_SEMITONES = 2.0   # a held note may drift (vibrato, slides) this far before it counts as a new one
 HOLD_GAP_FRAMES = 4    # unvoiced pitch frames (80 ms) that don't end a held note
+PHRASE_PAD = 0.3       # a word may end this far past the vocal phrase it starts in
 
 
 def _clamp(value: float, low: float, high: float) -> float:
@@ -26,21 +28,39 @@ def _held_until(start: float, regions) -> float | None:
 
 
 def _reattach_edges(words: list[dict], prev_end: float | None, next_start: float | None, regions) -> None:
-    """Only a word crammed against the neighbouring line is stranded; a lone late word with
-    room around it may really be sung late."""
+    """Words after a long gap inside a line are stranded when crammed against the next line, or
+    when the gap is very long (aligners park them in bleed during a break); a lone late word with
+    room around it may really be sung late. A stranded tail follows the rest of its line."""
     if len(words) < 2:
         return
-    last, before = words[-1], words[-2]
-    if last["start"] - before["end"] > STRAY_GAP and next_start is not None and next_start - last["end"] < 0.3:
-        start = before["end"] + 0.05
-        held = _held_until(start, regions)
-        span = _clamp((held or 0) - start, 0.3, HOLD_MAX) if held else _clamp(last["end"] - last["start"], 0.3, STRAY_MAX)
-        last["start"], last["end"] = start, start + span
+    for k in range(1, len(words)):
+        gap = words[k]["start"] - words[k - 1]["end"]
+        crammed = next_start is not None and next_start - words[-1]["end"] < 0.3
+        if gap > STRAY_GAP and (crammed or gap > 2 * STRAY_GAP):
+            # The word before the gap usually swallowed the tail's real time: share it out by length
+            moved = words[k - 1:]
+            start = moved[0]["start"]
+            end = max(moved[0]["end"], start + 0.3 * len(moved))
+            weights = [len(w["word"].strip()) + 1 for w in moved]
+            t = start
+            for word, weight in zip(moved, weights):
+                word["start"], t = t, t + (end - start) * weight / sum(weights)
+                word["end"] = t - 0.02
+            break
     first, after = words[0], words[1]
     if after["start"] - first["end"] > STRAY_GAP and prev_end is not None and first["start"] - prev_end < 0.3:
         span = _clamp(first["end"] - first["start"], 0.3, STRAY_MAX)
         first["end"] = after["start"] - 0.05
         first["start"] = first["end"] - span
+
+
+def _cap_to_phrase(words: list[dict], regions) -> None:
+    """A word ends with the vocal phrase it starts in: aligners hand the sound in a following
+    instrumental break (bleed in the vocal stem) to the last word before it."""
+    for word in words:
+        held = _held_until(word["start"], regions)
+        if held is not None and word["end"] > held + PHRASE_PAD:
+            word["end"] = max(held + PHRASE_PAD, word["start"] + MIN_WORD)
 
 
 def _lengthen_short(words: list[dict]) -> None:
@@ -112,6 +132,7 @@ def polish(segments: list[dict], duration: float | None = None, regions=()) -> l
             continue
         prev_end = next((ws[-1]["end"] for ws in reversed(kept[:i]) if ws), None)
         next_start = next((ws[0]["start"] for ws in kept[i + 1:] if ws), None)
+        _cap_to_phrase(words, regions)  # first: a CTC word runs through silence up to the next word
         _reattach_edges(words, prev_end, next_start, regions)
         text = "".join(w["word"] for w in words).strip() if len(words) < len(seg["words"]) else seg["text"]
         out.append({**seg, "text": text, "words": words})

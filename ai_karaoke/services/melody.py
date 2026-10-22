@@ -105,11 +105,11 @@ def _tag_words(notes: list[dict], song_id: str) -> None:
 
 
 def _clean(notes: list[dict], song_id: str) -> list[dict]:
-    """Keep notes someone actually sings (on a lyric word, or clear singing ≥ 0.3 s) — not
-    instrument bleed in intros — and fold octave slips of the pitch tracker into the voice's range."""
+    """Keep sung notes: lyric words only when there are lyrics (bleed in the vocal stem is pitched
+    too), else clear singing ≥ 0.3 s. Fold octave slips of the pitch tracker into the voice's range."""
     from services import vocal_activity
-    loud = vocal_activity.map_for(song_id).get("loud", [])
-    kept = [n for n in notes if n["word"] >= 0 or (n["end"] - n["start"] >= 0.3 and
+    loud, lyrics = vocal_activity.map_for(song_id).get("loud", []), any(n["word"] >= 0 for n in notes)
+    kept = [n for n in notes if n["word"] >= 0 or (not lyrics and n["end"] - n["start"] >= 0.3 and
             vocal_activity.vocal_fraction(n["start"], n["end"], loud) > 0.6)]
     if kept:
         centre = float(np.median([n["midi"] for n in kept]))
