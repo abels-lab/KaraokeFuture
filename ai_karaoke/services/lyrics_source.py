@@ -10,15 +10,21 @@ import syncedlyrics
 
 from config import LYRICS_FILE, LYRICS_STORE_DIR, MIN_LYRIC_LINES, ONLINE_LYRICS_FILE
 from core import cache_manager
+from services import lrclib
 
 log = logging.getLogger(__name__)
 
 _LRC_TAGS = re.compile(r"\[[^\]]*\]|<[^>]*>")
 _TITLE_NOISE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\|.*$|\b(official|music|video|lyrics?|audio|hd|4k|mv|"
                           r"karaoke|remaster(ed)?|visualizer|live)\b", re.IGNORECASE)
-# Provider credit lines such as "作词 : Noel Gallagher" or "Composed by: ..." are not sung
-_CREDITS = re.compile(r"^(作词|作曲|编曲|制作人?|词|曲|(lyrics?|music|composer|composed|written|"
-                      r"arranger|arranged|producer|produced)(\s+by)?)\s*[:：]", re.IGNORECASE)
+# Provider credit lines such as "作词 : Noel Gallagher", "主人声 : Ed Sheeran" or "Composed by: ..."
+# are not sung. Any short CJK label before a colon is a credit (NetEase lists many roles).
+_CREDITS = re.compile(r"^([぀-ヿ一-鿿]{1,6}|(lyrics?|music|composer|composed|written|"
+                      r"arranger|arranged|producer|produced|vocals?|mix(ed|ing)?|master(ed|ing)?|"
+                      r"recorded|engineer(ed)?)(\s+by)?)\s*[:：]", re.IGNORECASE)
+# Section labels some providers keep as lines ("CHORUS:", "(Verse 2)", "Припев:", "x2"): not sung
+_SECTION = re.compile(r"^[(\[]?\s*((pre-?)?chorus|verse|bridge|refrain|hook|intro|outro|interlude|instrumental|"
+                      r"solo|strophe|припев|куплет|бридж)?\s*\d*\s*[:.]?\s*(\(?[x×]\s*\d+\)?)?\s*[)\]]?$", re.IGNORECASE)
 
 
 def build_query(title: str, channel: str = "") -> str:
@@ -39,7 +45,7 @@ def parse_lines(raw: str) -> list[tuple[float | None, str]]:
     for raw_line in (raw or "").splitlines():
         stamps = [int(m) * 60 + float(s.replace(":", ".")) for m, s in _STAMP.findall(raw_line)]
         text = _LRC_TAGS.sub("", raw_line).strip()
-        if text and not _CREDITS.match(text):
+        if text and not _CREDITS.match(text) and not _SECTION.match(text):
             lines += [(t, text) for t in stamps] if stamps else [(None, text)]
     if lines and all(t is not None for t, _ in lines):
         lines.sort(key=lambda line: line[0])
@@ -54,11 +60,13 @@ def _format(lines) -> str:
     return "\n".join(f"[{int(t // 60):02d}:{t % 60:05.2f}] {text}" if t is not None else text for t, text in lines)
 
 
-def fetch_online(title: str, channel: str = "") -> str | None:
-    """Lyrics from syncedlyrics (Musixmatch, LRCLIB, NetEase, Megalobiz, Genius), LRC kept."""
+def fetch_online(title: str, channel: str = "", duration: float | None = None) -> str | None:
+    """Lyrics for this exact version from LRCLIB (matched by duration), else from syncedlyrics
+    (Musixmatch, LRCLIB, NetEase, Megalobiz, Genius). LRC timestamps kept."""
     query = build_query(title, channel)
+    raw = lrclib.search(query, duration) if duration else None
     try:
-        raw = syncedlyrics.search(query)
+        raw = raw or syncedlyrics.search(query)
     except Exception as exc:  # providers fail in many ways; never block the pipeline
         log.warning("syncedlyrics failed for %r: %s", query, exc)
         return None
@@ -69,17 +77,23 @@ def fetch_online(title: str, channel: str = "") -> str | None:
     return _format(lines)
 
 
-def online_for(song_id: str, title: str, channel: str = "") -> str | None:
+def online_for(song_id: str, title: str, channel: str = "", duration: float | None = None) -> str | None:
     """Online lyrics for a cached song: searched once (with one retry, providers often miss
-    a request at random), then reused so a re-sync never silently swaps the lyrics."""
+    a request at random), then reused so a re-sync never silently swaps the lyrics.
+    A cached LRC timed past the end of the audio (another version) is searched again."""
     path = cache_manager.song_file(song_id, ONLINE_LYRICS_FILE)
-    if path.is_file():
-        return path.read_text(encoding="utf-8")
+    cached = path.read_text(encoding="utf-8") if path.is_file() else None
+    if cached and lrclib.fits(cached, duration):
+        return cached
+    if cached:
+        log.info("Cached lyrics for %s run past the audio (%.0f s): searching this version", song_id, duration)
     for _ in range(2):
-        if raw := fetch_online(title, channel):
+        if raw := fetch_online(title, channel, duration):
+            if cached and not lrclib.fits(raw, duration):
+                return cached  # nothing better found: keep the text, the aligner drops its timestamps
             path.write_text(raw, encoding="utf-8")
             return raw
-    return None
+    return cached
 
 
 def forget_online(song_id: str) -> None:

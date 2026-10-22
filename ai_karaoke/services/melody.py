@@ -78,15 +78,30 @@ def _notes(midi: np.ndarray, voiced: np.ndarray) -> list[dict]:
     return notes
 
 
+def _hold_words(song_id: str, midi: np.ndarray) -> None:
+    """Stretch lyric words over the notes the singer holds (see word_timing.hold_notes)."""
+    from services import word_timing
+    path = cache_manager.song_file(song_id, LYRICS_FILE)
+    try:
+        lines = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        return
+    if extended := word_timing.hold_notes(lines, midi.tolist(), HOP):
+        path.with_suffix(".tmp").write_text(json.dumps(lines, ensure_ascii=False), encoding="utf-8")
+        path.with_suffix(".tmp").replace(path)  # atomic: the stage may be reading it
+        log.info("Held notes: %d lyric words of %s extended", extended, song_id)
+
+
 def _tag_words(notes: list[dict], song_id: str) -> None:
     try:
         lines = json.loads(cache_manager.song_file(song_id, LYRICS_FILE).read_text(encoding="utf-8"))
     except (FileNotFoundError, ValueError):
         lines = []
     words = [w for line in lines for w in line["words"]]
-    for note in notes:
-        mid = (note["start"] + note["end"]) / 2
-        note["word"] = next((i for i, w in enumerate(words) if w["start"] - 0.15 <= mid <= w["end"] + 0.15), -1)
+    for note in notes:  # the word sharing most time with the note (a long held note can outlast its middle)
+        overlap = [min(note["end"], w["end"] + 0.15) - max(note["start"], w["start"] - 0.15) for w in words]
+        best = int(np.argmax(overlap)) if overlap else -1
+        note["word"] = best if best >= 0 and overlap[best] > 0 else -1
 
 
 def _clean(notes: list[dict], song_id: str) -> list[dict]:
@@ -117,6 +132,7 @@ def extract(song_id: str) -> dict:
     peak = float(np.percentile(db, 95))
     energy = np.clip((db - (peak - 40.0)) / 40.0, 0.0, 1.0)
     notes = _notes(midi, voiced)
+    _hold_words(song_id, midi)
     _tag_words(notes, song_id)
     notes = _clean(notes, song_id)
     melody = {"hop": HOP, "pitch": [round(float(m), 2) for m in midi],

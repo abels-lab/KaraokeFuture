@@ -62,7 +62,9 @@ function createStage({ main, next, hint, noLyrics, video }) {
     if (!song) return;
     lastT = t;
     syncVideo(t, playing);
-    const idx = lyrics.findIndex((s) => s.end + 0.4 >= t); // current or upcoming line
+    // Current or upcoming line. A line stays up a little past its end (up to 1 s, but not into the
+    // next line): singers hold the last note longer than its timing says
+    const idx = lyrics.findIndex((s, i) => t <= s.end + Math.min(1, Math.max(0.4, (lyrics[i + 1]?.start ?? Infinity) - s.end - 0.1)));
     if (idx !== lineIdx) renderLines(idx);
     for (const { el: span, w } of words) {
       const p = Math.min(1, Math.max(0, (t - w.start) / Math.max(0.05, w.end - w.start)));

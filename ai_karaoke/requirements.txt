@@ -48,6 +48,7 @@ numpy
 
 # Lyrics: fetch + alignment / transcription
 syncedlyrics>=1.0
+requests          # LRCLIB search by duration (also a syncedlyrics dependency)
 stable-ts>=2.17
 faster-whisper>=1.1.0
 langdetect>=1.0.9
