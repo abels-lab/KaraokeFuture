@@ -57,3 +57,6 @@ segno>=1.6
 
 # torch 2.6 pins sympy; newer sympy only triggers a pip warning, but keep it aligned
 sympy==1.13.1
+
+# Singing game: reference melody from the isolated vocals (install with --no-deps so pip
+# never swaps the CUDA torch build):  pip install --no-deps torchcrepe==0.0.24
