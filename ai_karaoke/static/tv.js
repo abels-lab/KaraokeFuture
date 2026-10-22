@@ -109,7 +109,13 @@ $("btn-restart").onclick = () => onControl("restart");
 $("btn-back").onclick = () => seekTo(inst.currentTime - 10);
 $("btn-fwd").onclick = () => seekTo(inst.currentTime + 10);
 $("btn-skip").onclick = () => send({ type: "control", action: "skip" });
-$("unlock").onclick = () => { $("unlock").classList.add("hidden"); play(); };
+$("unlock").onclick = () => {
+  $("unlock").classList.add("hidden");
+  play();
+  // Audio input also needs this first click; restart the mics if they were on last time
+  if (store("micsOn") === "1") Mics.start().then(() => micStrip?.render()).catch((err) => toast(`Microphones: ${err.message}`, false));
+};
+$("open-mics").onclick = () => openMicSetup();
 // A separate window: drag it onto the projector, then click it (or press F) for fullscreen
 $("open-screen").onclick = () => window.open("/screen", "karaoke-screen", "popup,width=1280,height=720");
 document.addEventListener("keydown", (e) => {
