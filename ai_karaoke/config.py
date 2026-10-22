@@ -63,6 +63,8 @@ WHISPER_COMPUTE_TYPE = "float16"
 CONDITION_ON_PREVIOUS_TEXT = False
 MAX_CHARS_PER_SEC = 35          # transcribed lines denser than this are hallucinations
 ALIGN_FAILURE_THRESHOLD = 0.4   # abort align() if >40% of words get zero duration
+# Known lyrics: "mms" (CTC, robust on repetitive/spoken songs; stable-ts kept as fallback) or "stable-ts"
+LYRICS_ALIGNER = os.getenv("KARAOKE_ALIGNER", "mms")
 MIN_LYRIC_LINES = 4             # fewer fetched lines => treat as "not found"
 
 
