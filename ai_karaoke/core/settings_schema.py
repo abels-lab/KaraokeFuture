@@ -4,7 +4,7 @@ config.py, so environment variables still set the defaults), limits, and when it
 import config as c
 
 GROUPS = [
-    ("library", "Songs & downloads"), ("separation", "Vocal separation"), ("lyrics", "Lyrics"),
+    ("library", "Songs & downloads"), ("warmup", "Popular songs warm-up"), ("separation", "Vocal separation"), ("lyrics", "Lyrics"),
     ("timing", "Vocal detection & word timing"), ("melody", "Melody"),
     ("game", "Singing game"), ("playback", "Playback"), ("safety", "Safety"),
 ]
@@ -25,9 +25,16 @@ SPECS = [
     _n("cache_limit_gb", "library", "Cache size limit", c.CACHE_LIMIT_BYTES / 1024**3, 1, 100, 1, "GB",
        "Disk space for processed songs. When it fills up, the songs played longest ago are deleted first.", NOW),
     _n("max_duration_min", "library", "Longest song allowed", c.MAX_DURATION_SEC / 60, 2, 30, 1, "min",
-       "Longer YouTube videos are refused (they take long to process and fill the cache).", NOW),
+       "Longer results are hidden from search and refused (hour-long loops, albums; they fill the cache).", NOW),
+    _n("min_duration_sec", "library", "Shortest song allowed", c.MIN_DURATION_SEC, 0, 180, 10, "s",
+       "Shorter results (clips, previews, intros) are hidden from search and refused.", NOW),
     _n("search_results", "library", "Search results", c.SEARCH_RESULTS, 3, 15, 1, "",
-       "How many YouTube results a guest sees per search.", NOW),
+       "How many songs a guest sees per search, after duplicates and non-songs are removed.", NOW),
+    _s("use_soundcloud", "library", "Also search SoundCloud", True, "bool",
+       "Adds SoundCloud songs to the results and uses them as a backup when a YouTube download fails.", NOW),
+    _n("search_check_seconds", "library", "Search check time", 3.5, 0, 10, 0.5, "s",
+       "Results are opened to make sure they really download; broken ones are swapped or hidden. "
+       "Slower checks are skipped after this long (0 = don't check).", NOW),
     _n("max_queue", "library", "Queue length limit", c.MAX_QUEUE_LENGTH, 5, 200, 5, "songs",
        "Guests can't add more songs once the queue is this long.", NOW),
     _s("download_video", "library", "Download music videos", c.DOWNLOAD_VIDEO, "bool",
@@ -35,6 +42,16 @@ SPECS = [
     _s("video_max_height", "library", "Video quality", c.VIDEO_MAX_HEIGHT, "choice",
        "Higher looks sharper on a big screen but downloads more.", choices=[[360, "360p"], [480, "480p"],
        [720, "720p (recommended)"], [1080, "1080p"]]),
+    # ── Popular songs warm-up ───────────────────────────────────────────────
+    _s("warm_enabled", "warmup", "Prepare popular songs in the background", True, "bool",
+       "While nobody is waiting, karaoke classics are processed ahead so they start instantly. "
+       "Guests' songs always go first.", NOW),
+    _n("warm_count", "warmup", "Songs per rotation", 20, 0, 60, 1, "songs",
+       "How many classics to keep ready. The list rotates every week.", NOW),
+    _n("warm_interval_h", "warmup", "Check every", 12, 1, 168, 1, "hours",
+       "How often the warm-up looks for classics that still need preparing.", NOW),
+    _n("warm_budget_pct", "warmup", "Cache share for warm-up", 40, 5, 90, 5, "%",
+       "Most of the cache the prepared classics may use. Unplayed ones from an old rotation are deleted first.", NOW),
     # ── Vocal separation ────────────────────────────────────────────────────
     _s("separator_model", "separation", "Separation model", c.SEPARATOR_MODEL, "choice",
        "The AI model that removes the vocals. Use Rebuild in the library to redo existing songs.",

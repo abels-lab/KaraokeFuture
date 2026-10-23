@@ -8,6 +8,7 @@ from fastapi import WebSocket
 from config import INSTRUMENTAL_FILE, LYRICS_FILE, MELODY_FILE, VOCAL_MAP_FILE, VOCALS_FILE
 from core import cache_manager
 from core.hub import hub
+from services import sources
 
 log = logging.getLogger(__name__)
 
@@ -52,11 +53,13 @@ class QueueManager:
         return {e["song_id"] for e in self._everyone()}
 
     # ── Mutations ────────────────────────────────────────────────────────────
-    async def add(self, song_id: str, title: str, channel: str, duration, singer: str) -> dict:
+    async def add(self, song_id: str, title: str, channel: str, duration, singer: str,
+                  thumbnail: str | None = None) -> dict:
         entry = {
             "uid": uuid.uuid4().hex[:12], "song_id": song_id, "singer": singer,
             "title": title, "channel": channel, "duration": duration,
-            "thumbnail": f"https://i.ytimg.com/vi/{song_id}/hqdefault.jpg",
+            "thumbnail": thumbnail or sources.thumbnail(song_id) or cache_manager.read_meta(song_id).get("thumbnail"),
+            "source": sources.source_of(song_id),
             "status": "queued", "error": None, "media": None, "added": time.time(),
         }
         if cache_manager.is_ready(song_id):

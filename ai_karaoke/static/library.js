@@ -35,6 +35,8 @@ function card(s) {
   const [srcLabel, srcCls] = LYRICS_SOURCE[s.lyrics_source] || ["No lyrics", "bg-white/10"];
   if (s.ready) tags.append(badge(`${srcLabel}${s.lyric_lines ? ` · ${s.lyric_lines} lines` : ""}`, srcCls));
   if (s.has_video) tags.append(badge("🎬 Video", "bg-white/10 text-stone-200"));
+  if (s.source === "soundcloud" || s.fallback_used) tags.append(badge(s.source === "soundcloud" ? "☁ SoundCloud" : "↺ Backup upload", "bg-white/10 text-stone-200"));
+  if (s.warmed) tags.append(badge("🔥 Prepared in advance", "bg-violet-900/70 text-violet-200"));
   if (s.ready && s.timing_poor) { // words don't line up with the singing
     const warn = badge("⏱ Timing unreliable", "cursor-pointer bg-red-900/80 text-red-100");
     warn.title = "The lyrics don't line up with the singing. Paste LRC lyrics with [mm:ss] timestamps to fix it. Click to edit.";
@@ -60,7 +62,7 @@ function card(s) {
 
   const top = el("div", "flex gap-3");
   top.append(Object.assign(el("img", "h-20 w-28 shrink-0 rounded-lg object-cover"),
-    { src: s.thumbnail || `https://i.ytimg.com/vi/${s.id}/hqdefault.jpg`, alt: "", loading: "lazy" }), info);
+    { src: s.thumbnail || thumbFor(s.id), alt: "", loading: "lazy" }), info);
 
   const actions = el("div", "flex flex-wrap gap-1.5");
   actions.append(

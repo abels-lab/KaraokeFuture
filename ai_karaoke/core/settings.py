@@ -45,6 +45,8 @@ def _check_together(values: dict) -> None:
     """Rules that involve two settings."""
     if values["game_perfect"] >= values["game_miss"]:
         raise ValueError("Pitch miss point must be larger than the perfect pitch window")
+    if values["min_duration_sec"] >= values["max_duration_min"] * 60:
+        raise ValueError("Shortest song allowed must be shorter than the longest song allowed")
 
 
 def _load() -> None:

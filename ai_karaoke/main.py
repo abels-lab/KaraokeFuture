@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from config import CACHE_DIR, HOST, PORT, STATIC_DIR, get_local_ip, setup_logging
 from core import cache_manager
+from core.warmer import warmer
 from core.worker import worker
 from routers import api, library, settings, ws
 
@@ -37,11 +38,13 @@ async def lifespan(_: FastAPI):
     if removed:
         log.info("Removed %d half-processed song folder(s)", len(removed))
     worker.start()
+    warmer.start()   # popular songs, in the background, after a short delay
     ip = get_local_ip()
     log.info("Control panel: http://localhost:%d/tv", PORT)
     log.info("Projector:     http://%s:%d/screen", ip, PORT)
     log.info("Guests:        http://%s:%d/remote", ip, PORT)
     yield
+    await warmer.stop()
     await worker.stop()
 
 

@@ -5,10 +5,10 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from core import cache_manager, settings
+from core import cache_manager, eviction, settings
 from core.queue_manager import queue
 from core.worker import worker
-from services import downloader, lyrics_source
+from services import downloader, lyrics_source, sources
 
 router = APIRouter(prefix="/api")
 
@@ -23,7 +23,7 @@ class RegenerateRequest(BaseModel):
 
 
 def _check(song_id: str) -> None:
-    if not downloader.is_valid_id(song_id):
+    if not sources.is_valid_id(song_id):
         raise HTTPException(400, "Invalid song id")
 
 
@@ -39,6 +39,8 @@ def _summary(meta: dict) -> dict:
         "unmatched_vocals": meta.get("unmatched_vocals") or [],   # sung parts the lyrics miss
         "timing_poor": bool((meta.get("timing") or {}).get("poor")),  # alignment lost its place
         "stage": worker.stages.get(song_id),
+        "source": meta.get("source") or sources.source_of(song_id), "fallback_used": bool(meta.get("fallback_used")),
+        "warmed": eviction.is_warm(meta), "rotation": meta.get("rotation"),
         "in_queue": queue.has_song(song_id), "playing": queue.is_playing(song_id),
     }
 

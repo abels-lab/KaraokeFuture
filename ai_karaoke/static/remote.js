@@ -1,4 +1,5 @@
-// Guest phone: singer name, YouTube search, queue (reorder / remove), live transport + scrubbing.
+// Guest phone: singer name, song search, queue (reorder / remove), live transport + scrubbing.
+// The server only returns songs that can be added (filtered, de-duplicated, checked).
 let nowEntry = null, scrubbing = false;
 const singer = () => $("singer").value.trim();
 
@@ -25,13 +26,13 @@ function renderResults(items, title) {
   $("results").replaceChildren(...items.map((r) => {
     const li = el("li", "panel flex items-center gap-3 p-2");
     const img = Object.assign(el("img", "h-14 w-20 shrink-0 rounded-lg object-cover"),
-      { src: r.thumbnail || `https://i.ytimg.com/vi/${r.id}/hqdefault.jpg`, alt: "", loading: "lazy" });
+      { src: r.thumbnail || thumbFor(r.id), alt: "", loading: "lazy" });
     const info = el("div", "min-w-0 flex-1");
     info.append(el("p", "line-clamp-2 text-sm font-semibold", r.title),
       el("p", "truncate text-xs text-stone-400",
-        [r.cached ? "⚡ Instant" : "", r.channel, r.duration ? fmt(r.duration) : ""].filter(Boolean).join(" · ")));
-    const btn = el("button", "btn-gold shrink-0 rounded-lg px-3 py-2 text-sm", r.too_long ? "Too long" : "Add");
-    btn.disabled = !!r.too_long;
+        [r.cached ? "⚡ Instant" : "", r.source === "soundcloud" ? "SoundCloud" : "", r.channel,
+         r.duration ? fmt(r.duration) : ""].filter(Boolean).join(" · ")));
+    const btn = el("button", "btn-gold shrink-0 rounded-lg px-3 py-2 text-sm", "Add");
     btn.onclick = () => addSong(r, btn);
     li.append(img, info, btn);
     return li;
@@ -43,7 +44,8 @@ async function addSong(r, btn) {
   btn.disabled = true;
   try {
     await api("/api/queue", { method: "POST",
-      body: { song_id: r.id, singer: singer(), title: r.title, channel: r.channel || "", duration: r.duration } });
+      body: { song_id: r.id, singer: singer(), title: r.title, channel: r.channel || "", duration: r.duration,
+              mirrors: r.mirrors || [] } });
     btn.textContent = "Added ✓";
     toast(`Queued “${r.title}”`);
   } catch (err) { btn.disabled = false; fail(err); }
