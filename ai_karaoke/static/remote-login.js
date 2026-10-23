@@ -4,11 +4,11 @@
 $("header").append(hostBadge());
 
 function paintLogin(me) {
-  const in_ = Boolean(me.guest);
+  const in_ = Boolean(me.guest || me.admin);
   $("login").classList.toggle("hidden", in_);
   $("me-bar").classList.toggle("hidden", !in_);
   $("guest-tools").classList.toggle("hidden", !in_);
-  $("me-name").textContent = me.guest?.name || "";
+  $("me-name").textContent = me.guest?.name || (me.admin ? "Host" : "");
   if (!in_ && !$("login-name").value) $("login-name").value = store("singer") || ""; // the old free-text name
 }
 Auth.onChange(paintLogin);
@@ -21,7 +21,7 @@ $("login").onsubmit = async (e) => {
     Auth.set(await api("/api/auth/login", { method: "POST", body: { name, password: $("login-pass").value } }));
     store("singer", name);
     $("login-pass").value = "";
-    toast(`Welcome, ${Auth.me.guest.name}!`);
+    toast(`Welcome, ${Auth.me.guest?.name || name}!`);
   } catch (err) { fail(err); }
   $("login-btn").disabled = false;
 };

@@ -4,6 +4,34 @@
 let nowEntry = null, scrubbing = false;
 let cachedSongs = [], availableGenres = [], availableDecades = [];
 let activeTag = "all";
+let activeTab = "songs"; // "songs" | "queue"
+
+// ── Tab switcher: Songs vs Queue ──────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  const isSongs = tab === "songs";
+  $("panel-songs")?.classList.toggle("hidden", !isSongs);
+  $("panel-queue")?.classList.toggle("hidden", isSongs);
+
+  if ($("tab-btn-songs")) {
+    $("tab-btn-songs").className = `flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all font-bold ${
+      isSongs
+        ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-950 shadow-md"
+        : "text-stone-400 hover:text-stone-200"
+    }`;
+  }
+  if ($("tab-btn-queue")) {
+    $("tab-btn-queue").className = `flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all font-bold ${
+      !isSongs
+        ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-950 shadow-md"
+        : "text-stone-400 hover:text-stone-200"
+    }`;
+  }
+}
+
+$("tab-btn-songs")?.addEventListener("click", () => switchTab("songs"));
+$("tab-btn-queue")?.addEventListener("click", () => switchTab("queue"));
+$("btn-goto-songs")?.addEventListener("click", () => switchTab("songs"));
 
 // ── Search & results ──────────────────────────────────────────────────────
 $("search-form").onsubmit = async (e) => {
@@ -221,7 +249,7 @@ async function addSong(r, btn) {
     await api("/api/queue", { method: "POST",
       body: { song_id: r.id, title: r.title, channel: r.channel || "", duration: r.duration, mirrors: r.mirrors || [] } });
     btn.textContent = "Added ✓";
-    toast(`Queued “${r.title}”`);
+    toast(`Queued “${r.title}” · tap Queue tab to view`);
   } catch (err) { btn.disabled = false; fail(err); }
 }
 
@@ -247,7 +275,21 @@ function renderState(state = lastState) {
   $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
   $("transport-note").classList.toggle("hidden", !np || mayControl);
   if (!np) renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
-  $("np-lyrics").classList.toggle("hidden", !Auth.me.admin || !needsLyrics(np)); // lyrics were only transcribed
+
+  const isAdmin = Boolean(Auth.me.admin);
+  $("np-lyrics").classList.toggle("hidden", !np);
+  if (np) {
+    if (isAdmin) {
+      $("np-lyrics").textContent = needsLyrics(np) ? "📝 AI lyrics: fix" : "📝 Edit lyrics";
+      $("np-lyrics").className = `rounded-lg px-2.5 py-1 text-xs font-semibold ${
+        needsLyrics(np) ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50" : "bg-white/10 text-stone-200 hover:bg-white/20"
+      }`;
+    } else {
+      $("np-lyrics").textContent = "📖 Read lyrics";
+      $("np-lyrics").className = "rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-stone-200 hover:bg-white/20";
+    }
+  }
+
   $("np-prefs").replaceChildren(...(Auth.owns(np) && !dragging ? [songPrefs(np)] : []));
   renderQueue(queue);
 }

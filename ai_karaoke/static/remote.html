@@ -41,11 +41,13 @@
 
     <!-- Now playing + transport -->
     <section class="panel p-4">
-      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Now singing</p>
+      <div class="flex items-center justify-between">
+        <p class="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Now singing</p>
+        <button id="np-lyrics" class="hidden rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold hover:bg-white/20"></button>
+      </div>
       <p id="np-singer" class="font-display mt-1 text-2xl font-bold">Nobody yet</p>
       <p id="np-title" class="truncate text-sm text-stone-300">Add a song to get started</p>
       <div id="np-prefs"></div>
-      <button id="np-lyrics" class="mt-2 hidden rounded-lg bg-amber-900/60 px-3 py-1.5 text-xs font-semibold">📝 Lyrics wrong? Fix them</button>
       <div class="mt-3 flex items-center gap-2 font-mono text-xs text-stone-300">
         <span id="np-cur" class="w-9 text-right">0:00</span>
         <input id="np-seek" type="range" min="0" max="0" step="1" value="0" disabled class="flex-1">
@@ -61,43 +63,73 @@
       <p id="transport-note" class="mt-3 hidden text-xs text-stone-400">Only the singer and the host can pause or skip this song.</p>
     </section>
 
-    <!-- Search & Song discovery (logged-in guests) -->
-    <div id="guest-tools" class="hidden space-y-3">
-      <form id="search-form" class="flex gap-2">
-        <input id="query" type="search" maxlength="120" placeholder="Search song or artist…" enterkeyhint="search"
-               class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-4 py-3 outline-none focus:border-amber-400">
-        <button id="search-btn" class="btn-gold rounded-xl px-5">Search</button>
-      </form>
-
-      <!-- Genre & Decade tags + Good luck -->
-      <div class="flex items-center gap-2">
-        <div id="tag-pills" class="flex flex-1 items-center gap-1.5 overflow-x-auto py-1 text-xs scrollbar-none"></div>
-        <button id="btn-lucky" type="button" class="shrink-0 flex items-center gap-1.5 rounded-xl bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40 px-3 py-1.5 text-xs font-bold hover:bg-amber-400/30 active:scale-95 transition" title="Pick an accidental cached song">
-          <span>🎲</span> Good luck
-        </button>
-      </div>
-
-      <!-- Lucky pick surprise card -->
-      <div id="lucky-card" class="hidden"></div>
+    <!-- Main Navigation Tabs -->
+    <div id="tabs-nav" class="flex rounded-2xl bg-black/45 p-1.5 ring-1 ring-white/10 text-sm font-bold gap-1">
+      <button id="tab-btn-songs" type="button" class="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-950 shadow-md">
+        <span>🔍</span> Find Songs
+      </button>
+      <button id="tab-btn-queue" type="button" class="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all text-stone-400 hover:text-stone-200">
+        <span>📋</span> Queue <span id="tab-queue-badge" class="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-xs text-amber-300 font-mono">0</span>
+      </button>
     </div>
 
-    <!-- Results / Ready list -->
-    <section>
-      <div class="mb-2 flex items-center justify-between">
-        <h2 id="results-title" class="text-sm font-semibold uppercase tracking-wider text-stone-400"></h2>
-        <button id="btn-show-ready" type="button" class="hidden text-xs font-semibold text-amber-400 hover:underline">⚡ Show ready songs</button>
-      </div>
-      <ul id="results" class="space-y-2"></ul>
-    </section>
+    <!-- Panel 1: Song Catalog / Search -->
+    <div id="panel-songs" class="space-y-4">
+      <!-- Search & Song discovery (logged-in guests) -->
+      <div id="guest-tools" class="hidden space-y-3">
+        <form id="search-form" class="flex gap-2">
+          <input id="query" type="search" maxlength="120" placeholder="Search song or artist…" enterkeyhint="search"
+                 class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-4 py-3 outline-none focus:border-amber-400">
+          <button id="search-btn" class="btn-gold rounded-xl px-5">Search</button>
+        </form>
 
-    <!-- Queue -->
-    <section>
-      <h2 class="mb-2 text-sm font-semibold uppercase tracking-wider text-stone-400">
-        Up next (<span id="queue-count">0</span>)
-      </h2>
-      <ul id="queue" class="space-y-2"></ul>
-      <p id="queue-empty" class="text-sm text-stone-400">Nobody in line — be the first!</p>
-    </section>
+        <!-- Genre & Decade tags + Good luck -->
+        <div class="flex items-center gap-2">
+          <div id="tag-pills" class="flex flex-1 items-center gap-1.5 overflow-x-auto py-1 text-xs scrollbar-none"></div>
+          <button id="btn-lucky" type="button" class="shrink-0 flex items-center gap-1.5 rounded-xl bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40 px-3 py-1.5 text-xs font-bold hover:bg-amber-400/30 active:scale-95 transition" title="Pick an accidental cached song">
+            <span>🎲</span> Good luck
+          </button>
+        </div>
+
+        <!-- Lucky pick surprise card -->
+        <div id="lucky-card" class="hidden"></div>
+      </div>
+
+      <!-- Results / Ready list -->
+      <section>
+        <div class="mb-2 flex items-center justify-between">
+          <h2 id="results-title" class="text-sm font-semibold uppercase tracking-wider text-stone-400"></h2>
+          <button id="btn-show-ready" type="button" class="hidden text-xs font-semibold text-amber-400 hover:underline">⚡ Show ready songs</button>
+        </div>
+        <ul id="results" class="space-y-2"></ul>
+      </section>
+    </div>
+
+    <!-- Panel 2: Queue & Up Next (Dedicated Panel) -->
+    <div id="panel-queue" class="hidden space-y-4">
+      <section>
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
+            Up next (<span id="queue-count">0</span>)
+          </h2>
+          <!-- Sub-filters: All in line vs My songs -->
+          <div id="queue-filter-pills" class="flex items-center gap-1 text-xs">
+            <button id="qfilter-all" type="button" class="rounded-full bg-amber-400 text-stone-950 font-bold px-3 py-1 transition">All</button>
+            <button id="qfilter-mine" type="button" class="rounded-full bg-white/10 text-stone-300 hover:bg-white/20 font-bold px-3 py-1 transition">My songs (<span id="queue-mine-count">0</span>)</button>
+          </div>
+        </div>
+
+        <ul id="queue" class="space-y-2"></ul>
+
+        <div id="queue-empty" class="panel p-6 text-center space-y-3">
+          <p id="empty-title" class="text-lg font-bold text-stone-200">Nobody in line</p>
+          <p id="empty-sub" class="text-sm text-stone-400">Be the first to queue a song!</p>
+          <button id="btn-goto-songs" type="button" class="btn-gold rounded-xl px-5 py-2.5 text-sm font-bold">
+            🔍 Find a song to sing
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 
   <script src="/static/common.js"></script>

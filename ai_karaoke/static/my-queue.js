@@ -3,6 +3,7 @@
 // guide-vocal volume the control panel uses when it plays. Needs common.js, auth.js, lyrics.js.
 const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle (2 mics)"]];
 let lastQueue = [], dragging = false;
+let queueFilter = "all"; // "all" | "mine"
 
 const savePrefs = (e, changes) =>
   api(`/api/queue/${e.uid}`, { method: "PATCH", body: { guide: e.guide ?? null, mode: e.mode ?? null, ...changes } })
@@ -28,19 +29,76 @@ function songPrefs(e) {
   return box;
 }
 
+function lyricsActionBtn(e) {
+  const isTranscribed = needsLyrics(e);
+  const isAdmin = Boolean(Auth.me?.admin);
+  const label = isAdmin ? (isTranscribed ? "📝 Fix" : "📝 Lyrics") : "📖 Lyrics";
+  const title = isAdmin ? (isTranscribed ? "Fix AI-transcribed lyrics" : "Edit lyrics") : "View lyrics";
+  const cls = isTranscribed
+    ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50"
+    : "bg-white/10 text-stone-200";
+  return iconButton(label, title, () => openLyrics(e), cls);
+}
+
+function setQueueFilter(f) {
+  queueFilter = f;
+  const isAll = f === "all";
+  $("qfilter-all")?.classList.toggle("bg-amber-400", isAll);
+  $("qfilter-all")?.classList.toggle("text-stone-950", isAll);
+  $("qfilter-all")?.classList.toggle("bg-white/10", !isAll);
+  $("qfilter-all")?.classList.toggle("text-stone-300", !isAll);
+
+  $("qfilter-mine")?.classList.toggle("bg-amber-400", !isAll);
+  $("qfilter-mine")?.classList.toggle("text-stone-950", !isAll);
+  $("qfilter-mine")?.classList.toggle("bg-white/10", isAll);
+  $("qfilter-mine")?.classList.toggle("text-stone-300", isAll);
+  renderQueue();
+}
+
+$("qfilter-all")?.addEventListener("click", () => setQueueFilter("all"));
+$("qfilter-mine")?.addEventListener("click", () => setQueueFilter("mine"));
+
 function renderQueue(queue = lastQueue) {
   lastQueue = queue;
   if (dragging) return;   // don't redraw under the finger; the save redraws it
   const { admin } = Auth.me;
   const mine = queue.filter(Auth.owns);
-  $("queue-count").textContent = queue.length;
-  $("queue-empty").classList.toggle("hidden", queue.length > 0);
-  $("queue").replaceChildren(...queue.map((e, i) => {
-    const own = Auth.owns(e), pos = mine.indexOf(e);
-    const row = queueRow(e, i, queue.length, {
-      thumb: false, extras: admin && needsLyrics(e) ? [lyricsButton(e)] : [],
-      manage: admin ? "all" : own ? "mine" : null, first: admin ? i === 0 : pos === 0,
-      last: admin ? i === queue.length - 1 : pos === mine.length - 1,
+
+  if ($("queue-count")) $("queue-count").textContent = queue.length;
+  if ($("queue-mine-count")) $("queue-mine-count").textContent = mine.length;
+  const badge = $("tab-queue-badge");
+  if (badge) {
+    badge.textContent = queue.length;
+    badge.className = `ml-1 rounded-full px-2 py-0.5 text-xs font-mono font-bold ${
+      queue.length > 0 ? "bg-amber-400 text-stone-950" : "bg-white/10 text-stone-300"
+    }`;
+  }
+
+  const items = queueFilter === "mine" ? mine : queue;
+  const empty = $("queue-empty");
+  if (empty) {
+    empty.classList.toggle("hidden", items.length > 0);
+    if (items.length === 0) {
+      if (queue.length === 0) {
+        if ($("empty-title")) $("empty-title").textContent = "Nobody in line";
+        if ($("empty-sub")) $("empty-sub").textContent = "Be the first to queue a song!";
+      } else {
+        if ($("empty-title")) $("empty-title").textContent = "No songs queued by you";
+        if ($("empty-sub")) $("empty-sub").textContent = `There are ${queue.length} other songs waiting in line.`;
+      }
+    }
+  }
+
+  $("queue")?.replaceChildren(...items.map((e) => {
+    const own = Auth.owns(e);
+    const pos = mine.indexOf(e);
+    const idx = queue.indexOf(e);
+    const row = queueRow(e, idx, queue.length, {
+      thumb: false,
+      extras: [lyricsActionBtn(e)],
+      manage: admin ? "all" : own ? "mine" : null,
+      first: admin ? idx === 0 : pos === 0,
+      last: admin ? idx === queue.length - 1 : pos === mine.length - 1,
     });
     if (own) {
       row.classList.replace("ring-white/5", "ring-amber-400/60"); // yours stand out
