@@ -5,7 +5,7 @@
 const inst = $("inst"), voc = $("voc"), seek = $("seek");
 const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $("countdown"),
                             noLyrics: $("no-lyrics"), video: $("stage-video") });
-const loading = createLoading($("loading"));
+const loading = createLoading($("loading"), true);   // compact: the projector has the big one
 // Same-machine projector windows get the clock instantly; other devices via the WebSocket
 const channel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-clock") : null;
 let current = null, scrubbing = false;
@@ -55,7 +55,8 @@ function onControl(action, value) {
 function showStage(on, queue = []) {
   $("stage").classList.toggle("hidden", !on);
   const waiting = loading.render(on ? [] : queue);   // nothing plays, songs wait: show their progress
-  $("idle").classList.toggle("hidden", on || waiting);
+  $("idle").classList.toggle("hidden", on);
+  $("idle-mic").classList.toggle("hidden", waiting);   // room for the loading card under the QR code
 }
 const showSinger = (entry) => { $("np-singer").textContent = singers(entry); $("np-title").textContent = entry.title; };
 

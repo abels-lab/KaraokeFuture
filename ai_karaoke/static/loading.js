@@ -3,12 +3,24 @@
 // worker reports, core/worker.py, arrives with every "state" broadcast), a step indicator,
 // how long it has been at it, its place in the processing line (/api/info, fetched at most
 // every 2 s) and who comes after. Needs common.js.
-// createLoading(section) -> { render(queue) -> shown?, poke() (something changed: refetch info) }
+// createLoading(section, compact) -> { render(queue) -> shown?, poke() (something changed: refetch info) }
+// compact: a small card for the control panel, whose sidebar already lists the queue (no "Up next").
 const LOADING_STEPS = [["queued", "Waiting"], ["downloading", "Downloading"], ["separating", "Removing vocals"],
                        ["aligning", "Syncing lyrics"], ["melody", "Reading the melody"]];
 
-function createLoading(section) {
-  section.innerHTML = `
+const LOADING_COMPACT = `
+  <div class="panel flex w-full max-w-3xl items-center gap-4 p-4 text-left">
+    <img data-l="thumb" alt="" class="h-20 w-32 shrink-0 rounded-xl object-cover">
+    <div class="min-w-0 flex-1 space-y-2">
+      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Getting the next song ready</p>
+      <p class="truncate"><b data-l="singer" class="font-display text-xl"></b> · <span data-l="title" class="text-stone-300"></span></p>
+      <ol data-l="steps" class="flex flex-wrap gap-1.5"></ol>
+      <p data-l="status" class="font-mono text-xs text-stone-400"></p>
+    </div>
+  </div>`;
+
+function createLoading(section, compact = false) {
+  section.innerHTML = compact ? LOADING_COMPACT : `
     <div class="flex w-full max-w-4xl flex-col items-center gap-[3vh] text-center">
       <p class="text-[clamp(.8rem,1.1vw,1.2rem)] font-semibold uppercase tracking-[0.4em] text-gold">Getting the next song ready</p>
       <img data-l="thumb" alt="" class="h-[18vh] rounded-2xl object-cover shadow-2xl ring-1 ring-amber-200/20">
@@ -56,10 +68,12 @@ function createLoading(section) {
     part("steps").replaceChildren(...LOADING_STEPS.map(([, label], i) => {
       const state = i < at ? "bg-amber-400/90 text-stone-950"
         : i === at ? "bg-amber-400/25 text-gold ring-2 ring-amber-400 animate-pulse" : "bg-white/10 text-stone-400";
-      return el("li", `rounded-full px-4 py-1.5 text-[clamp(.75rem,1vw,1.1rem)] font-semibold ${state}`, `${i < at ? "✓ " : ""}${label}`);
+      const size = compact ? "px-2.5 py-0.5 text-xs" : "px-4 py-1.5 text-[clamp(.75rem,1vw,1.1rem)]";
+      return el("li", `rounded-full font-semibold ${size} ${state}`, `${i < at ? "✓ " : ""}${label}`);
     }));
     const clock = head.status === "ready" || head.status === "error" ? "" : ` · ${fmt((now - s.stageAt) / 1000)} at this step · ${fmt((now - s.firstAt) / 1000)} in total`;
     part("status").textContent = lineText(head) + clock;
+    if (compact) return;
     const later = queue.filter((e) => e !== head).slice(0, 4);
     part("next").classList.toggle("hidden", !later.length);
     part("next").replaceChildren(el("p", "font-semibold uppercase tracking-widest text-gold", "Up next"), ...later.map((e, i) => {
