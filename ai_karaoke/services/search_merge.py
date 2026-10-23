@@ -9,12 +9,14 @@ then YouTube over SoundCloud (it has a video), then search rank. The others are 
 """
 from typing import Callable
 
+from services.song_names import same_song
+
 DURATION_TOLERANCE = 5   # seconds
 
 
 def _same(group: list[dict], item: dict) -> bool:
     anchor = group[0]   # compare with the first upload so a chain of near-matches can't drift
-    return (anchor["key"] == item["key"] and anchor["duration"] is not None and item["duration"] is not None
+    return (same_song(anchor, item) and anchor["duration"] is not None and item["duration"] is not None
             and abs(anchor["duration"] - item["duration"]) <= DURATION_TOLERANCE)
 
 
@@ -40,7 +42,7 @@ def rank(members: list[dict], is_cached: Callable[[str], bool]) -> list[dict]:
 def as_result(members: list[dict], is_cached: Callable[[str], bool]) -> dict:
     """The guest-facing result: the representative's fields + `mirrors` (ids, best first)."""
     best, *others = members
-    result = {k: v for k, v in best.items() if k not in ("live", "official")}
+    result = {k: v for k, v in best.items() if k not in ("live", "official", "title_key")}
     return {**result, "cached": is_cached(best["id"]), "too_long": False,
             "mirrors": [m["id"] for m in others]}
 

@@ -9,7 +9,7 @@ TITLE_NOISE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\|.*$|\b(official|music|video|ly
                          r"karaoke|remaster(ed)?|visualizer|live)\b", re.IGNORECASE)
 _CHANNEL_SUFFIX = re.compile(r"\s*-\s*Topic$|VEVO$")
 # Extra rules for comparing names only (never used for the lyrics query, which stays as it was)
-_DASHES = re.compile(r"\s+[–—]\s+")
+_DASHES = re.compile(r"\s+[‐‑‒–—―−]\s+")   # every dash look-alike separates artist and title
 _TRAILING_REMASTER = re.compile(r"\s+-\s+(\d{4}\s+)?(digital(ly)?\s+)?remaster(ed)?\b.*$", re.IGNORECASE)
 _FEAT = re.compile(r"\b(feat|ft|featuring)\b\.?[^-()\[\]]*", re.IGNORECASE)
 _KEY_NOISE = re.compile(r"\b(official|topic|vevo|remaster(ed)?)\b", re.IGNORECASE)
@@ -48,6 +48,14 @@ def song_key(title: str, channel: str = "") -> str:
     title = _FEAT.sub(" ", _TRAILING_REMASTER.sub("", title))
     words = _words(build_query(title, clean_channel(channel)))
     return " ".join(sorted(words)) + (f"|{','.join(variants)}" if variants else "")
+
+
+def same_song(a: dict, b: dict) -> bool:
+    """Keys match, or one upload's key matches the other's title-only key. A bare title gets
+    its channel as artist ("Wonderwall" by "Oasis" -> oasis wonderwall), which is right for an
+    artist's own upload but adds a fan's channel name to "ABBA Dancing Queen" — its title-only
+    key "abba dancing queen" still finds the official upload."""
+    return a["key"] == b["key"] or a["key"] == b.get("title_key") or a.get("title_key") == b["key"]
 
 
 def officialness(title: str, raw_channel: str) -> int:

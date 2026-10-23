@@ -95,7 +95,8 @@ def to_result(entry: dict, source: str) -> dict | None:
         "thumbnail": thumbnail(song_id, _artwork(entry)), "source": source,
         "url": entry.get("webpage_url") or page_url(song_id),
         "live": entry.get("live_status") in ("is_live", "is_upcoming") or bool(entry.get("is_live")),
-        "key": song_key(title, raw_channel), "official": officialness(title, raw_channel),
+        "key": song_key(title, raw_channel), "title_key": song_key(title),   # see song_names.same_song
+        "official": officialness(title, raw_channel),
     }
 
 

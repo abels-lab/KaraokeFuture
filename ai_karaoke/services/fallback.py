@@ -9,7 +9,7 @@ import logging
 from typing import Iterator
 
 from core import cache_manager, settings
-from services import search_filter, search_memory, search_merge, sources
+from services import search_filter, search_memory, search_merge, song_names, sources
 from services.song_names import build_query
 
 log = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def soundcloud_matches(hint: dict, exclude: set[str]) -> list[str]:
         return []
     tolerance = search_merge.DURATION_TOLERANCE
     return [r["id"] for r in found if r["id"] not in exclude and search_filter.keep(r)
-            and r["key"] == hint["key"] and abs(r["duration"] - hint["duration"]) <= tolerance]
+            and song_names.same_song(r, hint) and abs(r["duration"] - hint["duration"]) <= tolerance]
 
 
 def candidates(song_id: str) -> Iterator[str]:
