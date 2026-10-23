@@ -1,32 +1,39 @@
-"""Sequential background worker: download -> separate -> UltraStar file or align + melody.
+"""Sequential background worker: one job at a time, guests' jobs before warm-ups.
 
-One asyncio task runs one job at a time, each blocking step in a thread, so no two models are
-ever in VRAM together. Jobs: process | lyrics | rebuild | video | melody.
+A single asyncio task takes the most urgent job from a priority queue (core/jobs.py); each
+blocking step runs in a thread via asyncio.to_thread and is awaited before the next starts,
+so the separator, Whisper/MMS and CREPE are never in VRAM together.
+Jobs: process | lyrics | rebuild | video | melody (HIGH) and warm (LOW, core/warmer.py);
+what each one does lives in core/worker_jobs.py.
+A running warm-up pauses at its next stage boundary when a HIGH job arrives, goes back in
+the queue and later resumes from the first unfinished stage (core/pipeline.py). Worst case
+for a guest: waiting for the one warm-up stage that is running (see core/pipeline.py).
 """
 import asyncio
 import contextlib
 import logging
-import time
 
-from core import cache_manager, settings
+from core import cache_manager, worker_jobs
 from core.hub import hub
+from core.jobs import HIGH, LOW, JobQueue
 from core.queue_manager import queue
-from services import downloader, lyrics_aligner, melody, separator, ultrastar_source
 
 log = logging.getLogger(__name__)
 
 
 class Worker:
     def __init__(self) -> None:
-        self._jobs: asyncio.Queue[tuple[str, str]] | None = None   # (kind, song_id)
-        self._pending: set[tuple[str, str]] = set()
+        self._jobs: JobQueue | None = None
+        self._pending: set[tuple[str, str]] = set()   # (kind, song_id), queued or running
         self._task: asyncio.Task | None = None
-        self.current_song: str | None = None
-        self.stages: dict[str, str] = {}   # song_id -> waiting|downloading|separating|aligning
+        self.current_song: str | None = None   # guest song being processed (the TV shows it)
+        self.current_job: tuple[str, str] | None = None   # any job, warm-ups included
+        self.stages: dict[str, str] = {}   # song_id -> waiting|downloading|separating|aligning|melody
+        self.warm_rotation: dict[str, str] = {}   # song_id -> rotation, for queued warm-ups
 
     def start(self) -> None:
         """Call from inside the running event loop (FastAPI lifespan)."""
-        self._jobs = asyncio.Queue()
+        self._jobs = JobQueue()
         self._task = asyncio.create_task(self._run(), name="karaoke-worker")
         log.info("Background worker started")
 
@@ -36,6 +43,7 @@ class Worker:
             with contextlib.suppress(asyncio.CancelledError):
                 await self._task
 
+    # ── Submitting (HIGH unless said otherwise) ──────────────────────────────
     async def submit(self, song_id: str) -> None:
         """Enqueue a song once; duplicates and cached songs are skipped."""
         if not cache_manager.is_ready(song_id):
@@ -54,97 +62,66 @@ class Worker:
     async def submit_melody(self, song_id: str) -> None:  # songs cached before the singing game
         await self._put(("melody", song_id))
 
-    async def _melody(self, song_id: str) -> None:  # never fails the song: it plays without scoring
-        try:
-            await asyncio.to_thread(melody.extract, song_id)
-        except Exception:
-            log.exception("Melody extraction failed for %s", song_id)
+    async def submit_warm(self, song_id: str, rotation: str) -> None:
+        """LOW: prepare a popular song in the background, only while no guest is waiting."""
+        self.warm_rotation[song_id] = rotation
+        await self._put(("warm", song_id), LOW)
 
-    async def _put(self, job: tuple[str, str]) -> None:
+    # ── State ────────────────────────────────────────────────────────────────
+    def busy_ids(self) -> set[str]:
+        """Songs with work queued or running: never evict them."""
+        return set(self.stages)
+
+    def high_waiting(self) -> bool:
+        return bool(self._jobs and self._jobs.high_waiting())
+
+    def backlog(self) -> dict:
+        jobs = self._jobs
+        return {"high": jobs.count(HIGH) if jobs else 0, "low": jobs.count(LOW) if jobs else 0}
+
+    async def report(self, song_id: str, stage: str) -> None:
+        """Stage shown in the library and on queue entries of this song."""
+        self.stages[song_id] = stage
+        await queue.set_song_status(song_id, stage)
+        await hub.broadcast({"type": "library"})
+
+    async def _put(self, job: tuple[str, str], priority: int = HIGH) -> None:
         if job not in self._pending:
             self._pending.add(job)
             self.stages.setdefault(job[1], "waiting")
-            await self._jobs.put(job)
+            self._jobs.put(job, priority)
             await hub.broadcast({"type": "library"})
 
-    async def _stage(self, song_id: str, stage: str, status: bool = True) -> None:
-        self.stages[song_id] = stage
-        if status:  # a re-sync keeps the song playable: its queue status stays untouched
-            await queue.set_song_status(song_id, stage)
-        await hub.broadcast({"type": "library"})
-
+    # ── Running ──────────────────────────────────────────────────────────────
     async def _run(self) -> None:
         while True:
-            kind, song_id = job = await self._jobs.get()
-            self.current_song = song_id
+            priority, seq, job = await self._jobs.get()
+            kind, song_id = job
+            self.current_job, finished = job, True
+            self.current_song = song_id if priority == HIGH else None
             try:
-                if kind == "lyrics":
-                    await self._realign(song_id)
-                elif kind == "video":
-                    await self._stage(song_id, "downloading")
-                    if await asyncio.to_thread(downloader.download_video, song_id):
-                        await queue.media_updated(song_id)
-                elif kind == "melody" and cache_manager.is_ready(song_id):
-                    await self._stage(song_id, "melody")
-                    await self._melody(song_id)
-                    await queue.media_updated(song_id)
-                elif kind == "rebuild":
-                    cache_manager.evict(song_id)
-                    await queue.reset_song(song_id)
-                    await self._process(song_id)
-                elif queue.has_song(song_id):
-                    await self._process(song_id)
-                else:
-                    log.info("Skipping %s: removed from queue before processing", song_id)
+                finished = await worker_jobs.dispatch(self, kind, song_id)
             except asyncio.CancelledError:
                 raise
             except Exception as exc:
                 log.exception("%s job for %s failed", kind, song_id)
-                if kind in ("process", "rebuild"):  # failed lyrics/video jobs keep the playable song
+                if kind in ("process", "rebuild", "warm"):  # failed lyrics/video jobs keep the playable song
                     cache_manager.evict(song_id)
                     await queue.set_song_status(song_id, "error", str(exc)[:200])
+                if kind == "warm":
+                    await asyncio.sleep(5.0)  # cooldown on warm-up error to avoid tripping bot rate limits
             finally:
-                self.current_song = None
-                self._pending.discard(job)
-                if not any(s == song_id for _, s in self._pending):
-                    self.stages.pop(song_id, None)
-                self._jobs.task_done()
+                self.current_song = self.current_job = None
+                if finished:
+                    self._pending.discard(job)
+                    if kind == "warm":
+                        self.warm_rotation.pop(song_id, None)
+                    if not any(s == song_id for _, s in self._pending):
+                        self.stages.pop(song_id, None)
+                else:  # paused for a guest: back in line, ahead of later warm-ups
+                    self._jobs.put(job, priority, seq)
+                    self.stages[song_id] = "waiting"
                 await hub.broadcast({"type": "library"})
-
-    async def _realign(self, song_id: str) -> None:
-        if not cache_manager.is_ready(song_id):  # not processed yet: the pipeline reads the text
-            return
-        await self._stage(song_id, "aligning", status=False)
-        await asyncio.to_thread(ultrastar_source.fetch_for, song_id)  # songs cached before USDB support
-        await self._time_lyrics(song_id, status=False)
-        await queue.media_updated(song_id)
-
-    async def _time_lyrics(self, song_id: str, status: bool = True) -> None:  # UltraStar file, else align + pitch
-        if not await asyncio.to_thread(ultrastar_source.apply, song_id):
-            meta = cache_manager.read_meta(song_id)
-            await asyncio.to_thread(lyrics_aligner.generate_lyrics, song_id, meta.get("title", ""), meta.get("channel", ""))
-            await self._stage(song_id, "melody", status)
-            await self._melody(song_id)  # notes are tagged with lyric words: refresh them too
-
-    async def _process(self, song_id: str) -> None:
-        if cache_manager.is_ready(song_id):
-            await queue.set_song_status(song_id, "ready")
-            return
-        started = time.perf_counter()
-        await self._stage(song_id, "downloading")
-        await asyncio.to_thread(downloader.download, song_id, queue.protected_ids())
-        await self._stage(song_id, "separating")
-        # Network-only while the GPU separates: an UltraStar file and the video (neither raises)
-        side = [asyncio.create_task(asyncio.to_thread(ultrastar_source.fetch_for, song_id))]
-        if settings.get("download_video"):
-            side.append(asyncio.create_task(asyncio.to_thread(downloader.download_video, song_id)))
-        await asyncio.to_thread(separator.separate, song_id)
-        await asyncio.gather(*side)
-        await self._stage(song_id, "aligning")
-        await self._time_lyrics(song_id)
-        cache_manager.update_meta(song_id, status="ready", last_accessed=time.time())
-        await queue.set_song_status(song_id, "ready")
-        log.info("%s ready in %.0fs", song_id, time.perf_counter() - started)
 
 
 worker = Worker()

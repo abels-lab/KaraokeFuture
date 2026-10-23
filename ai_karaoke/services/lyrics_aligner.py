@@ -15,7 +15,7 @@ import soundfile as sf
 
 from config import LYRICS_FILE, VOCALS_FILE, free_vram
 from core import cache_manager, settings
-from services import anchored_align, lrclib, lyrics_source, mms_align, vocal_activity, word_timing
+from services import anchored_align, lrclib, lyrics_source, mms_align, sponsorblock, vocal_activity, word_timing
 
 log = logging.getLogger(__name__)
 
@@ -67,9 +67,9 @@ def _align(model, vocals: str, lines, regions):
     return segments if any(s["words"] for s in segments) else None
 
 
-def _align_known(vocals: str, lines, regions):
+def _align_known(vocals: str, lines, regions, start_time: float = 0.0):
     """MMS first (does not drift on repetitive or half-spoken songs), else stable-ts."""
-    aligned = mms_align.align(vocals, lines) if settings.get("lyrics_aligner") == "mms" else None
+    aligned = mms_align.align(vocals, lines, start_time=start_time) if settings.get("lyrics_aligner") == "mms" else None
     if aligned and not vocal_activity.timing_quality(_to_segments(aligned, drop_dense=False), regions)["poor"]:
         return aligned, "mms"
     if settings.get("lyrics_aligner") == "mms":
@@ -118,15 +118,30 @@ def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
     regions = vocal_map["regions"]
     duration = sf.info(str(vocals)).duration
 
+    meta = cache_manager.read_meta(song_id)
+    intro_end = meta.get("intro_end")
+    if intro_end is None:
+        intro_end = sponsorblock.get_intro_end(song_id)
+        if intro_end is not None:
+            cache_manager.update_meta(song_id, intro_end=intro_end)
+
     # Pasted lyrics win; otherwise search online (network first, GPU stays free)
     raw, origin = lyrics_source.load_user(song_id), "user"
     if not raw:
         raw, origin = lyrics_source.online_for(song_id, title, channel, duration), "synced"
     lines = lyrics_source.parse_lines(raw) if raw else []
+
+    # If the video has an intro skit before the music, but the LRC was timed to the studio cut:
+    start_time = float(intro_end or 0.0)
+    if start_time >= 3.0 and lyrics_source.timed(lines):
+        first_t = lines[0][0] or 0.0
+        if first_t < start_time - 5.0:
+            log.info("Shifting studio LRC by +%.1fs for video intro on %s", start_time, song_id)
+            lines = [(round(t + start_time, 3), text) for t, text in lines]
     if lyrics_source.timed(lines) and not lrclib.fits(raw, duration):
         log.info("LRC of %s outlasts the audio (%.0f s): another version, timestamps ignored", song_id, duration)
         lines = [(None, text) for _, text in lines]
-    aligned, aligner = _align_known(str(vocals), lines, regions) if lines else (None, None)
+    aligned, aligner = _align_known(str(vocals), lines, regions, start_time=start_time) if lines else (None, None)
     segments = _to_segments(aligned, drop_dense=False) if aligned else []
     timing = vocal_activity.timing_quality(segments, regions)
     # Plain online text that would not line up: timing beats words for karaoke -> transcribe.

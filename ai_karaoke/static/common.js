@@ -2,6 +2,8 @@
 const $ = (id) => document.getElementById(id);
 const el = (tag, className = "", text = "") => Object.assign(document.createElement(tag), { className, textContent: text });
 const fmt = (s) => Number.isFinite(s) && s >= 0 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00";
+// Fallback picture when the server sent none: YouTube ids have a fixed thumbnail URL ("sc_" ids don't)
+const thumbFor = (id) => (/^[\w-]{11}$/.test(id || "") ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : "/static/img/microphone.png");
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } };
 
 const STATUS = {
@@ -98,7 +100,7 @@ document.querySelectorAll("[data-icon]").forEach((b) => setIcon(b, b.dataset.ico
 function queueRow(e, i, total, { thumb = true, extras = [] } = {}) {
   const [label, color] = STATUS[e.status] || [e.status, "bg-stone-600"];
   const li = el("li", "flex items-center gap-3 rounded-xl bg-black/45 p-2 ring-1 ring-white/5");
-  if (thumb) li.append(Object.assign(el("img", "h-12 w-16 shrink-0 rounded-lg object-cover"), { src: e.thumbnail, alt: "" }));
+  if (thumb) li.append(Object.assign(el("img", "h-12 w-16 shrink-0 rounded-lg object-cover"), { src: e.thumbnail || thumbFor(e.song_id), alt: "" }));
   const info = el("div", "min-w-0 flex-1 space-y-1");
   const meta = el("div", "flex items-center gap-1");
   info.append(el("p", "truncate text-sm font-semibold", `${i + 1}. ${e.title}`), meta);

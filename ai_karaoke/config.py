@@ -40,10 +40,16 @@ CACHE_HEADROOM_BYTES = 300 * 1024**2     # room reserved for the incoming song
 # ── Downloading ──────────────────────────────────────────────────────────────
 SEARCH_RESULTS = 5
 MAX_QUEUE_LENGTH = 50
-MAX_DURATION_SEC = int(os.getenv("KARAOKE_MAX_DURATION", "600"))  # skip >10 min
+# One length rule for search, queue and download: shorter/longer results are hidden
+MAX_DURATION_SEC = int(os.getenv("KARAOKE_MAX_DURATION", "420"))  # longer than 7 min: hide
+MIN_DURATION_SEC = int(os.getenv("KARAOKE_MIN_DURATION", "60"))   # shorter than 1 min: hide
 # Muted video stream from the same upload, so it shares the audio's timeline exactly.
 DOWNLOAD_VIDEO = os.getenv("KARAOKE_VIDEO", "1") == "1"
 VIDEO_MAX_HEIGHT = int(os.getenv("KARAOKE_VIDEO_HEIGHT", "720"))   # ~30-60 MB per song
+
+# ── Background warm-up of popular songs (core/warmer.py) ─────────────────────
+TOP_HITS_FILE = BASE_DIR / "data" / "top_hits.json"
+WARM_START_DELAY_SEC = int(os.getenv("KARAOKE_WARM_DELAY", "120"))  # let the app settle first
 
 # ── Vocal separation ─────────────────────────────────────────────────────────
 # 2-stem BS-Roformer: excellent vocal isolation and fits in 6 GB VRAM.

@@ -1,4 +1,4 @@
-"""5 GB LRU song cache: per-song folders, metadata (meta.json) and eviction."""
+"""5 GB LRU song cache: per-song folders, metadata (meta.json) and eviction (order: core/eviction)."""
 import json
 import logging
 import os
@@ -16,7 +16,7 @@ from config import (
     META_FILE,
     VOCALS_FILE,
 )
-from core import settings
+from core import eviction, settings
 
 log = logging.getLogger(__name__)
 _lock = threading.RLock()
@@ -66,7 +66,8 @@ def update_meta(song_id: str, **fields) -> dict:
 def touch(song_id: str) -> None:
     """Mark a song as recently used (call when it starts playing)."""
     if song_dir(song_id).is_dir():
-        update_meta(song_id, last_accessed=time.time())
+        now = time.time()
+        update_meta(song_id, last_accessed=now, played_at=now)  # played: no longer a warm-up guess
 
 
 def is_ready(song_id: str) -> bool:
@@ -95,9 +96,13 @@ def total_size() -> int:
     return sum(folder_size(d) for d in _song_dirs())
 
 
-def _last_access(path: Path) -> float:
+def song_ids() -> set[str]:
+    return {d.name for d in _song_dirs()}
+
+
+def _meta_of(path: Path) -> dict:
     meta = read_meta(path.name)
-    return float(meta.get("last_accessed") or path.stat().st_mtime)
+    return {**meta, "id": path.name, "last_accessed": meta.get("last_accessed") or path.stat().st_mtime}
 
 
 def evict(song_id: str) -> None:
@@ -107,17 +112,18 @@ def evict(song_id: str) -> None:
 
 
 def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYTES) -> list[str]:
-    """Evict least-recently-used songs until cache + headroom fits in 5 GB.
+    """Evict songs until cache + headroom fits in the limit: unplayed warm-ups of an old
+    rotation first, then least recently used.
 
-    `protect` = ids that must survive (now playing / still queued).
+    `protect` = ids that must survive (now playing / still queued / being processed).
     """
     protected = set(protect)
     evicted: list[str] = []
     with _lock:
-        dirs = _song_dirs()
-        sizes = {d: folder_size(d) for d in dirs}
+        dirs = {d.name: d for d in _song_dirs()}
+        sizes = {d: folder_size(d) for d in dirs.values()}
         total = sum(sizes.values())
-        for folder in sorted(dirs, key=_last_access):
+        for folder in (dirs[i] for i in eviction.order([_meta_of(d) for d in dirs.values()])):
             if total + headroom <= settings.get("cache_limit_gb") * 1024**3:
                 break
             if folder.name in protected:

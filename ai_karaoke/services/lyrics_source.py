@@ -10,13 +10,12 @@ import syncedlyrics
 
 from config import LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
 from core import cache_manager, settings
-from services import genius, lrclib
+from services import genius, guitar_tabs, lrclib
+from services.song_names import build_query  # shared with the search de-duplication
 
 log = logging.getLogger(__name__)
 
 _LRC_TAGS = re.compile(r"\[[^\]]*\]|<[^>]*>")
-_TITLE_NOISE = re.compile(r"\([^)]*\)|\[[^\]]*\]|\|.*$|\b(official|music|video|lyrics?|audio|hd|4k|mv|"
-                          r"karaoke|remaster(ed)?|visualizer|live)\b", re.IGNORECASE)
 # Provider credit lines such as "作词 : Noel Gallagher", "主人声 : Ed Sheeran" or "Composed by: ..."
 # are not sung. Any short CJK label before a colon is a credit (NetEase lists many roles).
 _CREDITS = re.compile(r"^([぀-ヿ一-鿿]{1,6}|(lyrics?|music|composer|composed|written|"
@@ -25,11 +24,6 @@ _CREDITS = re.compile(r"^([぀-ヿ一-鿿]{1,6}|(lyrics?|music|composer|composed
 # Section labels some providers keep as lines ("CHORUS:", "(Verse 2)", "Припев:", "x2"): not sung
 _SECTION = re.compile(r"^[(\[]?\s*((pre-?)?chorus|verse|bridge|refrain|hook|intro|outro|interlude|instrumental|"
                       r"solo|strophe|припев|куплет|бридж)?\s*\d*\s*[:.]?\s*(\(?[x×]\s*\d+\)?)?\s*[)\]]?$", re.IGNORECASE)
-
-
-def build_query(title: str, channel: str = "") -> str:
-    clean = re.sub(r"\s{2,}", " ", _TITLE_NOISE.sub(" ", title or "")).strip(" -–_")
-    return clean if " - " in clean or not channel else f"{channel} {clean}"
 
 
 _STAMP = re.compile(r"\[(\d{1,3}):(\d{1,2}(?:[.:]\d{1,3})?)\]")
@@ -74,6 +68,8 @@ def fetch_online(title: str, channel: str = "", duration: float | None = None) -
     lines = parse_lines(raw)
     if len(lines) < settings.get("min_lyric_lines"):
         lines = parse_lines(genius.fetch(query, build_query(title)))
+    if len(lines) < settings.get("min_lyric_lines"):
+        lines = parse_lines(guitar_tabs.fetch(query, build_query(title)))
     if len(lines) < settings.get("min_lyric_lines"):
         return None
     log.info("Found %d lyric lines for %r (%s)", len(lines), query, "timed" if timed(lines) else "plain")

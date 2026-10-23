@@ -69,7 +69,7 @@ def _to_words(words: list[str], times, fallback: float) -> list[dict]:
     return out
 
 
-def align(vocals_path: str, lines) -> list[dict] | None:
+def align(vocals_path: str, lines, start_time: float = 0.0) -> list[dict] | None:
     """lines: [(anchor or None, text)]. Returns [{"words": [...]}] per line, or None when the
     lyrics are not in a script MMS can read or the model fails (caller falls back to stable-ts)."""
     texts = [text.split() for _, text in lines]
@@ -95,7 +95,8 @@ def align(vocals_path: str, lines) -> list[dict] | None:
     tokenizer, aligner = bundle.get_tokenizer(), bundle.get_aligner()
     sec = wav.shape[1] / bundle.sample_rate / emission.shape[0]
     try:
-        times = iter(_align_words(aligner, tokenizer, emission, words, 0, sec))
+        offset = max(0, int(start_time / sec))
+        times = iter(_align_words(aligner, tokenizer, emission, words, offset, sec))
     except Exception as exc:  # e.g. more letters than audio frames
         log.warning("MMS alignment failed: %s", exc)
         return None
