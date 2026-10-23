@@ -79,6 +79,8 @@ SPECS = [
        "bool", "On made sung lyrics worse in our tests (mishearings snowball, lines repeat). Keep off."),
     _s("use_genius", "lyrics", "Search Genius for lyrics", True, "bool",
        "Last online source before speech recognition. Needs GENIUS_ACCESS_TOKEN on the laptop."),
+    _s("use_chords_lyrics", "lyrics", "Search guitar tab sites for lyrics", True, "bool",
+       "Fallback before speech recognition. Uses Ultimate Guitar and AmDm chord sheets for plain lyrics."),
     _n("min_lyric_lines", "lyrics", "Minimum lyric lines", c.MIN_LYRIC_LINES, 1, 20, 1, "lines",
        "Online lyrics shorter than this are treated as not found."),
     _n("lrclib_duration_diff", "lyrics", "Song-version match tolerance", 3.0, 1, 15, 0.5, "s",

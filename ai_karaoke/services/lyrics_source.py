@@ -10,7 +10,7 @@ import syncedlyrics
 
 from config import LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
 from core import cache_manager, settings
-from services import genius, lrclib
+from services import genius, guitar_tabs, lrclib
 from services.song_names import build_query  # shared with the search de-duplication
 
 log = logging.getLogger(__name__)
@@ -68,6 +68,8 @@ def fetch_online(title: str, channel: str = "", duration: float | None = None) -
     lines = parse_lines(raw)
     if len(lines) < settings.get("min_lyric_lines"):
         lines = parse_lines(genius.fetch(query, build_query(title)))
+    if len(lines) < settings.get("min_lyric_lines"):
+        lines = parse_lines(guitar_tabs.fetch(query, build_query(title)))
     if len(lines) < settings.get("min_lyric_lines"):
         return None
     log.info("Found %d lyric lines for %r (%s)", len(lines), query, "timed" if timed(lines) else "plain")
