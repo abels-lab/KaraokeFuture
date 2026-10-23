@@ -13,45 +13,64 @@
 </head>
 <body class="antialiased">
   <div class="mx-auto max-w-lg space-y-4 px-4 pb-24 pt-4">
-    <header class="flex items-center gap-3">
+    <header id="header" class="flex items-center gap-2">
       <img src="/static/img/microphone.png" alt="" class="mic-glow h-10 w-auto -rotate-12">
       <h1 class="font-display flex-1 text-2xl font-black text-gold">Karaoke Night</h1>
       <a href="/library" class="rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold">📚 Library</a>
     </header>
+
+    <!-- Party login: shown until this phone has a guest session -->
+    <form id="login" class="panel hidden space-y-3 p-4">
+      <p class="font-display text-xl font-bold text-gold">Join the party</p>
+      <p class="text-sm text-stone-300">Pick a singer name and a password. A new name is yours for the night;
+        use the same name and password to come back on another phone.</p>
+      <input id="login-name" maxlength="32" autocomplete="username" placeholder="Singer name, e.g. Freddie" required
+             class="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-lg outline-none focus:border-amber-400">
+      <input id="login-pass" type="password" minlength="4" maxlength="64" autocomplete="current-password" placeholder="Password (4+ characters)" required
+             class="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-lg outline-none focus:border-amber-400">
+      <button id="login-btn" class="btn-gold w-full rounded-xl py-3">Let's sing</button>
+      <p class="text-xs text-amber-200/80">⚠ This is a party login over the home Wi-Fi without encryption (plain HTTP).
+        Make up a new password — don't reuse one you use anywhere else.</p>
+    </form>
+
+    <!-- Logged in -->
+    <div id="me-bar" class="hidden flex items-center gap-2 text-sm text-stone-300">
+      <span class="flex-1 truncate">Singing as <b id="me-name" class="text-gold"></b></span>
+      <button id="logout" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold">Log out</button>
+    </div>
 
     <!-- Now playing + transport -->
     <section class="panel p-4">
       <p class="text-xs font-semibold uppercase tracking-[0.3em] text-gold">Now singing</p>
       <p id="np-singer" class="font-display mt-1 text-2xl font-bold">Nobody yet</p>
       <p id="np-title" class="truncate text-sm text-stone-300">Add a song to get started</p>
+      <div id="np-prefs"></div>
       <button id="np-lyrics" class="mt-2 hidden rounded-lg bg-amber-900/60 px-3 py-1.5 text-xs font-semibold">📝 Lyrics wrong? Fix them</button>
       <div class="mt-3 flex items-center gap-2 font-mono text-xs text-stone-300">
         <span id="np-cur" class="w-9 text-right">0:00</span>
         <input id="np-seek" type="range" min="0" max="0" step="1" value="0" disabled class="flex-1">
         <span id="np-dur" class="w-9">0:00</span>
       </div>
-      <div class="mt-3 grid grid-cols-5 gap-2 text-sm font-semibold">
+      <div id="transport" class="mt-3 grid grid-cols-5 gap-2 text-sm font-semibold">
         <button data-action="restart" data-icon="restart" class="flex justify-center rounded-xl bg-white/10 py-2.5 active:bg-white/25" title="Restart"></button>
         <button data-action="seek_by" data-value="-10" data-icon="back" class="flex items-center justify-center gap-1 rounded-xl bg-white/10 py-2.5 active:bg-white/25" title="Back 10 s">10</button>
         <button id="btn-toggle" data-action="pause" data-icon="pause" class="btn-gold flex justify-center rounded-xl py-2.5" title="Play / pause"></button>
         <button data-action="seek_by" data-value="10" class="flex items-center justify-center gap-1 rounded-xl bg-white/10 py-2.5 active:bg-white/25" title="Forward 10 s">10<svg viewBox="0 0 24 24" class="h-5 w-5 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
         <button data-action="skip" data-icon="skip" class="flex justify-center rounded-xl bg-white/10 py-2.5 active:bg-white/25" title="Skip"></button>
       </div>
+      <p id="transport-note" class="mt-3 hidden text-xs text-stone-400">Only the singer and the host can pause or skip this song.</p>
     </section>
 
-    <!-- Singer name -->
-    <label class="block">
-      <span class="text-sm font-semibold text-stone-300">Your singer name</span>
-      <input id="singer" maxlength="32" autocomplete="nickname" placeholder="e.g. Freddie"
-             class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-3 text-lg outline-none focus:border-amber-400">
-    </label>
-
-    <!-- Search -->
-    <form id="search-form" class="flex gap-2">
-      <input id="query" type="search" maxlength="120" placeholder="Search song or artist…" enterkeyhint="search"
-             class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-4 py-3 outline-none focus:border-amber-400">
-      <button id="search-btn" class="btn-gold rounded-xl px-5">Search</button>
-    </form>
+    <!-- Search (logged-in guests) -->
+    <div id="guest-tools" class="hidden space-y-3">
+      <form id="search-form" class="flex gap-2">
+        <input id="query" type="search" maxlength="120" placeholder="Search song or artist…" enterkeyhint="search"
+               class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-4 py-3 outline-none focus:border-amber-400">
+        <button id="search-btn" class="btn-gold rounded-xl px-5">Search</button>
+      </form>
+      <button id="surprise" class="w-full rounded-xl bg-violet-900/70 py-3 font-semibold ring-1 ring-violet-400/30 active:bg-violet-800">
+        🎲 I don't know what to sing</button>
+    </div>
 
     <section>
       <h2 id="results-title" class="mb-2 text-sm font-semibold uppercase tracking-wider text-stone-400"></h2>
@@ -69,7 +88,10 @@
   </div>
 
   <script src="/static/common.js"></script>
+  <script src="/static/auth.js"></script>
   <script src="/static/lyrics.js"></script>
+  <script src="/static/my-queue.js"></script>
+  <script src="/static/remote-login.js"></script>
   <script src="/static/remote.js"></script>
 </body>
 </html>

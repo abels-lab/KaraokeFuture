@@ -94,5 +94,8 @@ function render() {
 
 $("filter").oninput = render;
 $("reset-all").onclick = () => reset(null, "every setting");
+$("unlock").onclick = () => Auth.unlock();
+document.querySelector("header").insertBefore(hostBadge(), document.querySelector("header a"));
+Auth.onChange(refresh); // host mode switched on/off: the server decides what may be edited
 connectWS("remote", (msg) => { if (msg.type === "settings") refresh(); }); // changed in another tab
 refresh();

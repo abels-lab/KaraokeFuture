@@ -1,7 +1,7 @@
-// Guest phone: singer name, song search, queue (reorder / remove), live transport + scrubbing.
+// Guest phone: song search, "I don't know what to sing", the queue (my-queue.js) and live
+// transport + scrubbing — the transport only for your own song (or the host).
 // The server only returns songs that can be added (filtered, de-duplicated, checked).
 let nowEntry = null, scrubbing = false;
-const singer = () => $("singer").value.trim();
 
 // ── Search & results ──────────────────────────────────────────────────────
 $("search-form").onsubmit = async (e) => {
@@ -40,16 +40,24 @@ function renderResults(items, title) {
 }
 
 async function addSong(r, btn) {
-  if (!singer()) { toast("Enter your singer name first", false); $("singer").focus(); return; }
+  if (!Auth.me.guest) { toast("Log in with your singer name first", false); $("login-name").focus(); return; }
   btn.disabled = true;
   try {
     await api("/api/queue", { method: "POST",
-      body: { song_id: r.id, singer: singer(), title: r.title, channel: r.channel || "", duration: r.duration,
-              mirrors: r.mirrors || [] } });
+      body: { song_id: r.id, title: r.title, channel: r.channel || "", duration: r.duration, mirrors: r.mirrors || [] } });
     btn.textContent = "Added ✓";
     toast(`Queued “${r.title}”`);
   } catch (err) { btn.disabled = false; fail(err); }
 }
+
+$("surprise").onclick = async () => {
+  $("surprise").disabled = true;
+  try {
+    const entry = await api("/api/queue/surprise", { method: "POST" });
+    toast(`🎲 You're singing “${entry.title}”!`);
+  } catch (err) { fail(err); }
+  $("surprise").disabled = false;
+};
 
 async function loadLibrary() {
   const { songs } = await api("/api/library").catch(() => ({ songs: [] }));
@@ -58,22 +66,23 @@ async function loadLibrary() {
 }
 
 // ── Live state ────────────────────────────────────────────────────────────
-function renderState({ now_playing: np, queue }) {
+let lastState = { now_playing: null, queue: [] };
+function renderState(state = lastState) {
+  lastState = state;
+  const { now_playing: np, queue } = state;
+  const mayControl = Auth.me.admin || Auth.owns(np);
   nowEntry = np;
   $("np-singer").textContent = np ? np.singer : "Nobody yet";
   $("np-title").textContent = np ? np.title : "Add a song to get started";
-  $("np-seek").disabled = !np;
+  $("np-seek").disabled = !np || !mayControl;
+  $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
+  $("transport-note").classList.toggle("hidden", !np || mayControl);
   if (!np) renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
-  $("np-lyrics").classList.toggle("hidden", !needsLyrics(np)); // lyrics were only transcribed
-  $("queue-count").textContent = queue.length;
-  $("queue-empty").classList.toggle("hidden", queue.length > 0);
-  const me = singer().toLowerCase();
-  $("queue").replaceChildren(...queue.map((e, i) => {
-    const row = queueRow(e, i, queue.length, { thumb: false, extras: needsLyrics(e) ? [lyricsButton(e)] : [] });
-    if (me && e.singer.toLowerCase() === me) row.classList.replace("ring-white/5", "ring-amber-400/60"); // yours stand out
-    return row;
-  }));
+  $("np-lyrics").classList.toggle("hidden", !Auth.me.admin || !needsLyrics(np)); // lyrics were only transcribed
+  $("np-prefs").replaceChildren(...(Auth.owns(np) && !dragging ? [songPrefs(np)] : []));
+  renderQueue(queue);
 }
+Auth.onChange(() => renderState());
 
 function renderPlayback({ uid, time, duration, paused }) {
   if (uid && uid !== nowEntry?.uid) return;
@@ -83,22 +92,21 @@ function renderPlayback({ uid, time, duration, paused }) {
   setIcon($("btn-toggle"), paused ? "play" : "pause");
 }
 
-const send = connectWS("remote", (msg) => {
+connectWS("remote", (msg) => {
   if (msg.type === "state") renderState(msg.data);
   else if (msg.type === "playback") renderPlayback(msg);
 });
 
-// ── Transport: buttons + timeline scrubbing ───────────────────────────────
+// ── Transport: buttons + timeline scrubbing (REST, so the login cookie is always current) ──
+const control = (action, value = 0) =>
+  api("/api/player/control", { method: "POST", body: { action, value } }).catch(fail);
 document.querySelectorAll("[data-action]").forEach((btn) => {
-  btn.onclick = () => send({ type: "control", action: btn.dataset.action, value: Number(btn.dataset.value || 0) });
+  btn.onclick = () => control(btn.dataset.action, Number(btn.dataset.value || 0));
 });
 $("np-seek").oninput = () => { scrubbing = true; $("np-cur").textContent = fmt(Number($("np-seek").value)); };
 $("np-seek").onchange = () => {
-  send({ type: "control", action: "seek", value: Number($("np-seek").value) });
+  control("seek", Number($("np-seek").value));
   setTimeout(() => { scrubbing = false; }, 1200); // let the TV report the new position first
 };
 $("np-lyrics").onclick = () => nowEntry && openLyrics(nowEntry);
-
-$("singer").value = store("singer") || "";
-$("singer").oninput = () => store("singer", singer());
 loadLibrary();

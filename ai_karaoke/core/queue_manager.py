@@ -1,32 +1,27 @@
-"""In-memory singer queue and per-entry status (event loop only, so no locks needed)."""
+"""In-memory singer queue and per-entry status (event loop only, so no locks needed).
+
+Entry: {uid, song_id, singer, title, channel, duration, thumbnail, source, status, error, media,
+added, owner, guide, mode}. owner = guest id of whoever queued it (None: the host queued it
+for someone); guide (0-100 %) and mode (party | score | battle) = the singer's choices for
+this song, None = the control panel's own. Guests' own-entry actions: core/queue_personal.py.
+"""
 import logging
 import time
 import uuid
 
 from fastapi import WebSocket
 
-from config import INSTRUMENTAL_FILE, LYRICS_FILE, MELODY_FILE, VOCAL_MAP_FILE, VOCALS_FILE
 from core import cache_manager
 from core.hub import hub
+from core.media import media_urls
+from core.queue_personal import PersonalQueue
 from services import sources
 
 log = logging.getLogger(__name__)
-
 PENDING = ("queued", "downloading", "separating", "aligning")
 
 
-def media_urls(song_id: str) -> dict:
-    base, meta = f"/media/{song_id}", cache_manager.read_meta(song_id)
-    has = lambda name: name and cache_manager.song_file(song_id, name).is_file()  # noqa: E731
-    return {"instrumental": f"{base}/{INSTRUMENTAL_FILE}",
-            "vocals": f"{base}/{VOCALS_FILE}", "lyrics": f"{base}/{LYRICS_FILE}",
-            "lyrics_source": meta.get("lyrics_source"),
-            "video": f"{base}/{meta['video']}" if has(meta.get("video")) else None,
-            "vocal_map": f"{base}/{VOCAL_MAP_FILE}" if has(VOCAL_MAP_FILE) else None,
-            "melody": f"{base}/{MELODY_FILE}" if has(MELODY_FILE) else None}
-
-
-class QueueManager:
+class QueueManager(PersonalQueue):
     def __init__(self) -> None:
         self.entries: list[dict] = []
         self.current: dict | None = None
@@ -42,6 +37,9 @@ class QueueManager:
     def find(self, uid: str) -> dict | None:
         return next((e for e in self.entries if e["uid"] == uid), None)
 
+    def find_any(self, uid: str) -> dict | None:  # waiting or playing now
+        return next((e for e in self._everyone() if e["uid"] == uid), None)
+
     def has_song(self, song_id: str) -> bool:
         return song_id in self.protected_ids()
 
@@ -54,13 +52,15 @@ class QueueManager:
 
     # ── Mutations ────────────────────────────────────────────────────────────
     async def add(self, song_id: str, title: str, channel: str, duration, singer: str,
-                  thumbnail: str | None = None) -> dict:
+                  thumbnail: str | None = None, owner: int | None = None, guide: int | None = None,
+                  mode: str | None = None) -> dict:
         entry = {
             "uid": uuid.uuid4().hex[:12], "song_id": song_id, "singer": singer,
             "title": title, "channel": channel, "duration": duration,
             "thumbnail": thumbnail or sources.thumbnail(song_id) or cache_manager.read_meta(song_id).get("thumbnail"),
             "source": sources.source_of(song_id),
             "status": "queued", "error": None, "media": None, "added": time.time(),
+            "owner": owner, "guide": guide, "mode": mode,
         }
         if cache_manager.is_ready(song_id):
             entry.update(status="ready", media=media_urls(song_id))

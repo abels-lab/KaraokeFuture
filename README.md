@@ -17,9 +17,11 @@ Target hardware: Windows 11 with an RTX 3060 (6 GB VRAM). Only one model is held
 |------|---------|
 | `/tv` | Host control panel; plays the audio |
 | `/screen` | Projector / TV display (lyrics and video) |
-| `/remote` | Guest phones: search and queue songs |
-| `/library` | Song and lyrics manager |
-| `/settings` | Advanced settings (processing, lyrics, game, playback) with per-setting, per-group and full reset; only the laptop can change them unless allowed. Changes are stored in `ai_karaoke/settings.json` (not in git) |
+| `/remote` | Guest phones: party login (name + password), search, "I don't know what to sing", own songs: reorder among your own, remove, guide-vocal volume and singing mode |
+| `/library` | Song and lyrics manager (changes are host-only) |
+| `/settings` | Advanced settings (processing, lyrics, game, playback) with per-setting, per-group and full reset, plus the host PIN and "Wipe Party DB". Changes are stored in `ai_karaoke/settings.json` (not in git) |
+
+**Who may do what.** The laptop running the karaoke is the host. Other devices become host with the host PIN, which is set on the laptop's Settings page. Guests may only manage their own songs; everyone may look. Guests, sessions and the PIN hash live in `ai_karaoke/party/party.db` (not in git; override with `KARAOKE_PARTY_DB`). The login runs over plain HTTP on the home network, so guests shouldn't reuse real passwords.
 
 ## Setup (Windows)
 

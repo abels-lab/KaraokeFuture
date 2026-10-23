@@ -1,6 +1,7 @@
 // Lyrics editor dialog (phones + library). Opens pre-filled with the song's current text;
 // saving stores it permanently and the worker re-syncs it to the vocals.
-// Needs common.js. Exposes openLyrics(song), needsLyrics(entry), lyricsButton(entry).
+// Needs common.js (+ auth.js: read-only for anyone but the host; the server refuses them too).
+// Exposes openLyrics(song), needsLyrics(entry), lyricsButton(entry).
 const needsLyrics = (e) => e?.media?.lyrics_source === "transcribed";
 
 const lyricsModal = (() => {
@@ -44,6 +45,10 @@ const lyricsModal = (() => {
 
   return async (target) => {
     song = { id: target.song_id || target.id, title: target.title };
+    const host = typeof Auth === "undefined" || Auth.me.admin;   // only the host may change lyrics
+    part("text").readOnly = !host;
+    ["save", "clear"].forEach((k) => part(k).classList.toggle("hidden", !host));
+    m.querySelector("h2").textContent = host ? "Edit lyrics" : "Lyrics (only the host can change them)";
     part("song").textContent = song.title;
     part("text").value = "Loading…";
     part("source").textContent = "";

@@ -65,8 +65,14 @@ function card(s) {
     { src: s.thumbnail || thumbFor(s.id), alt: "", loading: "lazy" }), info);
 
   const actions = el("div", "flex flex-wrap gap-1.5");
+  actions.append(action("🎤 Queue", "Add to the queue", () => queueSong(s), { disabled: !usable, cls: "btn-gold" }));
+  if (!Auth.me.admin) { // guests look; the song tools are the host's (the server checks too)
+    actions.append(action("📖 Lyrics", "Read the lyrics", () => openLyrics(s), { disabled: !usable }));
+    const c = el("article", "panel flex flex-col gap-3 p-3");
+    c.append(top, actions);
+    return c;
+  }
   actions.append(
-    action("🎤 Queue", "Add to the queue", () => queueSong(s), { disabled: !usable, cls: "btn-gold" }),
     action("📝 Lyrics", "View and edit the lyrics", () => openLyrics(s), { disabled: !usable }),
     action("↻ Re-sync", "Sync the current lyrics text to the vocals again", () => regenerate(s, "lyrics"), { disabled: !usable }));
   if (s.has_user_lyrics) {
@@ -88,9 +94,11 @@ function card(s) {
   return c;
 }
 
+// Guests queue as themselves; the host may type any singer name (empty = their own login)
 async function queueSong(s) {
-  const name = $("singer").value.trim();
-  if (!name) { toast("Enter a singer name first", false); $("singer").focus(); return; }
+  const { admin, guest } = Auth.me;
+  const name = admin ? $("singer").value.trim() || guest?.name || "" : guest?.name || "";
+  if (!name) { toast(admin ? "Enter a singer name first" : "Log in on the 📱 Remote page first", false); return; }
   try {
     await api("/api/queue", { method: "POST",
       body: { song_id: s.id, singer: name, title: s.title, channel: s.channel || "", duration: s.duration } });
@@ -122,6 +130,8 @@ async function removeSong(s) {
 }
 
 $("filter").oninput = render;
+$("header").insertBefore(hostBadge(), $("header").querySelector("a"));
+Auth.onChange(({ admin }) => { $("singer-box").classList.toggle("hidden", !admin); render(); });
 $("singer").value = store("singer") || "";
 $("singer").oninput = () => store("singer", $("singer").value.trim());
 connectWS("remote", (msg) => { if (["state", "library", "media"].includes(msg.type)) refreshSoon(); });

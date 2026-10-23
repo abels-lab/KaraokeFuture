@@ -6,9 +6,12 @@ import config as c
 GROUPS = [
     ("library", "Songs & downloads"), ("warmup", "Popular songs warm-up"), ("separation", "Vocal separation"), ("lyrics", "Lyrics"),
     ("timing", "Vocal detection & word timing"), ("melody", "Melody"),
-    ("game", "Singing game"), ("playback", "Playback"), ("safety", "Safety"),
+    ("game", "Singing game"), ("playback", "Playback"),
 ]
 NOW, NEXT, PROCESSING = "immediately", "next song", "next processed song"
+# Settings that no longer exist; old settings.json files may still have them (silently dropped).
+# allow_remote_settings: replaced by the host PIN (core/auth.py).
+RETIRED = {"allow_remote_settings"}
 
 
 def _s(key, group, label, default, kind, help_, applies=PROCESSING, client=False, **extra):
@@ -119,8 +122,6 @@ SPECS = [
        "Party mode never shows a lower 'good vocalist' score than this.", NEXT, True),
     # ── Playback ────────────────────────────────────────────────────────────
     _n("guide_default", "playback", "Default guide-vocal volume", 20, 0, 100, 5, "%",
-       "Starting volume of the original singer, until the slider is moved on this laptop.", NOW, True),
-    # ── Safety ──────────────────────────────────────────────────────────────
-    _s("allow_remote_settings", "safety", "Allow changes from other devices", False, "bool",
-       "Off: only this laptop can change or reset settings; phones can still look.", NOW),
+       "Starting volume of the original singer, until the slider is moved on this laptop. "
+       "A singer's own choice on their phone wins for their song.", NOW, True),
 ]

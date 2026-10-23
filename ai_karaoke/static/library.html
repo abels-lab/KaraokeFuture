@@ -13,7 +13,7 @@
 </head>
 <body class="antialiased">
   <div class="mx-auto max-w-6xl space-y-5 px-4 pb-24 pt-5">
-    <header class="flex flex-wrap items-center gap-3">
+    <header id="header" class="flex flex-wrap items-center gap-3">
       <img src="/static/img/microphone.png" alt="" class="mic-glow h-12 w-auto -rotate-12">
       <div class="flex-1">
         <h1 class="font-display text-3xl font-black text-gold">Song Library</h1>
@@ -32,7 +32,7 @@
           <div id="storage-bar" class="h-full w-0 rounded-full bg-gradient-to-r from-amber-300 to-amber-600"></div>
         </div>
       </div>
-      <label class="block">
+      <label id="singer-box" class="block hidden">
         <span class="text-xs font-semibold text-stone-400">Singer name (for 🎤 Queue)</span>
         <input id="singer" maxlength="32" placeholder="e.g. Freddie"
                class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400 sm:w-48">
@@ -49,6 +49,7 @@
   </div>
 
   <script src="/static/common.js"></script>
+  <script src="/static/auth.js"></script>
   <script src="/static/lyrics.js"></script>
   <script src="/static/library.js"></script>
 </body>

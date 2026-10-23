@@ -28,6 +28,12 @@ function onState({ now_playing: np, queue, screens = 0 }) {
   $("screens").classList.toggle("text-emerald-400", screens > 0);
   if (!np) { if (current) stopSong(); showStage(false); }
   else if (!current || current.uid !== np.uid) loadSong(np);
+  else if (current.guide !== np.guide || current.mode !== np.mode) { // the singer changed their choice mid-song
+    const modeChanged = current.mode !== np.mode;
+    Object.assign(current, { guide: np.guide, mode: np.mode });
+    Guide.forEntry(current);
+    if (modeChanged) GamePanel.load(current);
+  }
 }
 
 function onControl(action, value) {
@@ -46,12 +52,13 @@ async function loadSong(entry) {
   $("np-singer").textContent = entry.singer; $("np-title").textContent = entry.title;
   showStage(true);
   inst.src = entry.media.instrumental; voc.src = entry.media.vocals;
+  Guide.forEntry(entry); // the singer's own guide volume, if they chose one
   await Promise.all([stage.load(entry), GamePanel.load(entry)]);
   if (current === entry) play(); // unless another song started while lyrics loaded
 }
 
 function stopSong() {
-  current = null; pause(); stage.clear(); GamePanel.clear();
+  current = null; pause(); stage.clear(); GamePanel.clear(); Guide.forEntry(null);
   [inst, voc].forEach((a) => { a.removeAttribute("src"); a.load(); });
 }
 
@@ -100,18 +107,15 @@ function tick() {
 function renderQueue(queue) {
   $("queue-count").textContent = queue.length;
   $("queue-empty").classList.toggle("hidden", queue.length > 0);
-  $("queue").replaceChildren(...queue.map((e, i) => queueRow(e, i, queue.length)));
+  $("queue").replaceChildren(...queue.map((e, i) => queueRow(e, i, queue.length, { extras: choiceBadge(e) })));
 }
+// The singer's own choices for their song (set on their phone), shown to the host
+const MODE_LABEL = { party: "✨", score: "🏆", battle: "⚔️" };
+const choiceBadge = (e) => (e.mode || Number.isFinite(e.guide)
+  ? [el("span", "shrink-0 text-[11px] text-stone-300", [MODE_LABEL[e.mode], Number.isFinite(e.guide) ? `🗣${e.guide}%` : ""].filter(Boolean).join(" "))]
+  : []);
 
-// ── Controls & startup ────────────────────────────────────────────────────
-const setGuide = (v, remember = true) => {
-  voc.volume = v / 100; $("guide").value = v; $("guide-value").textContent = `${v}%`;
-  if (remember) store("guideVolume", String(v)); // moved by hand: this laptop keeps its own value
-};
-// Until the slider is moved here, follow the Settings page's default (also when it changes)
-const initGuide = () => setGuide(Number(store("guideVolume") ?? Settings.get("guide_default", 20)), false);
-Settings.onChange(initGuide);
-$("guide").oninput = (e) => setGuide(Number(e.target.value));
+// ── Controls & startup (guide-vocal slider: guide.js) ─────────────────────
 $("btn-play").onclick = () => (inst.paused ? play() : pause());
 $("btn-restart").onclick = () => onControl("restart");
 $("btn-back").onclick = () => seekTo(inst.currentTime - 10);
@@ -138,5 +142,7 @@ document.addEventListener("keydown", (e) => {
 api("/api/info").then(({ qr, remote_url: url }) => {
   $("qr").src = $("qr-big").src = qr; $("qr-url").textContent = $("qr-url-big").textContent = url;
 });
-initGuide();
+// First run: until a host PIN exists only this laptop can manage the party
+api("/api/auth/me").then(({ pin_set: pinSet }) => $("pin-hint").classList.toggle("hidden", pinSet)).catch(() => {});
+Guide.refresh();
 requestAnimationFrame(tick);

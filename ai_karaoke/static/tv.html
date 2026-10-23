@@ -64,6 +64,8 @@
               <span>Guide vocals</span>
               <input id="guide" type="range" min="0" max="100" value="20" class="w-40">
               <span id="guide-value" class="w-10 text-right font-mono">20%</span>
+              <span id="guide-note" class="hidden rounded-full bg-amber-900/70 px-2 py-0.5 text-[11px] text-amber-200"
+                    title="Set by the singer on their phone; moving the slider changes only this song">singer's choice</span>
             </label>
           </div>
         </footer>
@@ -90,6 +92,8 @@
         <div id="mic-live" class="hidden space-y-1 text-xs"></div>
         <button id="open-screen" class="btn-gold w-full rounded-lg px-3 py-2 text-sm">📽 Open projector screen</button>
         <p id="screens" class="text-center">No projector screen connected</p>
+        <a id="pin-hint" href="/settings#party" target="_blank" class="hidden block rounded-lg bg-amber-900/50 px-3 py-2 text-center text-amber-200 hover:bg-amber-900/70">
+          🔑 Set a host PIN to manage the party from your phone</a>
         <div class="flex items-center justify-between">
           <span class="flex gap-1.5">
             <a href="/library" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20">📚 Library</a>
@@ -122,6 +126,7 @@
   <script src="/static/results.js"></script>
   <script src="/static/game-view.js"></script>
   <script src="/static/game-panel.js"></script>
+  <script src="/static/guide.js"></script>
   <script src="/static/tv.js"></script>
 </body>
 </html>
