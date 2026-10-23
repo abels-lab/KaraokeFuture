@@ -38,6 +38,7 @@ def _summary(meta: dict) -> dict:
         "id": song_id, "title": meta.get("title") or song_id, "channel": meta.get("channel", ""),
         "duration": meta.get("duration"), "thumbnail": meta.get("thumbnail"),
         "size": meta["size"], "ready": meta["ready"], "last_accessed": meta.get("last_accessed"),
+        "played_at": meta.get("played_at"),
         "lyrics_source": meta.get("lyrics_source"), "lyric_lines": meta.get("lyric_lines"),
         "has_user_lyrics": lyrics_source.load_user(song_id) is not None,
         "has_video": downloader.find_video(song_id) is not None,

@@ -129,11 +129,30 @@ function renderTagPills() {
 $("btn-lucky").onclick = () => rollLuckySong();
 
 function rollLuckySong() {
-  const pool = filterCachedSongs(activeTag);
-  if (!pool.length) {
+  const allTagged = filterCachedSongs(activeTag);
+  if (!allTagged.length) {
     toast(`No ready songs under ${activeTag}`, false);
     return;
   }
+
+  // Exclude songs currently in queue or currently playing
+  const activeIds = new Set(
+    [lastState.now_playing?.song_id, ...lastState.queue.map((e) => e.song_id)].filter(Boolean)
+  );
+  const free = allTagged.filter((s) => !activeIds.has(s.id));
+
+  if (!free.length) {
+    toast(`All songs under ${activeTag} are already queued or playing!`, false);
+    return;
+  }
+
+  // Exclude songs played in the last hour (3600 seconds)
+  const now = Date.now() / 1000;
+  const RECENT_SECONDS = 3600;
+  const fresh = free.filter((s) => !s.played_at || (now - Number(s.played_at)) > RECENT_SECONDS);
+
+  // If there are fresh songs, pick from them; otherwise fall back to available free songs
+  const pool = fresh.length ? fresh : free;
   const song = pool[Math.floor(Math.random() * pool.length)];
   const card = $("lucky-card");
 
@@ -205,20 +224,6 @@ async function addSong(r, btn) {
     toast(`Queued “${r.title}”`);
   } catch (err) { btn.disabled = false; fail(err); }
 }
-
-$("surprise").onclick = async () => {
-  if (!Auth.me.guest && !Auth.me.admin) {
-    toast("Log in with your singer name first", false);
-    $("login-name").focus();
-    return;
-  }
-  $("surprise").disabled = true;
-  try {
-    const entry = await api("/api/queue/surprise", { method: "POST" });
-    toast(`🎲 You're singing “${entry.title}”!`);
-  } catch (err) { fail(err); }
-  $("surprise").disabled = false;
-};
 
 async function loadLibrary() {
   const data = await api("/api/library").catch(() => ({ songs: [] }));
