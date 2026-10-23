@@ -12,6 +12,8 @@ filtered or de-duplicated; its songs are ordinary YouTube ids that ytsearch find
 import logging
 import re
 
+import shutil
+
 from yt_dlp import YoutubeDL
 
 from services.song_names import clean_channel, officialness, song_key
@@ -34,7 +36,20 @@ class _Quiet:
     def error(self, msg): log.debug("yt-dlp: %s", msg)
 
 
-BASE_OPTS = {"quiet": True, "no_warnings": True, "noplaylist": True, "socket_timeout": 10, "logger": _Quiet()}
+_JS_RUNTIMES = {}
+if shutil.which("deno"):
+    _JS_RUNTIMES["deno"] = {}
+elif shutil.which("node"):
+    _JS_RUNTIMES["node"] = {}
+
+BASE_OPTS = {
+    "quiet": True,
+    "no_warnings": True,
+    "noplaylist": True,
+    "socket_timeout": 10,
+    "logger": _Quiet(),
+    **({"js_runtimes": _JS_RUNTIMES} if _JS_RUNTIMES else {}),
+}
 
 
 def source_of(song_id: str | None) -> str | None:

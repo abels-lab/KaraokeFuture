@@ -108,6 +108,8 @@ class Worker:
                 if kind in ("process", "rebuild", "warm"):  # failed lyrics/video jobs keep the playable song
                     cache_manager.evict(song_id)
                     await queue.set_song_status(song_id, "error", str(exc)[:200])
+                if kind == "warm":
+                    await asyncio.sleep(5.0)  # cooldown on warm-up error to avoid tripping bot rate limits
             finally:
                 self.current_song = self.current_job = None
                 if finished:

@@ -6,6 +6,7 @@ keep using one stable id. meta.json records which upload was really used.
 """
 import logging
 from pathlib import Path
+import time
 
 from yt_dlp import YoutubeDL
 
@@ -81,6 +82,7 @@ def download(song_id: str, protect: set[str] | None = None) -> Path:
             _remove_partial(folder)
             if isinstance(exc, LengthError):
                 break
+            time.sleep(1.0)  # pause before trying next mirror if rate-limited
     if info is None:
         cache_manager.evict(song_id)
         raise DownloadError(errors[0] if len(errors) == 1 else f"{errors[0]} (and {len(errors) - 1} backup(s) failed)")

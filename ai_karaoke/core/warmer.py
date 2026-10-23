@@ -57,6 +57,7 @@ async def run_once(count: int | None = None) -> list[str]:
     eviction.current_rotation = rotation
     handed: list[str] = []
     for hit in hits:
+        await asyncio.sleep(1.0)  # polite pacing between warm-up searches
         try:
             results = await asyncio.to_thread(search.search, hit)
         except Exception as exc:  # network trouble: try again next round

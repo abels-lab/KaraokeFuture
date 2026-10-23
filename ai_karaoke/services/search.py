@@ -40,7 +40,8 @@ def check(song_id: str) -> bool:
         info = sources.probe(song_id)
         ok = info.get("live_status") not in ("is_live", "is_upcoming") and search_filter.duration_ok(info.get("duration"))
     except Exception as exc:  # unavailable, private, geo-blocked, DRM, preview only...
-        log.info("Search result %s is unavailable: %s", song_id, str(exc)[:160])
+        clean_reason = re.sub(r"^(?:Download failed:\s*)?(?:ERROR:\s*)?", "", str(exc).strip())
+        log.info("Candidate %s unavailable: %s", song_id, clean_reason[:140])
         ok = False
     search_memory.record_check(song_id, ok)
     return ok
