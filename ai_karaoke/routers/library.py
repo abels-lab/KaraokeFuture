@@ -42,13 +42,21 @@ def _summary(meta: dict) -> dict:
         "source": meta.get("source") or sources.source_of(song_id), "fallback_used": bool(meta.get("fallback_used")),
         "warmed": eviction.is_warm(meta), "rotation": meta.get("rotation"),
         "in_queue": queue.has_song(song_id), "playing": queue.is_playing(song_id),
+        "artist": meta.get("artist"), "clean_title": meta.get("clean_title"),
+        "genre": meta.get("genre"), "genres": meta.get("genres") or ([meta["genre"]] if meta.get("genre") else []),
+        "year": meta.get("year"), "decade": meta.get("decade"), "language": meta.get("language"),
+        "tags": meta.get("tags") or [],
     }
 
 
 @router.get("/library")
 async def library():
     songs = [_summary(m) for m in await asyncio.to_thread(cache_manager.list_songs)]
-    return {"songs": songs, "used": sum(s["size"] for s in songs), "limit": settings.get("cache_limit_gb") * 1024**3}
+    ready_songs = [s for s in songs if s["ready"]]
+    genres = sorted({s["genre"] for s in ready_songs if s.get("genre")})
+    decades = sorted({s["decade"] for s in ready_songs if s.get("decade")})
+    return {"songs": songs, "used": sum(s["size"] for s in songs), "limit": settings.get("cache_limit_gb") * 1024**3,
+            "genres": genres, "decades": decades}
 
 
 @router.get("/songs/{song_id}/lyrics")

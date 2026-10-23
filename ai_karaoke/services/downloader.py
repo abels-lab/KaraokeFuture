@@ -12,7 +12,7 @@ from yt_dlp import YoutubeDL
 
 from config import ORIGINAL_FILE, VIDEO_STEM
 from core import cache_manager, settings
-from services import fallback, search_filter, search_memory, sources, sponsorblock
+from services import fallback, metadata_enricher, search_filter, search_memory, sources, sponsorblock
 from services.song_names import clean_channel, song_key
 
 log = logging.getLogger(__name__)
@@ -105,6 +105,7 @@ def download(song_id: str, protect: set[str] | None = None) -> Path:
         fallback_used=used != song_id,
         intro_end=intro_end,
     )
+    metadata_enricher.enrich_metadata(song_id, info.get("title") or "Unknown title", raw_channel, save=True)
     log.info("Downloaded %s from %s (%s)%s", song_id, sources.source_of(used), info.get("title"),
              f" via backup {used}" if used != song_id else "")
     return target
