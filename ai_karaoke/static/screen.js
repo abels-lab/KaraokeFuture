@@ -1,15 +1,27 @@
 // Projector screen: video + lyrics only, no audio and no controls. It follows the control
 // panel's clock — instantly via BroadcastChannel when both windows run on the same laptop,
 // otherwise via the WebSocket — and predicts the time between updates for smooth motion.
+// The intro countdown and "Player 2 joined" are the control panel's too: this page only shows
+// them. With nothing playing but songs waiting, the loading screen tracks their progress.
 const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $("hint"),
                             noLyrics: $("no-lyrics"), video: $("video") });
 let current = null, clock = { uid: null, time: 0, paused: true, at: 0 }, lastClockAt = 0;
 // Singing game: effects / note lanes over the stage, results card at the end of a song
 const gameView = createGameView(document.body, stage);
-let game = null, gameAt = 0;
+const intro = createIntro(), loading = createLoading($("loading"));
+let game = null, gameAt = 0, introAt = 0;
 function onGame(m) {
   if (m.type === "game_result") gameView.showResults(m);
-  else if (m.uid === current?.uid) { game = m; gameAt = performance.now(); }
+  else if (m.uid === current?.uid) {
+    // Battle / score: a second singer appeared mid-song (phone join or singing into mic 2)
+    if (game?.uid === m.uid && m.players.length > game.players.length) toast(`🎤 ${m.players[m.players.length - 1].name} joined!`);
+    game = m; gameAt = performance.now();
+  }
+}
+function onIntro(m) {
+  if (m.uid !== current?.uid || !(m.left > 0)) { intro.hide(); return; }
+  introAt = performance.now();
+  intro.show({ entry: current, ...m });
 }
 
 const now = () => clock.paused ? clock.time : clock.time + (performance.now() - clock.at) / 1000;
@@ -31,40 +43,48 @@ connectWS("screen", (msg) => {
   else if (msg.type === "playback") onClock(msg);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
   else if (msg.type === "game" || msg.type === "game_result") onGame(msg);
+  else if (msg.type === "intro") onIntro(msg);
+  else if (msg.type === "library") loading.poke();
 });
 if ("BroadcastChannel" in window) {
-  new BroadcastChannel("karaoke-clock").onmessage = (e) => onClock(e.data);
+  new BroadcastChannel("karaoke-clock").onmessage = (e) => (e.data.type === "intro" ? onIntro(e.data) : onClock(e.data));
   new BroadcastChannel("karaoke-game").onmessage = (e) => onGame(e.data);
 }
 
 function onState({ now_playing: np, queue }) {
   renderUpNext(queue);
   if (!np) {
-    if (current) { stage.clear(); gameView.clear(); }
+    if (current) { stage.clear(); gameView.clear(); intro.hide(); }
     current = null;
   } else if (current?.uid !== np.uid) {
     current = np;
     clock = { uid: np.uid, time: 0, paused: true, at: performance.now() };
-    $("singer").textContent = np.singer;
-    $("title").textContent = np.title;
+    game = null;
+    intro.hide();
     stage.load(np);
     gameView.load(np);
+  } else {
+    current = np;   // same song, fresher details (a battle partner joined or left)
   }
+  if (current) { $("singer").textContent = singers(current); $("title").textContent = current.title; }
   $("stage").classList.toggle("hidden", !current);
   $("stage").classList.toggle("flex", Boolean(current));
-  $("idle").classList.toggle("hidden", Boolean(current));
+  const waiting = loading.render(current ? [] : queue);   // songs wait, none ready yet: their progress
+  $("idle").classList.toggle("hidden", Boolean(current) || waiting);
 }
 
 function renderUpNext(queue) {
   const next = queue.find((e) => e.status === "ready") || queue[0];
   $("up-next").classList.toggle("hidden", !next);
-  if (next) { $("up-next-singer").textContent = next.singer; $("up-next-title").textContent = next.title; }
+  if (next) { $("up-next-singer").textContent = singers(next); $("up-next-title").textContent = next.title; }
   $("idle-next").replaceChildren(...(queue.length ? [el("p", "text-center font-semibold uppercase tracking-widest text-gold", "Up next")] : []),
-    ...queue.slice(0, 4).map((e, i) => el("p", "truncate text-stone-200", `${i + 1}. ${e.singer} — ${e.title}`)));
+    ...queue.slice(0, 4).map((e, i) => el("p", "truncate text-stone-200", `${i + 1}. ${singers(e)} — ${e.title}`)));
 }
 
 function tick() {
   requestAnimationFrame(tick);
+  // The countdown's last message got lost (control panel closed mid-intro): don't stay stuck on it
+  if (intro.visible && performance.now() - introAt > 1500) intro.hide();
   if (!current) return;
   stage.render(now(), !clock.paused);
   gameView.render(now(), performance.now() - gameAt < 1000 ? game : null); // stale = nobody singing

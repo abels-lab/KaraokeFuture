@@ -1,8 +1,11 @@
 // Control panel (laptop): plays the audio and is the clock every projector screen follows.
-// Shows a monitor of the stage (video + lyrics), transport with scrubbing, and the queue.
+// Shows a monitor of the stage (video + lyrics) and transport with scrubbing; the sidebar,
+// buttons and keys are in tv-side.js. Before each song the intro countdown runs (intro-run.js),
+// and while the next song is still being prepared the loading screen shows (loading.js).
 const inst = $("inst"), voc = $("voc"), seek = $("seek");
 const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $("countdown"),
                             noLyrics: $("no-lyrics"), video: $("stage-video") });
+const loading = createLoading($("loading"));
 // Same-machine projector windows get the clock instantly; other devices via the WebSocket
 const channel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-clock") : null;
 let current = null, scrubbing = false;
@@ -11,6 +14,7 @@ const send = connectWS("tv", (msg) => {
   if (msg.type === "state") onState(msg.data);
   else if (msg.type === "control") onControl(msg.action, msg.value);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
+  else if (msg.type === "library") loading.poke();   // a pipeline stage moved on
 });
 GamePanel.init(send);
 
@@ -23,12 +27,15 @@ function sendClock() {
 setInterval(sendClock, 250);
 
 function onState({ now_playing: np, queue, screens = 0 }) {
-  renderQueue(queue);
-  $("screens").textContent = screens ? `📽 ${screens} projector screen${screens > 1 ? "s" : ""} connected` : "No projector screen connected";
-  $("screens").classList.toggle("text-emerald-400", screens > 0);
-  if (!np) { if (current) stopSong(); showStage(false); }
-  else if (!current || current.uid !== np.uid) loadSong(np);
-  else if (current.guide !== np.guide || current.mode !== np.mode) { // the singer changed their choice mid-song
+  renderSide(queue, screens);
+  if (!np) { if (current) stopSong(); showStage(false, queue); return; }
+  if (!current || current.uid !== np.uid) { loadSong(np); return; }
+  if (JSON.stringify(current.partner) !== JSON.stringify(np.partner)) { // a second singer joined / left
+    current.partner = np.partner;
+    showSinger(current);
+    GamePanel.partnerChanged(current);
+  }
+  if (current.guide !== np.guide || current.mode !== np.mode) { // the singer changed their choice mid-song
     const modeChanged = current.mode !== np.mode;
     Object.assign(current, { guide: np.guide, mode: np.mode });
     Guide.forEntry(current);
@@ -45,28 +52,33 @@ function onControl(action, value) {
 }
 
 // ── Player ────────────────────────────────────────────────────────────────
-const showStage = (on) => { $("stage").classList.toggle("hidden", !on); $("idle").classList.toggle("hidden", on); };
+function showStage(on, queue = []) {
+  $("stage").classList.toggle("hidden", !on);
+  const waiting = loading.render(on ? [] : queue);   // nothing plays, songs wait: show their progress
+  $("idle").classList.toggle("hidden", on || waiting);
+}
+const showSinger = (entry) => { $("np-singer").textContent = singers(entry); $("np-title").textContent = entry.title; };
 
 async function loadSong(entry) {
+  IntroRun.stop();
   current = entry;
-  $("np-singer").textContent = entry.singer; $("np-title").textContent = entry.title;
+  showSinger(entry);
   showStage(true);
   inst.src = entry.media.instrumental; voc.src = entry.media.vocals;
   Guide.forEntry(entry); // the singer's own guide volume, if they chose one
   await Promise.all([stage.load(entry), GamePanel.load(entry)]);
-  if (current === entry) {
-    const intro = Number(entry.media?.intro_end ?? 0);
-    if (Settings.get("skip_intro", true) && intro > 0) {
-      if (inst.readyState >= 1) {
-        seekTo(intro);
-      } else {
-        inst.addEventListener("loadedmetadata", () => {
-          if (current === entry && inst.currentTime < 1.0) seekTo(intro);
-        }, { once: true });
-      }
-    }
-    play(); // unless another song started while lyrics loaded
-  }
+  if (current !== entry) return; // another song started while lyrics loaded
+  skipSpokenIntro(entry);
+  // The intro card counts down; play() from anywhere (Space, a phone) cuts it short itself
+  if (await IntroRun.start(entry, GamePanel.intro, send) && current === entry) play();
+}
+
+// A music video's spoken intro / skit (SponsorBlock intro_end): start at the music instead
+function skipSpokenIntro(entry) {
+  const intro = Number(entry.media?.intro_end ?? 0);
+  if (!Settings.get("skip_intro", true) || !(intro > 0)) return;
+  if (inst.readyState >= 1) seekTo(intro);
+  else inst.addEventListener("loadedmetadata", () => { if (current === entry && inst.currentTime < 1.0) seekTo(intro); }, { once: true });
 }
 
 function stopSong() {
@@ -76,12 +88,13 @@ function stopSong() {
 
 function play() {
   if (!current) return;
+  IntroRun.stop(); // pressed during the countdown: start right now
   voc.currentTime = inst.currentTime;
   Promise.all([inst.play(), voc.play()]).catch((err) => {
     if (err.name === "NotAllowedError") $("unlock").classList.remove("hidden");
   });
 }
-function pause() { inst.pause(); voc.pause(); }
+function pause() { IntroRun.stop(); inst.pause(); voc.pause(); }
 
 function seekTo(t) {
   if (!current || !Number.isFinite(t)) return;
@@ -119,46 +132,4 @@ function tick() {
   stage.render(t, !inst.paused);
   GamePanel.render(t);
 }
-
-function renderQueue(queue) {
-  $("queue-count").textContent = queue.length;
-  $("queue-empty").classList.toggle("hidden", queue.length > 0);
-  $("queue").replaceChildren(...queue.map((e, i) => queueRow(e, i, queue.length, { extras: choiceBadge(e) })));
-}
-// The singer's own choices for their song (set on their phone), shown to the host
-const MODE_LABEL = { party: "✨", score: "🏆", battle: "⚔️" };
-const choiceBadge = (e) => (e.mode || Number.isFinite(e.guide)
-  ? [el("span", "shrink-0 text-[11px] text-stone-300", [MODE_LABEL[e.mode], Number.isFinite(e.guide) ? `🗣${e.guide}%` : ""].filter(Boolean).join(" "))]
-  : []);
-
-// ── Controls & startup (guide-vocal slider: guide.js) ─────────────────────
-$("btn-play").onclick = () => (inst.paused ? play() : pause());
-$("btn-restart").onclick = () => onControl("restart");
-$("btn-back").onclick = () => seekTo(inst.currentTime - 10);
-$("btn-fwd").onclick = () => seekTo(inst.currentTime + 10);
-$("btn-skip").onclick = () => send({ type: "control", action: "skip" });
-$("unlock").onclick = () => {
-  $("unlock").classList.add("hidden");
-  play();
-  // Audio input also needs this first click; restart the mics if they were on last time
-  if (store("micsOn") === "1") Mics.start().then(() => micStrip?.render()).catch((err) => toast(`Microphones: ${err.message}`, false));
-};
-$("open-mics").onclick = () => openMicSetup();
-// A separate window: drag it onto the projector, then click it (or press F) for fullscreen
-$("open-screen").onclick = () => window.open("/screen", "karaoke-screen", "popup,width=1280,height=720");
-document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "INPUT" && e.target.type !== "range") return;
-  if (e.code === "Space") { e.preventDefault(); $("btn-play").click(); }
-  else if (e.key === "ArrowLeft") { e.preventDefault(); seekTo(inst.currentTime - 5); }
-  else if (e.key === "ArrowRight") { e.preventDefault(); seekTo(inst.currentTime + 5); }
-  else if (e.key === "n") $("btn-skip").click();
-  else if (e.key === "f") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
-});
-
-api("/api/info").then(({ qr, remote_url: url }) => {
-  $("qr").src = $("qr-big").src = qr; $("qr-url").textContent = $("qr-url-big").textContent = url;
-});
-// First run: until a host PIN exists only this laptop can manage the party
-api("/api/auth/me").then(({ pin_set: pinSet }) => $("pin-hint").classList.toggle("hidden", pinSet)).catch(() => {});
-Guide.refresh();
 requestAnimationFrame(tick);

@@ -24,6 +24,9 @@
         </div>
       </section>
 
+      <!-- Loading: songs wait, the next one is still being prepared (loading.js fills it) -->
+      <section id="loading" class="hidden flex-1 items-center justify-center"></section>
+
       <!-- Stage: a song is playing -->
       <section id="stage" class="hidden flex min-h-0 flex-1 flex-col gap-4">
         <header class="flex items-center gap-5">
@@ -123,10 +126,16 @@
   <script src="/static/game.js"></script>
   <script src="/static/fx.js"></script>
   <script src="/static/notes.js"></script>
+  <script src="/static/battle-fx.js"></script>
   <script src="/static/results.js"></script>
   <script src="/static/game-view.js"></script>
+  <script src="/static/p2-detect.js"></script>
   <script src="/static/game-panel.js"></script>
   <script src="/static/guide.js"></script>
+  <script src="/static/intro.js"></script>
+  <script src="/static/intro-run.js"></script>
+  <script src="/static/loading.js"></script>
+  <script src="/static/tv-side.js"></script>
   <script src="/static/tv.js"></script>
 </body>
 </html>

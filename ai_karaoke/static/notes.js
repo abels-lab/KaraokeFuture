@@ -56,6 +56,11 @@ function createNotes(container) {
     ctx.fillStyle = "rgba(255,255,255,.8)";
     ctx.fillRect(x(t) - 1, 0, 2, r.height);         // playhead
     renderHud(live, current);
+    // Where each singer's trail is right now (battle sparks fly from there), null = silent
+    return trails.map((trail, i) => {
+      const p = trail[trail.length - 1];
+      return p && p.t > t - 0.1 ? { x: x(p.t), y: y(p.m), hit: p.hit, streak: live[i]?.streak || 0 } : null;
+    });
   }
 
   function renderHud(live, current) {

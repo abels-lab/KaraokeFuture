@@ -4,6 +4,8 @@ const el = (tag, className = "", text = "") => Object.assign(document.createElem
 const fmt = (s) => Number.isFinite(s) && s >= 0 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}` : "0:00";
 // Fallback picture when the server sent none: YouTube ids have a fixed thumbnail URL ("sc_" ids don't)
 const thumbFor = (id) => (/^[\w-]{11}$/.test(id || "") ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : "/static/img/microphone.png");
+// "Ann & Bob" when a second singer joined a battle song (entry.partner), else just the singer
+const singers = (e) => (e?.partner ? `${e.singer} & ${e.partner.name}` : e?.singer || "");
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } };
 
 const STATUS = {
@@ -108,7 +110,7 @@ function queueRow(e, i, total, { thumb = true, extras = [], manage = "all", firs
   const info = el("div", "min-w-0 flex-1 space-y-1");
   const meta = el("div", "flex items-center gap-1");
   info.append(el("p", "truncate text-sm font-semibold", `${i + 1}. ${e.title}`), meta);
-  meta.append(el("span", "min-w-0 flex-1 truncate text-xs text-stone-400", `🎤 ${e.singer}${e.error ? " — " + e.error : ""}`),
+  meta.append(el("span", "min-w-0 flex-1 truncate text-xs text-stone-400", `🎤 ${singers(e)}${e.error ? " — " + e.error : ""}`),
     el("span", `shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${color}`, label), ...extras);
   if (manage) {
     const scope = manage === "mine" ? "mine" : "all";

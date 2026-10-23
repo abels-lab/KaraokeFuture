@@ -1,7 +1,7 @@
 // Guest phone: the queue with your own songs highlighted and their controls — swap among your
 // own songs (never ahead of anyone else), remove them, and per song the singing mode and the
 // guide-vocal volume the control panel uses when it plays. Needs common.js, auth.js, lyrics.js.
-const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle (2 mics)"]];
+const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle / Duet (2 mics)"]];
 let lastQueue = [], dragging = false;
 let queueFilter = "all"; // "all" | "mine"
 
@@ -107,7 +107,7 @@ function renderQueue(queue = lastQueue) {
     const idx = queue.indexOf(e);
     const row = queueRow(e, idx, queue.length, {
       thumb: false,
-      extras: [lyricsActionBtn(e)],
+      extras: [...Battle.controls(e), lyricsActionBtn(e)],   // join / leave a battle (remote-battle.js)
       manage: admin ? "all" : own ? "mine" : null,
       first: admin ? idx === 0 : pos === 0,
       last: admin ? idx === queue.length - 1 : pos === mine.length - 1,
