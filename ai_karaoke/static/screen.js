@@ -17,10 +17,12 @@ const now = () => clock.paused ? clock.time : clock.time + (performance.now() - 
 function onClock(m) {
   if (!current || m.uid !== current.uid) return;
   lastClockAt = performance.now();
+  const jump = Math.abs(now() - m.time) > 0.35;
   // Keep the running prediction unless the clock state changed or it is clearly off:
   // re-basing on every message would make the words jitter by the network delay
   if (m.paused !== clock.paused || clock.uid !== m.uid || Math.abs(now() - m.time) > 0.12) {
     clock = { uid: m.uid, time: m.time, paused: m.paused, at: lastClockAt };
+    if (jump) stage.seek?.(m.time);
   }
 }
 

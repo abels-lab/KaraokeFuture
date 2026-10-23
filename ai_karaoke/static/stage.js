@@ -42,19 +42,41 @@ function createStage({ main, next, hint, noLyrics, video }) {
     next.textContent = following ? following.text : "";
   }
 
+  let lastHardSeek = 0;
+
   function syncVideo(t, playing) {
     if (!video?.dataset.src || video.readyState < 1) return;
     if (playing && video.paused && t < video.duration) video.play().catch(() => {});
     if (!playing && !video.paused) video.pause();
     const now = performance.now();
-    if (now - lastVideoSync < 250) return;
+    if (now - lastVideoSync < 200) return;
     lastVideoSync = now;
+    if (video.seeking) return;
     const drift = video.currentTime - t;
-    if (!playing || Math.abs(drift) > 0.35) {        // paused or jumped (seek): snap
-      if (Math.abs(drift) > 0.05) video.currentTime = Math.max(0, t);
+    const absDrift = Math.abs(drift);
+    if (!playing) {
+      if (absDrift > 0.05) video.currentTime = Math.max(0, t);
       video.playbackRate = 1;
-    } else {                                         // small drift: ease it away, no visible jump
-      video.playbackRate = Math.min(1.08, Math.max(0.92, 1 - drift));
+    } else if (absDrift > 1.2) { // genuine seek or major stall: snap, throttled to max once per sec
+      if (now - lastHardSeek > 1000) {
+        lastHardSeek = now;
+        video.currentTime = Math.max(0, t);
+        video.playbackRate = 1;
+      }
+    } else if (absDrift < 0.06) { // within 60 ms: in sync, keep normal speed
+      if (video.playbackRate !== 1) video.playbackRate = 1;
+    } else { // gentle catch-up without visible stutter or decoder stalls
+      const targetRate = Math.min(1.08, Math.max(0.92, 1.0 - drift * 0.5));
+      if (Math.abs(video.playbackRate - targetRate) > 0.015) {
+        video.playbackRate = targetRate;
+      }
+    }
+  }
+
+  function seek(t) {
+    if (video && video.dataset.src && video.readyState >= 1) {
+      video.currentTime = Math.max(0, t);
+      video.playbackRate = 1;
     }
   }
 
@@ -88,6 +110,6 @@ function createStage({ main, next, hint, noLyrics, video }) {
     return singing ? singing.el : main.childElementCount ? main : null;
   }
 
-  return { load, clear, render, get song() { return song; },
+  return { load, clear, render, seek, get song() { return song; },
            get main() { return main; }, get activeWord() { return activeWord(); } };
 }

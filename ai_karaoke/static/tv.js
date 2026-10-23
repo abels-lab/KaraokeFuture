@@ -87,7 +87,9 @@ function seekTo(t) {
   if (!current || !Number.isFinite(t)) return;
   const dur = inst.duration;
   const max = Number.isFinite(dur) && dur > 0 ? dur - 0.25 : t;
-  inst.currentTime = voc.currentTime = Math.max(0, Math.min(t, max));
+  const target = Math.max(0, Math.min(t, max));
+  inst.currentTime = voc.currentTime = target;
+  stage.seek?.(target);
 }
 
 const reportEnded = (delay = 0) => { const uid = current?.uid; if (uid) setTimeout(() => send({ type: "ended", uid }), delay); };
