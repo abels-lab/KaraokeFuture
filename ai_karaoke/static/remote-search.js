@@ -71,10 +71,17 @@ async function addSong(r, btn) {
     $("login-name").focus();
     return;
   }
+  // The host may queue for anyone (empty box = their own login); the server ignores it for guests
+  const singer = Auth.me.admin ? $("host-singer").value.trim() || Auth.me.guest?.name || "" : "";
+  if (Auth.me.admin && !singer) {
+    toast("Type who's singing in the Singer name box first", false);
+    $("host-singer").focus();
+    return;
+  }
   btn.disabled = true;
   try {
-    await api("/api/queue", { method: "POST",
-      body: { song_id: r.id, title: r.title, channel: r.channel || "", duration: r.duration, mirrors: r.mirrors || [] } });
+    await api("/api/queue", { method: "POST", body: { song_id: r.id, singer, title: r.title,
+      channel: r.channel || "", duration: r.duration, mirrors: r.mirrors || [] } });
     btn.textContent = "Added ✓";
     toast(`Queued “${r.title}” · tap Queue tab to view`);
   } catch (err) { btn.disabled = false; fail(err); }
