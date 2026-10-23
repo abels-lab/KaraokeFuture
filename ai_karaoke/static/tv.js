@@ -47,7 +47,19 @@ async function loadSong(entry) {
   showStage(true);
   inst.src = entry.media.instrumental; voc.src = entry.media.vocals;
   await Promise.all([stage.load(entry), GamePanel.load(entry)]);
-  if (current === entry) play(); // unless another song started while lyrics loaded
+  if (current === entry) {
+    const intro = Number(entry.media?.intro_end ?? 0);
+    if (Settings.get("skip_intro", true) && intro > 0) {
+      if (inst.readyState >= 1) {
+        seekTo(intro);
+      } else {
+        inst.addEventListener("loadedmetadata", () => {
+          if (current === entry && inst.currentTime < 1.0) seekTo(intro);
+        }, { once: true });
+      }
+    }
+    play(); // unless another song started while lyrics loaded
+  }
 }
 
 function stopSong() {
@@ -66,7 +78,9 @@ function pause() { inst.pause(); voc.pause(); }
 
 function seekTo(t) {
   if (!current || !Number.isFinite(t)) return;
-  inst.currentTime = voc.currentTime = Math.max(0, Math.min(t, (inst.duration || 0) - 0.25));
+  const dur = inst.duration;
+  const max = Number.isFinite(dur) && dur > 0 ? dur - 0.25 : t;
+  inst.currentTime = voc.currentTime = Math.max(0, Math.min(t, max));
 }
 
 const reportEnded = (delay = 0) => { const uid = current?.uid; if (uid) setTimeout(() => send({ type: "ended", uid }), delay); };

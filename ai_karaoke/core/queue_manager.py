@@ -23,7 +23,8 @@ def media_urls(song_id: str) -> dict:
             "lyrics_source": meta.get("lyrics_source"),
             "video": f"{base}/{meta['video']}" if has(meta.get("video")) else None,
             "vocal_map": f"{base}/{VOCAL_MAP_FILE}" if has(VOCAL_MAP_FILE) else None,
-            "melody": f"{base}/{MELODY_FILE}" if has(MELODY_FILE) else None}
+            "melody": f"{base}/{MELODY_FILE}" if has(MELODY_FILE) else None,
+            "intro_end": meta.get("intro_end")}
 
 
 class QueueManager:

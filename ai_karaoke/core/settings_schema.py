@@ -118,6 +118,9 @@ SPECS = [
     _n("party_min_percent", "game", "Party mode lowest score", 52, 0, 90, 1, "%",
        "Party mode never shows a lower 'good vocalist' score than this.", NEXT, True),
     # ── Playback ────────────────────────────────────────────────────────────
+    _s("skip_intro", "playback", "Skip non-music intros", True, "bool",
+       "When a music video has spoken dialogue or an intro skit before the music, jump straight to the song start. "
+       "To listen anyway, just drag the slider back to 0:00.", NOW, client=True),
     _n("guide_default", "playback", "Default guide-vocal volume", 20, 0, 100, 5, "%",
        "Starting volume of the original singer, until the slider is moved on this laptop.", NOW, True),
     # ── Safety ──────────────────────────────────────────────────────────────

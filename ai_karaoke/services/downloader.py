@@ -12,7 +12,7 @@ from yt_dlp import YoutubeDL
 
 from config import ORIGINAL_FILE, VIDEO_STEM
 from core import cache_manager, settings
-from services import fallback, search_filter, search_memory, sources
+from services import fallback, search_filter, search_memory, sources, sponsorblock
 from services.song_names import clean_channel, song_key
 
 log = logging.getLogger(__name__)
@@ -90,6 +90,7 @@ def download(song_id: str, protect: set[str] | None = None) -> Path:
     duration = info.get("duration") or 0
     mirrors = (search_memory.hint(song_id) or {}).get("mirrors") or []
     raw_channel = info.get("channel") or info.get("uploader") or ""
+    intro_end = sponsorblock.get_intro_end(song_id)
     cache_manager.update_meta(
         song_id,
         title=info.get("title") or "Unknown title",
@@ -102,6 +103,7 @@ def download(song_id: str, protect: set[str] | None = None) -> Path:
         key=song_key(info.get("title") or "", raw_channel),
         mirrors=[m for m in mirrors if m != used],   # backups for a later re-download
         fallback_used=used != song_id,
+        intro_end=intro_end,
     )
     log.info("Downloaded %s from %s (%s)%s", song_id, sources.source_of(used), info.get("title"),
              f" via backup {used}" if used != song_id else "")
