@@ -6,16 +6,25 @@ Server -> client:  {"type": "state", "data": {...}}
                    {"type": "control", "action", "value"}                   (control panel only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (screens + phones, 4 Hz)
                    {"type": "game" | "game_result", ...}                    (screens: singing game)
+                   {"type": "auth"}               (logins changed / party wiped: re-check who you are)
+                   {"type": "denied", "message"}  (a control message this client may not send)
 Client -> server:  {"type": "ping"}
                    {"type": "control", "action": "play|pause|restart|skip|seek|seek_by", "value"}
                    {"type": "ended", "uid": "..."}                         (TV only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (TV only)
+
+Security (core/auth.py): the client is identified from its session cookie and address on
+every message. The "tv" role (which can end songs and drives every screen) is granted only
+to the host — anyone else asking for it is connected as "remote". "control" is accepted
+from the host, or from the guest who queued the song playing right now (their own song
+only: pause/play/restart/seek and skip). Screens only listen, so anyone may open one.
 """
 import json
 import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from core import auth
 from core.hub import hub
 from core.queue_manager import queue
 
@@ -33,16 +42,22 @@ def _num(value) -> float:
         return 0.0
 
 
+async def _control(ws: WebSocket, msg: dict) -> None:
+    action = msg.get("action")
+    if not auth.may_manage(auth.identify(ws), queue.current):
+        await hub.send(ws, {"type": "denied", "message": "Only the host or the person singing can control this song"})
+    elif action == "skip":
+        await queue.next()
+    elif action in TV_ACTIONS:
+        await queue.control(action, _num(msg.get("value")))
+
+
 async def _handle(ws: WebSocket, role: str, msg: dict) -> None:
     kind = msg.get("type")
     if kind == "ping":
         await ws.send_json({"type": "pong"})
     elif kind == "control":
-        action = msg.get("action")
-        if action == "skip":
-            await queue.next()
-        elif action in TV_ACTIONS:
-            await queue.control(action, _num(msg.get("value")))
+        await _control(ws, msg)
     elif role != "tv":
         return
     elif kind == "ended":
@@ -62,6 +77,9 @@ async def _handle(ws: WebSocket, role: str, msg: dict) -> None:
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, role: str = "remote"):
     role = role if role in ROLES else "remote"
+    if role == "tv" and not auth.identify(ws).admin:
+        log.warning("Refused the control-panel role to %s (not the host)", ws.client.host if ws.client else "?")
+        role = "remote"
     await hub.connect(ws, role)
     try:
         await queue.client_joined(ws, role)

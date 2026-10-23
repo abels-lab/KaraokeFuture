@@ -1,9 +1,9 @@
-// Guest phone: singer name, song search, queue (reorder / remove), live transport + scrubbing.
+// Guest phone: song search, tag filters, "Good luck" picker, the queue (my-queue.js) and live
+// transport + scrubbing — the transport only for your own song (or the host).
 // The server only returns songs that can be added (filtered, de-duplicated, checked).
 let nowEntry = null, scrubbing = false;
 let cachedSongs = [], availableGenres = [], availableDecades = [];
 let activeTag = "all";
-const singer = () => $("singer").value.trim();
 
 // ── Search & results ──────────────────────────────────────────────────────
 $("search-form").onsubmit = async (e) => {
@@ -125,7 +125,7 @@ function renderTagPills() {
   updatePillsUI();
 }
 
-// ── Good luck / Surprise pick ─────────────────────────────────────────────
+// ── Good luck accidental card ──────────────────────────────────────────────
 $("btn-lucky").onclick = () => rollLuckySong();
 
 function rollLuckySong() {
@@ -136,18 +136,21 @@ function rollLuckySong() {
   }
   const song = pool[Math.floor(Math.random() * pool.length)];
   const card = $("lucky-card");
-  card.className = "panel p-3 border-amber-400/50 bg-gradient-to-r from-amber-950/40 via-stone-900/60 to-amber-950/40 transition mb-2";
 
-  const header = el("div", "flex items-center justify-between text-xs font-semibold text-amber-300 mb-1.5");
-  header.append(el("span", "", `🎲 Accidental pick${activeTag !== "all" ? ` · ${activeTag}` : ""}`));
-  const btnAgain = el("button", "text-xs text-stone-400 hover:text-white underline", "Roll again");
-  btnAgain.type = "button";
-  btnAgain.onclick = rollLuckySong;
-  header.append(btnAgain);
+  const header = el("div", "flex items-center justify-between text-xs text-amber-300 font-bold mb-1");
+  header.append(
+    el("span", "flex items-center gap-1", "🎲 Accidental Song Pick"),
+    Object.assign(el("button", "text-stone-400 hover:text-stone-200 px-1", "✕"), {
+      onclick: () => card.classList.add("hidden"),
+    })
+  );
 
   const body = el("div", "flex items-center gap-3");
-  const img = Object.assign(el("img", "h-12 w-16 shrink-0 rounded-lg object-cover"),
-    { src: song.thumbnail || thumbFor(song.id), alt: "", loading: "lazy" });
+  const img = Object.assign(el("img", "h-14 w-20 shrink-0 rounded-lg object-cover"), {
+    src: song.thumbnail || thumbFor(song.id),
+    alt: "",
+    loading: "lazy",
+  });
   const info = el("div", "min-w-0 flex-1");
   const displayTitle = song.artist && song.clean_title ? `${song.artist} – ${song.clean_title}` : song.title;
   info.append(
@@ -159,6 +162,7 @@ function rollLuckySong() {
   body.append(img, info, btnAdd);
 
   card.replaceChildren(header, body);
+  card.className = "p-3 rounded-xl bg-gradient-to-br from-amber-500/10 via-stone-900 to-amber-950/20 border border-amber-500/30 space-y-2";
   card.classList.remove("hidden");
   toast(`🎲 Picked: ${displayTitle}`);
 }
@@ -188,16 +192,33 @@ function renderResults(items, title) {
 }
 
 async function addSong(r, btn) {
-  if (!singer()) { toast("Enter your singer name first", false); $("singer").focus(); return; }
+  if (!Auth.me.guest && !Auth.me.admin) {
+    toast("Log in with your singer name first", false);
+    $("login-name").focus();
+    return;
+  }
   btn.disabled = true;
   try {
     await api("/api/queue", { method: "POST",
-      body: { song_id: r.id, singer: singer(), title: r.title, channel: r.channel || "", duration: r.duration,
-              mirrors: r.mirrors || [] } });
+      body: { song_id: r.id, title: r.title, channel: r.channel || "", duration: r.duration, mirrors: r.mirrors || [] } });
     btn.textContent = "Added ✓";
     toast(`Queued “${r.title}”`);
   } catch (err) { btn.disabled = false; fail(err); }
 }
+
+$("surprise").onclick = async () => {
+  if (!Auth.me.guest && !Auth.me.admin) {
+    toast("Log in with your singer name first", false);
+    $("login-name").focus();
+    return;
+  }
+  $("surprise").disabled = true;
+  try {
+    const entry = await api("/api/queue/surprise", { method: "POST" });
+    toast(`🎲 You're singing “${entry.title}”!`);
+  } catch (err) { fail(err); }
+  $("surprise").disabled = false;
+};
 
 async function loadLibrary() {
   const data = await api("/api/library").catch(() => ({ songs: [] }));
@@ -209,22 +230,23 @@ async function loadLibrary() {
 }
 
 // ── Live state ────────────────────────────────────────────────────────────
-function renderState({ now_playing: np, queue }) {
+let lastState = { now_playing: null, queue: [] };
+function renderState(state = lastState) {
+  lastState = state;
+  const { now_playing: np, queue } = state;
+  const mayControl = Auth.me.admin || Auth.owns(np);
   nowEntry = np;
   $("np-singer").textContent = np ? np.singer : "Nobody yet";
   $("np-title").textContent = np ? np.title : "Add a song to get started";
-  $("np-seek").disabled = !np;
+  $("np-seek").disabled = !np || !mayControl;
+  $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
+  $("transport-note").classList.toggle("hidden", !np || mayControl);
   if (!np) renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
-  $("np-lyrics").classList.toggle("hidden", !needsLyrics(np)); // lyrics were only transcribed
-  $("queue-count").textContent = queue.length;
-  $("queue-empty").classList.toggle("hidden", queue.length > 0);
-  const me = singer().toLowerCase();
-  $("queue").replaceChildren(...queue.map((e, i) => {
-    const row = queueRow(e, i, queue.length, { thumb: false, extras: needsLyrics(e) ? [lyricsButton(e)] : [] });
-    if (me && e.singer.toLowerCase() === me) row.classList.replace("ring-white/5", "ring-amber-400/60"); // yours stand out
-    return row;
-  }));
+  $("np-lyrics").classList.toggle("hidden", !Auth.me.admin || !needsLyrics(np)); // lyrics were only transcribed
+  $("np-prefs").replaceChildren(...(Auth.owns(np) && !dragging ? [songPrefs(np)] : []));
+  renderQueue(queue);
 }
+Auth.onChange(() => renderState());
 
 function renderPlayback({ uid, time, duration, paused }) {
   if (uid && uid !== nowEntry?.uid) return;
@@ -234,22 +256,21 @@ function renderPlayback({ uid, time, duration, paused }) {
   setIcon($("btn-toggle"), paused ? "play" : "pause");
 }
 
-const send = connectWS("remote", (msg) => {
+connectWS("remote", (msg) => {
   if (msg.type === "state") renderState(msg.data);
   else if (msg.type === "playback") renderPlayback(msg);
 });
 
-// ── Transport: buttons + timeline scrubbing ───────────────────────────────
+// ── Transport: buttons + timeline scrubbing (REST, so the login cookie is always current) ──
+const control = (action, value = 0) =>
+  api("/api/player/control", { method: "POST", body: { action, value } }).catch(fail);
 document.querySelectorAll("[data-action]").forEach((btn) => {
-  btn.onclick = () => send({ type: "control", action: btn.dataset.action, value: Number(btn.dataset.value || 0) });
+  btn.onclick = () => control(btn.dataset.action, Number(btn.dataset.value || 0));
 });
 $("np-seek").oninput = () => { scrubbing = true; $("np-cur").textContent = fmt(Number($("np-seek").value)); };
 $("np-seek").onchange = () => {
-  send({ type: "control", action: "seek", value: Number($("np-seek").value) });
+  control("seek", Number($("np-seek").value));
   setTimeout(() => { scrubbing = false; }, 1200); // let the TV report the new position first
 };
 $("np-lyrics").onclick = () => nowEntry && openLyrics(nowEntry);
-
-$("singer").value = store("singer") || "";
-$("singer").oninput = () => store("singer", singer());
 loadLibrary();

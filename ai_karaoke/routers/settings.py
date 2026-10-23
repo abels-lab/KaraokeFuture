@@ -1,13 +1,14 @@
 """Settings page API: read every setting, change some, reset to defaults.
 
-Changing is limited to this laptop unless "Allow changes from other devices" is on, so a
-guest who opens the page on a phone can look but not break anything.
+Everyone may look; changing and resetting is for the host (core/auth.py): the laptop running
+the karaoke, or a device unlocked with the host PIN. This replaced the old "Allow changes
+from other devices" switch — one lock instead of two (an old settings.json that still has
+that key loads fine; core/settings.py drops it quietly).
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from config import get_local_ip
-from core import settings
+from core import auth, settings
 from core.hub import hub
 from core.settings_schema import GROUPS
 
@@ -22,19 +23,9 @@ class ResetRequest(BaseModel):
     keys: list[str] | None = None   # None = reset everything
 
 
-def _is_this_laptop(request: Request) -> bool:
-    host = request.client.host if request.client else ""
-    return host in ("127.0.0.1", "::1", "localhost", "testclient", get_local_ip())
-
-
-def _check_allowed(request: Request) -> None:
-    if not settings.get("allow_remote_settings") and not _is_this_laptop(request):
-        raise HTTPException(403, "Settings can only be changed on the laptop running the karaoke")
-
-
 def _page(request: Request) -> dict:
     return {"groups": [{"id": g, "label": label} for g, label in GROUPS], "settings": settings.snapshot(),
-            "can_edit": settings.get("allow_remote_settings") or _is_this_laptop(request)}
+            "can_edit": auth.identify(request).admin}
 
 
 @router.get("")
@@ -48,9 +39,8 @@ async def client():
     return settings.client_values()
 
 
-@router.put("")
+@router.put("", dependencies=[Depends(auth.require_admin)])
 async def change(req: Changes, request: Request):
-    _check_allowed(request)
     try:
         settings.update(req.values)
     except ValueError as exc:
@@ -59,9 +49,8 @@ async def change(req: Changes, request: Request):
     return _page(request)
 
 
-@router.post("/reset")
+@router.post("/reset", dependencies=[Depends(auth.require_admin)])
 async def reset(req: ResetRequest, request: Request):
-    _check_allowed(request)
     unknown = [key for key in req.keys or [] if key not in settings.BY_KEY]
     if unknown:
         raise HTTPException(422, f"Unknown setting: {', '.join(unknown)}")

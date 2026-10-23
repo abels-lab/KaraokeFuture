@@ -54,6 +54,8 @@ function connectWS(role, onMessage) {
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
       if (msg.type === "settings") Settings.load();   // changed on the Settings page
+      if (msg.type === "auth" && typeof Auth !== "undefined") Auth.load();   // party wiped / PIN changed
+      if (msg.type === "denied") toast(msg.message, false);
       onMessage(msg);
     };
     ws.onclose = () => setTimeout(open, 2000);
@@ -96,23 +98,29 @@ const svg = (name) => `<svg viewBox="0 0 24 24" class="h-5 w-5 fill-current" ari
 const setIcon = (btn, name) => { btn.querySelector("svg")?.remove(); btn.insertAdjacentHTML("afterbegin", svg(name)); };
 document.querySelectorAll("[data-icon]").forEach((b) => setIcon(b, b.dataset.icon));
 
-// One queue entry: title on its own line, then singer + status + sing-next / up / down / remove
-function queueRow(e, i, total, { thumb = true, extras = [] } = {}) {
+// One queue entry: title on its own line, then singer + status + sing-next / up / down / remove.
+// manage: "all" (host: move anywhere) | "mine" (a guest's own song: swap among their own slots,
+// first/last = its place among them) | null (someone else's: look only). The server checks too.
+function queueRow(e, i, total, { thumb = true, extras = [], manage = "all", first = i === 0, last = i === total - 1 } = {}) {
   const [label, color] = STATUS[e.status] || [e.status, "bg-stone-600"];
   const li = el("li", "flex items-center gap-3 rounded-xl bg-black/45 p-2 ring-1 ring-white/5");
   if (thumb) li.append(Object.assign(el("img", "h-12 w-16 shrink-0 rounded-lg object-cover"), { src: e.thumbnail || thumbFor(e.song_id), alt: "" }));
   const info = el("div", "min-w-0 flex-1 space-y-1");
   const meta = el("div", "flex items-center gap-1");
   info.append(el("p", "truncate text-sm font-semibold", `${i + 1}. ${e.title}`), meta);
-  const move = (direction) => api(`/api/queue/${e.uid}/move`, { method: "POST", body: { direction } }).catch(fail);
-  const top = iconButton("⤒", "Sing next", () => move("top"));
-  const up = iconButton("▲", "Move up", () => move("up"));
-  const down = iconButton("▼", "Move down", () => move("down"));
-  top.disabled = up.disabled = i === 0;
-  down.disabled = i === total - 1;
-  const del = iconButton("✕", "Remove from queue", () => api(`/api/queue/${e.uid}`, { method: "DELETE" }).catch(fail), "hover:bg-red-800");
   meta.append(el("span", "min-w-0 flex-1 truncate text-xs text-stone-400", `🎤 ${e.singer}${e.error ? " — " + e.error : ""}`),
-    el("span", `shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${color}`, label), ...extras, top, up, down, del);
+    el("span", `shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${color}`, label), ...extras);
+  if (manage) {
+    const scope = manage === "mine" ? "mine" : "all";
+    const move = (direction) => api(`/api/queue/${e.uid}/move`, { method: "POST", body: { direction, scope } }).catch(fail);
+    const top = iconButton("⤒", scope === "mine" ? "Make this your first song" : "Sing next", () => move("top"));
+    const up = iconButton("▲", scope === "mine" ? "Swap with your earlier song" : "Move up", () => move("up"));
+    const down = iconButton("▼", scope === "mine" ? "Swap with your later song" : "Move down", () => move("down"));
+    top.disabled = up.disabled = first;
+    down.disabled = last;
+    const del = iconButton("✕", "Remove from queue", () => api(`/api/queue/${e.uid}`, { method: "DELETE" }).catch(fail), "hover:bg-red-800");
+    meta.append(top, up, down, del);
+  }
   li.append(info);
   return li;
 }

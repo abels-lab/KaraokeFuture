@@ -8,6 +8,7 @@ __pycache__/
 ai_karaoke/cache/
 ai_karaoke/models/
 ai_karaoke/lyrics_store/
+ai_karaoke/party/
 *.tmp
 *.part
 

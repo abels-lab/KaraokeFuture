@@ -1,16 +1,21 @@
-"""Song library: browse cached songs, view/edit lyrics, regenerate, delete."""
+"""Song library: browse cached songs, view/edit lyrics, regenerate, delete.
+
+Everyone may browse and read lyrics; changing anything (lyrics, re-sync, rebuild, video,
+delete) is for the host only (core/auth.py), checked here, not just hidden in the page.
+"""
 import asyncio
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from core import cache_manager, eviction, settings
+from core import auth, cache_manager, eviction, settings
 from core.queue_manager import queue
 from core.worker import worker
 from services import downloader, lyrics_source, sources, ultrastar_source
 
 router = APIRouter(prefix="/api")
+HOST = [Depends(auth.require_admin)]
 
 
 class LyricsRequest(BaseModel):
@@ -67,7 +72,7 @@ async def get_lyrics(song_id: str):
             "has_user_lyrics": lyrics_source.load_user(song_id) is not None}
 
 
-@router.post("/lyrics/{song_id}")
+@router.post("/lyrics/{song_id}", dependencies=HOST)
 async def save_lyrics(song_id: str, req: LyricsRequest):
     """Pasted or edited lyrics: saved permanently, then aligned by the worker in turn."""
     _check(song_id)
@@ -79,7 +84,7 @@ async def save_lyrics(song_id: str, req: LyricsRequest):
     return {"ok": True, "lines": lines}
 
 
-@router.post("/songs/{song_id}/regenerate")
+@router.post("/songs/{song_id}/regenerate", dependencies=HOST)
 async def regenerate(song_id: str, req: RegenerateRequest):
     _check(song_id)
     if not cache_manager.song_dir(song_id).is_dir():
@@ -101,7 +106,7 @@ async def regenerate(song_id: str, req: RegenerateRequest):
     return {"ok": True}
 
 
-@router.delete("/songs/{song_id}")
+@router.delete("/songs/{song_id}", dependencies=HOST)
 async def delete_song(song_id: str, lyrics: bool = False):
     """Remove a song from the cache; ?lyrics=true also forgets its pasted lyrics."""
     _check(song_id)

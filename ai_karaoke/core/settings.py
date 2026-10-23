@@ -11,7 +11,7 @@ import os
 import threading
 
 from config import SETTINGS_FILE
-from core.settings_schema import SPECS
+from core.settings_schema import RETIRED, SPECS
 
 log = logging.getLogger(__name__)
 BY_KEY = {spec["key"]: spec for spec in SPECS}
@@ -58,6 +58,8 @@ def _load() -> None:
         log.warning("settings.json is unreadable (%s): using defaults", exc)
         return
     for key, value in stored.items() if isinstance(stored, dict) else []:
+        if key in RETIRED:   # a setting that was removed: forgotten at the next save
+            continue
         try:
             _values[key] = coerce(BY_KEY[key], value)
         except (KeyError, ValueError) as exc:
