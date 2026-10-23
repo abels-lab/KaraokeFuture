@@ -1,9 +1,9 @@
 """In-memory singer queue and per-entry status (event loop only, so no locks needed).
 
 Entry: {uid, song_id, singer, title, channel, duration, thumbnail, source, status, error, media,
-added, owner, guide, mode}. owner = guest id of whoever queued it (None: the host queued it
-for someone); guide (0-100 %) and mode (party | score | battle) = the singer's choices for
-this song, None = the control panel's own. Guests' own-entry actions: core/queue_personal.py.
+added, owner, guide, mode, partner}. owner = guest id of whoever queued it (None: queued by the
+host); guide (0-100 %) / mode (party | score | battle) = the singer's choices, None = the control
+panel's own; partner = {id, name} of a second battle singer. See core/queue_personal.py.
 """
 import logging
 import time
@@ -60,7 +60,7 @@ class QueueManager(PersonalQueue):
             "thumbnail": thumbnail or sources.thumbnail(song_id) or cache_manager.read_meta(song_id).get("thumbnail"),
             "source": sources.source_of(song_id),
             "status": "queued", "error": None, "media": None, "added": time.time(),
-            "owner": owner, "guide": guide, "mode": mode,
+            "owner": owner, "guide": guide, "mode": mode, "partner": None,
         }
         if cache_manager.is_ready(song_id):
             entry.update(status="ready", media=media_urls(song_id))

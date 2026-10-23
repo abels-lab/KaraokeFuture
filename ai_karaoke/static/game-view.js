@@ -1,11 +1,12 @@
 // One game surface — the projector screen or the control panel's monitor: party effects or
-// hard-mode lanes over the stage, plus the results card. Needs fx.js, notes.js, results.js.
-// game = {mode: "off" | "party" | "hard", roast, players: [{name, vibe, pitch, hit, streak, points}]}
+// hard-mode lanes over the stage (battle: the same lanes with both singers and their own
+// sparks), plus the results card. Needs fx.js, notes.js, battle-fx.js, results.js.
+// game = {mode: "off" | "party" | "hard" | "battle", roast, players: [{name, vibe, pitch, hit, streak, points}]}
 function createGameView(container, stage) {
   const layer = el("div", "pointer-events-none absolute inset-0 z-10");
   const overlay = el("div", "absolute inset-0 z-20 hidden items-center justify-center bg-black/75 p-6");
   container.append(layer, overlay);
-  const fx = createFx(layer), notes = createNotes(layer);
+  const fx = createFx(layer), notes = createNotes(layer), sparks = createBattleFx(layer);
   let melody = null, partyOn = false, hideTimer = null;
 
   async function load(entry) {
@@ -20,7 +21,9 @@ function createGameView(container, stage) {
 
   function render(t, game) {
     const mode = game?.players?.length ? game.mode : "off";
-    notes.show(mode === "hard");
+    const lanes = mode === "hard" || mode === "battle";
+    notes.show(lanes);
+    sparks.show(mode === "battle");
     if (mode === "party") {
       // Duets: the better singer of the moment lights the stage
       const vibe = Math.max(...game.players.map((p) => p.vibe));
@@ -31,7 +34,10 @@ function createGameView(container, stage) {
       fx.clear(stage.main);
       partyOn = false;
     }
-    if (mode === "hard") notes.render(t, game.players);
+    if (lanes) {
+      const heads = notes.render(t, game.players);
+      if (mode === "battle") sparks.render(heads);
+    }
   }
 
   function showResults(message, ms = Settings.get("game_results_seconds", 12) * 1000) {
@@ -44,6 +50,7 @@ function createGameView(container, stage) {
   function clear() {
     melody = null;
     notes.clear();
+    sparks.clear();
     fx.clear(stage.main);
     partyOn = false;
   }

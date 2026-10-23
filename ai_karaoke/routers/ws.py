@@ -6,12 +6,15 @@ Server -> client:  {"type": "state", "data": {...}}
                    {"type": "control", "action", "value"}                   (control panel only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (screens + phones, 4 Hz)
                    {"type": "game" | "game_result", ...}                    (screens: singing game)
+                   {"type": "intro", "uid", "left", "total", "mode", "names"} (screens + phones,
+                        4 Hz while the pre-song countdown card is up; left 0 = it's gone)
                    {"type": "auth"}               (logins changed / party wiped: re-check who you are)
                    {"type": "denied", "message"}  (a control message this client may not send)
 Client -> server:  {"type": "ping"}
                    {"type": "control", "action": "play|pause|restart|skip|seek|seek_by", "value"}
                    {"type": "ended", "uid": "..."}                         (TV only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (TV only)
+                   {"type": "intro", ...}  (TV only; the countdown is the TV's, screens just show it)
 
 Security (core/auth.py): the client is identified from its session cookie and address on
 every message. The "tv" role (which can end songs and drives every screen) is granted only
@@ -55,6 +58,18 @@ async def _control(ws: WebSocket, msg: dict) -> None:
         await queue.control(action, _num(msg.get("value")))
 
 
+async def _intro(msg: dict) -> None:
+    """The control panel's countdown: remembered (a battle song can be joined until it ends)
+    and passed on with only plain, short fields."""
+    uid, left = str(msg.get("uid", ""))[:32], max(0.0, _num(msg.get("left")))
+    playing = bool(queue.current and queue.current["uid"] == uid)
+    queue.set_intro(uid, left if playing else 0)
+    names = msg.get("names") if isinstance(msg.get("names"), list) else []
+    await hub.broadcast({"type": "intro", "uid": uid, "left": left, "total": _num(msg.get("total")),
+                         "mode": str(msg.get("mode", ""))[:12], "names": [str(n)[:32] for n in names[:2]]},
+                        "remote", "screen")
+
+
 async def _handle(ws: WebSocket, role: str, msg: dict) -> None:
     kind = msg.get("type")
     if kind == "ping":
@@ -73,6 +88,8 @@ async def _handle(ws: WebSocket, role: str, msg: dict) -> None:
             "duration": _num(msg.get("duration")),
             "paused": bool(msg.get("paused")),
         }, "remote", "screen")
+    elif kind == "intro":
+        await _intro(msg)
     elif kind in ("game", "game_result") and len(json.dumps(msg)) < 16_000:
         await hub.broadcast(msg, "screen")  # singing game: live state 25 Hz + results, for projectors
 

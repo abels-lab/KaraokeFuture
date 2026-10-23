@@ -1,27 +1,19 @@
 """Every setting the Settings page can change: plain-language label and help, default (from
 config.py, so environment variables still set the defaults), limits, and when it takes effect.
-`client` settings are also sent to the browser pages (singing game, playback)."""
+`client` settings are also sent to the browser pages (singing game, intro, playback).
+The browser-side settings live in core/settings_schema_show.py, the helpers in settings_kinds."""
 import config as c
+from core.settings_kinds import NOW, _n, _s
+from core.settings_schema_show import SHOW_SPECS
 
 GROUPS = [
     ("library", "Songs & downloads"), ("warmup", "Popular songs warm-up"), ("separation", "Vocal separation"), ("lyrics", "Lyrics"),
     ("timing", "Vocal detection & word timing"), ("melody", "Melody"),
-    ("game", "Singing game"), ("playback", "Playback"),
+    ("game", "Singing game"), ("show", "Song intro & Battle / Duet"), ("playback", "Playback"),
 ]
-NOW, NEXT, PROCESSING = "immediately", "next song", "next processed song"
 # Settings that no longer exist; old settings.json files may still have them (silently dropped).
 # allow_remote_settings: replaced by the host PIN (core/auth.py).
 RETIRED = {"allow_remote_settings"}
-
-
-def _s(key, group, label, default, kind, help_, applies=PROCESSING, client=False, **extra):
-    return {"key": key, "group": group, "label": label, "default": default, "kind": kind,
-            "help": help_, "applies": applies, "client": client, **extra}
-
-
-def _n(key, group, label, default, lo, hi, step, unit, help_, applies=PROCESSING, client=False):
-    return _s(key, group, label, default, "number", help_, applies, client, min=lo, max=hi, step=step, unit=unit)
-
 
 SPECS = [
     # ── Songs & downloads ───────────────────────────────────────────────────
@@ -111,25 +103,4 @@ SPECS = [
     _n("melody_voiced", "melody", "Pitch confidence", 0.4, 0.1, 0.9, 0.05, "",
        "How clear the original singer's pitch must be to become a note. Lower = more notes on shouty songs."),
     _n("melody_min_note", "melody", "Shortest note", 0.1, 0.05, 0.5, 0.01, "s", "Shorter pitch blips are not notes."),
-    # ── Singing game (browser) ──────────────────────────────────────────────
-    _n("game_gate_db", "game", "Microphone noise gate", -48, -80, -20, 1, "dB",
-       "Quieter mic sound is ignored. Raise it if the room is loud.", NEXT, True),
-    _n("game_perfect", "game", "Perfect pitch window", 0.5, 0.1, 1.5, 0.05, "semitones",
-       "Within this many semitones of the note scores full points.", NEXT, True),
-    _n("game_miss", "game", "Pitch miss point", 2.0, 1, 4, 0.1, "semitones",
-       "This far off (or more) scores nothing. Must be larger than the perfect window.", NEXT, True),
-    _n("game_results_seconds", "game", "Results screen time", 12, 3, 60, 1, "s",
-       "How long the results card stays up before the next song starts.", NEXT, True),
-    _n("party_min_percent", "game", "Party mode lowest score", 52, 0, 90, 1, "%",
-       "Party mode never shows a lower 'good vocalist' score than this.", NEXT, True),
-    # ── Playback ────────────────────────────────────────────────────────────
-    _s("skip_intro", "playback", "Skip non-music intros", True, "bool",
-       "When a music video has spoken dialogue or an intro skit before the music, jump straight to the song start. "
-       "To listen anyway, just drag the slider back to 0:00.", NOW, client=True),
-    _n("guide_default", "playback", "Default guide-vocal volume", 20, 0, 100, 5, "%",
-       "Starting volume of the original singer, until the slider is moved on this laptop. "
-       "A singer's own choice on their phone wins for their song.", NOW, True),
-    _s("guest_scrubbing", "playback", "Allow guests to scrub timeline", False, "bool",
-       "When off, only the host can scrub and jump within a playing song. "
-       "Disabled by default so guests cannot accidentally scrub or create delay.", NOW, client=True),
-]
+] + SHOW_SPECS   # singing game, intro + battle, playback (all browser-side)

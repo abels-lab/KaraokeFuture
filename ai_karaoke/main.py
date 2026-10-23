@@ -16,7 +16,7 @@ from config import CACHE_DIR, HOST, PORT, STATIC_DIR, get_local_ip, setup_loggin
 from core import cache_manager
 from core.warmer import warmer
 from core.worker import worker
-from routers import api, auth, library, queue, settings, ws
+from routers import api, auth, battle, library, queue, settings, ws
 
 setup_logging()
 log = logging.getLogger("karaoke")
@@ -51,6 +51,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="AI Karaoke", lifespan=lifespan)
 app.include_router(api.router)
 app.include_router(queue.router)
+app.include_router(battle.router)
 app.include_router(auth.router)
 app.include_router(library.router)
 app.include_router(settings.router)

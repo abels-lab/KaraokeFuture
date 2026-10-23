@@ -1,5 +1,6 @@
 // End-of-song results card. Party: always positive, "% good vocalist" (never below 52).
 // Hard: points, stats, winner, and a verdict — honest levels, or (opt-in) roast metaphors.
+// Battle: the same per singer, a crown for the winner (or a tie) and the duet's total.
 const PARTY_TITLES = [
   [0.85, "Superstar!", "The crowd is on its feet"], [0.7, "Natural talent", "Smooth, confident, golden"],
   [0.5, "Rising star", "That's how legends start"], [0, "Brave soul", "Pure fun — and that's what counts"],
@@ -19,13 +20,16 @@ const pct = (x) => (x === null || x === undefined ? "–" : `${Math.round(x * 10
 
 function resultsCard({ mode, roast, results }) {
   const card = el("div", "panel mx-auto flex max-w-5xl flex-col items-center gap-6 px-10 py-8 text-center");
-  card.append(el("p", "text-sm font-semibold uppercase tracking-[0.35em] text-gold", mode === "hard" ? "Final score" : "What a performance"));
+  const battle = mode === "battle", scored = mode === "hard" || battle;
+  card.append(el("p", "text-sm font-semibold uppercase tracking-[0.35em] text-gold",
+    battle ? "⚔️ Battle results" : scored ? "Final score" : "What a performance"));
   const row = el("div", "flex flex-wrap justify-center gap-10");
   const ranked = [...results].sort((a, b) => b.points - a.points);
   results.forEach((r, i) => {
     const col = el("div", "flex min-w-[14rem] flex-col items-center gap-1");
     col.append(el("p", "font-display text-3xl font-bold", r.name));
-    if (mode === "hard") {
+    if (scored) {
+      if (battle && results.length > 1 && r === ranked[0] && r.points > ranked[1].points) col.prepend(el("p", "text-5xl", "👑"));
       const [, metaphor, level] = pick(VERDICTS, r.overall);
       const points = el("p", "font-display text-7xl font-black", r.points.toLocaleString());
       points.style.color = PLAYER_COLORS[i];
@@ -42,9 +46,16 @@ function resultsCard({ mode, roast, results }) {
     row.append(col);
   });
   card.append(row);
-  if (mode === "hard" && ranked.length > 1 && ranked[0].points !== ranked[1].points) {
+  const margin = ranked.length > 1 ? ranked[0].points - ranked[1].points : 0;
+  if (scored && margin > 0) {
     card.append(el("p", "text-2xl font-bold text-gold",
-      `🏆 ${ranked[0].name} wins by ${(ranked[0].points - ranked[1].points).toLocaleString()} points`));
+      `🏆 ${ranked[0].name} wins by ${margin.toLocaleString()} points`));
+  } else if (scored && ranked.length > 1) {
+    card.append(el("p", "text-2xl font-bold text-gold", "🤝 A perfect tie — nobody could split you two"));
+  }
+  if (battle && ranked.length > 1) {   // the duet framing: what they made together
+    const total = results.reduce((sum, r) => sum + r.points, 0);
+    card.append(el("p", "font-mono text-lg text-stone-300", `🎶 Duet total ${total.toLocaleString()} points`));
   }
   return card;
 }

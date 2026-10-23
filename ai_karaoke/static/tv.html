@@ -15,13 +15,16 @@
     <main class="flex min-w-0 flex-col p-10">
       <!-- Idle: nobody singing -->
       <section id="idle" class="flex flex-1 flex-col items-center justify-center text-center">
-        <img src="/static/img/microphone.png" alt="" class="mic-glow w-80 -rotate-6">
+        <img id="idle-mic" src="/static/img/microphone.png" alt="" class="mic-glow w-80 -rotate-6">
         <h1 class="font-display mt-6 text-7xl font-black text-gold">Karaoke Night</h1>
         <p class="mt-3 text-2xl text-stone-200">Scan with your phone and pick a song</p>
         <div class="panel mt-8 flex items-center gap-6 p-5 text-left">
           <img id="qr-big" alt="QR code for the guest page" class="h-52 w-52 rounded-xl bg-white p-2">
           <p id="qr-url-big" class="max-w-xs break-all font-mono text-lg text-gold"></p>
         </div>
+        <!-- Songs wait, the next one is still being prepared: a compact card (loading.js); the
+             full-size loading screen is the projector's (/screen) -->
+        <section id="loading" class="mt-6 hidden w-full justify-center"></section>
       </section>
 
       <!-- Stage: a song is playing -->
@@ -123,10 +126,16 @@
   <script src="/static/game.js"></script>
   <script src="/static/fx.js"></script>
   <script src="/static/notes.js"></script>
+  <script src="/static/battle-fx.js"></script>
   <script src="/static/results.js"></script>
   <script src="/static/game-view.js"></script>
+  <script src="/static/p2-detect.js"></script>
   <script src="/static/game-panel.js"></script>
   <script src="/static/guide.js"></script>
+  <script src="/static/intro.js"></script>
+  <script src="/static/intro-run.js"></script>
+  <script src="/static/loading.js"></script>
+  <script src="/static/tv-side.js"></script>
   <script src="/static/tv.js"></script>
 </body>
 </html>

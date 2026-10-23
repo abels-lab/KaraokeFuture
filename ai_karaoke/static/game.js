@@ -14,20 +14,22 @@ const Game = (() => {
              pitch: [0, 0], timing: [0, 0, 0], env: [], peakDb: -30, onNote: {} };  // timing: hit, missed, extra
   }
 
-  function load(melodyJson, names) {
+  // names: one per mic slot; on: which slots play from the start (a battle's Player 2 may
+  // join later, when they start singing or a partner joins: activate)
+  function load(melodyJson, names, on = names.map(() => true)) {
     GATE_DB = Settings.get("game_gate_db", -48);
     PERFECT = Settings.get("game_perfect", 0.5);
     MISS = Math.max(PERFECT + 0.1, Settings.get("game_miss", 2.0));
     melody = melodyJson;
     noteIdx = 0;
     sungFrames = Math.max(1, melody.energy.filter((e) => e > 0.25).length); // points = share of these
-    players = names.map((name, i) => player(i, name));
+    players = names.map((name, i) => ({ ...player(i, name), on: on[i] !== false }));
   }
 
   // One mic frame. t = song time the singer was answering (playback time minus latency).
   function frame(i, { pitch, clarity, db }, t) {
     const p = players[i];
-    if (!melody || !p || t < 0) return;
+    if (!melody || !p || !p.on || t < 0) return;
     const k = Math.round(t / melody.hop);
     const refPitch = melody.pitch[k] || 0, refEnergy = melody.energy[k] || 0;
     p.peakDb = Math.max(p.peakDb - 0.002, db);                // slowly forgets old peaks
@@ -123,9 +125,14 @@ const Game = (() => {
     load, frame,
     get loaded() { return Boolean(melody); },
     get players() { return players; },
-    live: () => players.map((p) => ({ name: p.name, vibe: p.vibe, pitch: p.livePitch, hit: p.hit,
+    // Slot i plays from now on (its score counts from here); rename for a partner who joined
+    activate(i, name) {
+      const p = players[i];
+      if (p) { p.on = true; if (name) p.name = name; }
+    },
+    live: () => players.filter((p) => p.on).map((p) => ({ name: p.name, vibe: p.vibe, pitch: p.livePitch, hit: p.hit,
                                       streak: p.streak, points: points(p) })),
-    results: () => players.map(summary),
+    results: () => players.filter((p) => p.on).map(summary),
     clear: () => { melody = null; players = []; },
   };
 })();
