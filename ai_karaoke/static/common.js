@@ -14,6 +14,7 @@ const LYRICS_SOURCE = {
   synced: ["🌐 Online lyrics", "bg-emerald-900/70 text-emerald-200"],
   user: ["✍️ Pasted lyrics", "bg-amber-900/70 text-amber-200"],
   transcribed: ["👂 Transcribed", "bg-red-950/80 text-red-200"],
+  ultrastar: ["🎤 UltraStar", "bg-sky-900/70 text-sky-200"],
 };
 
 async function api(path, { method = "GET", body } = {}) {
