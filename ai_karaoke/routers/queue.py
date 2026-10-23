@@ -130,5 +130,7 @@ async def move_in_queue(uid: str, req: MoveRequest, request: Request):
 @router.patch("/{uid}")
 async def set_preferences(uid: str, req: PrefsRequest, request: Request):
     """Per-song guide-vocal volume and singing mode; the control panel applies them."""
-    _entry_for(request, uid)
+    who, entry = _entry_for(request, uid)
+    if queue.current and entry.get("uid") == queue.current.get("uid") and not who.admin:
+        raise HTTPException(403, "Once a song starts playing, only the host can adjust vocals")
     return await queue.set_prefs(uid, guide=req.guide, mode=req.mode)

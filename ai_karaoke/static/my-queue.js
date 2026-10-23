@@ -5,26 +5,37 @@ const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["scor
 let lastQueue = [], dragging = false;
 let queueFilter = "all"; // "all" | "mine"
 
-const savePrefs = (e, changes) =>
-  api(`/api/queue/${e.uid}`, { method: "PATCH", body: { guide: e.guide ?? null, mode: e.mode ?? null, ...changes } })
-    .then(() => toast("Saved for your song")).catch(fail);
+const savePrefs = (e, changes) => {
+  Object.assign(e, changes);
+  return api(`/api/queue/${e.uid}`, {
+    method: "PATCH",
+    body: { guide: e.guide !== undefined ? e.guide : null, mode: e.mode || null, ...changes }
+  }).then(() => toast("Saved song settings")).catch(fail);
+};
 
-// Mode picker + guide slider for one entry ("host" = the control panel's own setting)
+// Mode picker + guide slider for one queue entry (adjustable before song starts)
 function songPrefs(e) {
   const box = el("div", "flex flex-wrap items-center gap-2 pt-1 text-xs text-stone-300");
-  const mode = el("select", "rounded-lg bg-white/10 px-2 py-1 text-xs");
-  mode.title = "How this song is played: party (always a nice score), score (real pitch scoring), battle (two singers)";
+  const mode = el("select", "rounded-lg bg-white/10 px-2 py-1 text-xs outline-none");
+  mode.title = "Singing mode: party (friendly scoring), score (real pitch), battle (2 mics)";
   for (const [value, label] of MODE_CHOICES) mode.append(Object.assign(el("option", "bg-stone-900", label), { value }));
   mode.value = e.mode || "";
   mode.onchange = () => savePrefs(e, { mode: mode.value || null });
-  const slider = Object.assign(el("input", "min-w-[5rem] flex-1"),
-    { type: "range", min: 0, max: 100, step: 5, value: e.guide ?? Settings.get("guide_default", 20) });
-  slider.title = "Guide vocals: how loud the original singer sings along";
-  const shown = el("span", "w-10 text-right font-mono", e.guide == null ? "host" : `${e.guide}%`);
+
+  const guideVal = Number.isFinite(e.guide) ? e.guide : Settings.get("guide_default", 20);
+  const slider = Object.assign(el("input", "min-w-[5rem] flex-1 accent-amber-400"),
+    { type: "range", min: 0, max: 100, step: 5, value: guideVal });
+  slider.title = "Guide vocals: volume of the original singer (0% = mute, 100% = full)";
+  const shown = el("span", "w-11 text-right font-mono font-semibold", Number.isFinite(e.guide) ? `${e.guide}%` : "default");
   slider.oninput = () => { dragging = true; shown.textContent = `${slider.value}%`; };
   slider.onchange = () => { dragging = false; savePrefs(e, { guide: Number(slider.value) }); };
-  const reset = iconButton("↺", "Back to the host's guide volume", () => savePrefs(e, { guide: null }));
-  reset.disabled = e.guide == null;
+  const reset = iconButton("↺", "Reset to host default volume", () => {
+    delete e.guide;
+    slider.value = Settings.get("guide_default", 20);
+    shown.textContent = "default";
+    savePrefs(e, { guide: null });
+  });
+  reset.disabled = !Number.isFinite(e.guide);
   box.append(mode, el("span", "", "🗣"), slider, shown, reset);
   return box;
 }
@@ -91,6 +102,7 @@ function renderQueue(queue = lastQueue) {
 
   $("queue")?.replaceChildren(...items.map((e) => {
     const own = Auth.owns(e);
+    const canManage = admin || own;
     const pos = mine.indexOf(e);
     const idx = queue.indexOf(e);
     const row = queueRow(e, idx, queue.length, {
@@ -102,6 +114,8 @@ function renderQueue(queue = lastQueue) {
     });
     if (own) {
       row.classList.replace("ring-white/5", "ring-amber-400/60"); // yours stand out
+    }
+    if (canManage) {
       row.lastChild.append(songPrefs(e));
     }
     return row;

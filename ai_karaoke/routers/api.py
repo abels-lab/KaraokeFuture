@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 from config import qr_svg_data_uri, remote_url
-from core import auth
+from core import auth, settings
 from core.queue_manager import queue
 from core.worker import worker
 from services import search as smart_search
@@ -44,8 +44,11 @@ async def play_next():
 
 @router.post("/player/control")
 async def player_control(req: ControlRequest, request: Request):
-    if not auth.may_manage(auth.identify(request), queue.current):
+    who = auth.identify(request)
+    if not auth.may_manage(who, queue.current):
         raise HTTPException(403, "Only the host or the person singing can control this song")
+    if req.action.startswith("seek") and not who.admin and not settings.get("guest_scrubbing"):
+        raise HTTPException(403, "Timeline scrubbing is reserved for the host")
     if req.action == "skip":
         return {"now_playing": await queue.next()}
     await queue.control(req.action, req.value)

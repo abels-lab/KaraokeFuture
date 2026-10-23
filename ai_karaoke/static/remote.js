@@ -268,12 +268,20 @@ function renderState(state = lastState) {
   lastState = state;
   const { now_playing: np, queue } = state;
   const mayControl = Auth.me.admin || Auth.owns(np);
+  const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
   nowEntry = np;
   $("np-singer").textContent = np ? np.singer : "Nobody yet";
   $("np-title").textContent = np ? np.title : "Add a song to get started";
-  $("np-seek").disabled = !np || !mayControl;
+  $("np-seek").disabled = !np || !mayScrub;
   $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
   $("transport-note").classList.toggle("hidden", !np || mayControl);
+
+  document.querySelectorAll('#transport button[data-action="seek_by"]').forEach((b) => {
+    b.disabled = !mayScrub;
+    b.classList.toggle("opacity-40", !mayScrub);
+    b.classList.toggle("pointer-events-none", !mayScrub);
+  });
+
   if (!np) renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
 
   const isAdmin = Boolean(Auth.me.admin);
@@ -290,7 +298,8 @@ function renderState(state = lastState) {
     }
   }
 
-  $("np-prefs").replaceChildren(...(Auth.owns(np) && !dragging ? [songPrefs(np)] : []));
+  // Once a song starts playing, only the host can tweak guide vocals / mode mid-song
+  $("np-prefs").replaceChildren(...(isAdmin && !dragging ? [songPrefs(np)] : []));
   renderQueue(queue);
 }
 Auth.onChange(() => renderState());

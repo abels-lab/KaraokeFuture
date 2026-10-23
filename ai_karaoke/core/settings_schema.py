@@ -129,4 +129,7 @@ SPECS = [
     _n("guide_default", "playback", "Default guide-vocal volume", 20, 0, 100, 5, "%",
        "Starting volume of the original singer, until the slider is moved on this laptop. "
        "A singer's own choice on their phone wins for their song.", NOW, True),
+    _s("guest_scrubbing", "playback", "Allow guests to scrub timeline", False, "bool",
+       "When off, only the host can scrub and jump within a playing song. "
+       "Disabled by default so guests cannot accidentally scrub or create delay.", NOW, client=True),
 ]

@@ -24,7 +24,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from core import auth
+from core import auth, settings
 from core.hub import hub
 from core.queue_manager import queue
 
@@ -44,8 +44,11 @@ def _num(value) -> float:
 
 async def _control(ws: WebSocket, msg: dict) -> None:
     action = msg.get("action")
-    if not auth.may_manage(auth.identify(ws), queue.current):
+    who = auth.identify(ws)
+    if not auth.may_manage(who, queue.current):
         await hub.send(ws, {"type": "denied", "message": "Only the host or the person singing can control this song"})
+    elif str(action).startswith("seek") and not who.admin and not settings.get("guest_scrubbing"):
+        await hub.send(ws, {"type": "denied", "message": "Timeline scrubbing is reserved for the host"})
     elif action == "skip":
         await queue.next()
     elif action in TV_ACTIONS:
