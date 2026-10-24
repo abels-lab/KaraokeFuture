@@ -40,7 +40,7 @@
   <!-- Stage: a song is playing -->
   <section id="stage" class="relative hidden h-full flex-col p-[3vw]">
     <!-- Song info card: who sings, the song, who's next; shown briefly (look.js Look.infoCard) -->
-    <header id="info-card" class="flex items-start justify-between gap-6 pr-28 sm:pr-44 transition-opacity duration-700">
+    <header id="info-card" class="flex items-start justify-between gap-6 transition-opacity duration-700">
       <div class="flex min-w-0 items-center gap-4">
         <img src="/static/img/microphone.png" alt="" class="mic-glow h-[6vw] w-auto -rotate-12">
         <div class="min-w-0">
@@ -70,8 +70,8 @@
     <!-- Top-Right QR Code for Projector Screen -->
   <aside id="corner-qr" class="panel fixed right-4 top-4 z-30 hidden items-center gap-3 p-2.5 bg-black/60 backdrop-blur-md border border-white/15 shadow-xl transition-opacity duration-500">
     <img id="qr-corner" alt="QR" class="h-[68px] w-[68px] rounded-lg bg-white p-1">
-    <div class="hidden sm:block pr-1 text-right leading-tight">
-      <p class="text-[13px] font-bold uppercase tracking-wider text-gold">Join party</p>
+    <div id="corner-qr-text" class="hidden sm:block pr-1 text-right leading-tight">
+      <p id="corner-qr-title" class="text-[13px] font-bold uppercase tracking-wider text-gold">Join party</p>
       <p id="qr-corner-url" class="font-mono text-[12px] text-stone-300 max-w-[14.5rem] truncate"></p>
     </div>
   </aside>

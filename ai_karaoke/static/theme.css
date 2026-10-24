@@ -1,6 +1,7 @@
 /* Shared theater theme: velvet-and-gold palette over the stage photo. No purple. */
 :root {
   --stage-dim: 0.4;
+  --qr-scale: 1;
   --gold: #f4c25b;
   --gold-deep: #d99a2b;
   --velvet: #8f1d1d;
@@ -133,6 +134,70 @@ body[data-lyrics-pos="middle"] .video-shade {
   );
 }
 body.no-video .video-shade { opacity: 0.75; }
+
+/* ── QR Code styling and scaling (Settings → Screen & theme) ── */
+#corner-qr {
+  padding: calc(0.625rem * var(--qr-scale, 1)) !important;
+  gap: calc(0.75rem * var(--qr-scale, 1)) !important;
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+#corner-qr img#qr-corner {
+  width: calc(68px * var(--qr-scale, 1)) !important;
+  height: calc(68px * var(--qr-scale, 1)) !important;
+}
+
+#corner-qr #corner-qr-title {
+  font-size: calc(13px * var(--qr-scale, 1)) !important;
+}
+
+#corner-qr #qr-corner-url {
+  font-size: calc(12px * var(--qr-scale, 1)) !important;
+  max-width: calc(14.5rem * var(--qr-scale, 1)) !important;
+}
+
+#idle img#qr {
+  width: calc(24vw * var(--qr-scale, 1)) !important;
+  max-width: calc(28rem * var(--qr-scale, 1)) !important;
+}
+
+#idle #qr-url {
+  font-size: calc(1.2vw * var(--qr-scale, 1)) !important;
+}
+
+/* Checkbox: hide QR code on stage */
+body.no-qr #corner-qr {
+  display: none !important;
+}
+
+/* Checkbox: hide link text under/next to QR */
+body.no-qr-link #corner-qr-text,
+body.no-qr-link #qr-url {
+  display: none !important;
+}
+
+/* Dynamic right spacing for header and singing game HUD based on QR visibility */
+body.no-qr #info-card {
+  padding-right: 0 !important;
+}
+body.no-qr-link:not(.no-qr) #info-card {
+  padding-right: calc(6.5rem * var(--qr-scale, 1)) !important;
+}
+body:not(.no-qr):not(.no-qr-link) #info-card {
+  padding-right: calc(18rem * var(--qr-scale, 1)) !important;
+}
+
+.game-hud-screen {
+  right: calc(18rem * var(--qr-scale, 1)) !important;
+  top: 3% !important;
+  transition: right 0.2s ease;
+}
+body.no-qr .game-hud-screen {
+  right: 3% !important;
+}
+body.no-qr-link:not(.no-qr) .game-hud-screen {
+  right: calc(6.5rem * var(--qr-scale, 1)) !important;
+}
 
 /* Music videos off (Settings, or the control panel's 🎬 button) */
 body.no-video video#video, body.no-video video#stage-video { display: none; }

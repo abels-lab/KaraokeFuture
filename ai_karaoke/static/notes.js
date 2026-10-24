@@ -6,7 +6,7 @@ const BEHIND = 2, AHEAD = 4;                   // seconds visible either side of
 function createNotes(container) {
   const canvas = el("canvas", "pointer-events-none absolute inset-x-0 top-[14%] h-[46%] w-full");
   const isScreen = container === document.body;
-  const hud = el("div", `pointer-events-none absolute ${isScreen ? "right-[15rem]" : "right-[3%]"} top-[3%] flex gap-4`);
+  const hud = el("div", `pointer-events-none absolute ${isScreen ? "game-hud-screen right-[18rem]" : "right-[3%]"} top-[3%] flex gap-4`);
   container.append(canvas, hud);
   const ctx = canvas.getContext("2d");
   let notes = [], lo = 48, hi = 72, trails = [[], []], hits = [{}, {}];

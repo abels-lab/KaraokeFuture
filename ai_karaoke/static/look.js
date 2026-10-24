@@ -2,8 +2,8 @@
 // theme (body data-theme: background picture, theme.css), colour preset (the --gold /
 // --gold-deep variables that titles, buttons and sung words use), the party title ([data-title]),
 // where the lyrics sit ([data-lyrics-box]), whether music videos show (body.no-video) and the
-// lyrics mode (body.lyrics-plain: no word fill, body.lyrics-off: no lyrics), plus video & background
-// shading intensity (--stage-dim).
+// lyrics mode (body.lyrics-plain: no word fill, body.lyrics-off: no lyrics), video & background
+// shading intensity (--stage-dim), and QR code display (body.no-qr, body.no-qr-link, --qr-scale).
 // Needs common.js (Settings). Look.infoCard(time, duration) -> should the song info card show now?
 const ACCENTS = { gold: ["#f4c25b", "#d99a2b"], neon: ["#ff5fd2", "#d01f9e"], ice: ["#7fd8ff", "#2b9bd9"],
                   lime: ["#c6f25b", "#86b51f"], fire: ["#ff7a3d", "#d8341a"], silver: ["#eef0f6", "#9ea7ba"] };
@@ -21,6 +21,15 @@ const Look = (() => {
     const rawDim = Settings.get("stage_dim", 40);
     const stageDim = Math.max(0, Math.min(1, (Number(rawDim) ?? 40) / 100));
     document.documentElement.style.setProperty("--stage-dim", stageDim.toFixed(2));
+
+    // QR code display settings (show/hide QR, show/hide link, size multiplier)
+    const showQr = Settings.get("show_qr", true);
+    document.body.classList.toggle("no-qr", !showQr);
+    const showLink = Settings.get("show_qr_link", true);
+    document.body.classList.toggle("no-qr-link", !showLink);
+    const qrSizeRaw = Settings.get("qr_size", 100);
+    const qrScale = Math.max(0.5, Math.min(2.0, (Number(qrSizeRaw) || 100) / 100));
+    document.documentElement.style.setProperty("--qr-scale", qrScale.toFixed(2));
 
     const title = Settings.get("title_text", "Karaoke Night");
     document.querySelectorAll("[data-title]").forEach((e) => { e.textContent = title; });
