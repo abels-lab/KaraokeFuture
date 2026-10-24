@@ -71,6 +71,9 @@ function onState({ now_playing: np, queue }) {
   $("stage").classList.toggle("flex", Boolean(current));
   const waiting = loading.render(current ? [] : queue);   // songs wait, none ready yet: their progress
   $("idle").classList.toggle("hidden", Boolean(current) || waiting);
+  const showCorner = Boolean(current) || waiting;
+  $("corner-qr")?.classList.toggle("hidden", !showCorner);
+  $("corner-qr")?.classList.toggle("flex", showCorner);
 }
 
 function renderUpNext(queue) {
@@ -106,5 +109,12 @@ document.addEventListener("mousemove", () => {
   cursorTimer = setTimeout(() => document.body.classList.add("idle-cursor"), 2000);
 });
 
-api("/api/info").then(({ qr, remote_url: url }) => { $("qr").src = qr; $("qr-url").textContent = url; });
+api("/api/info").then(({ qr, remote_url: url }) => {
+  $("qr").src = qr;
+  $("qr-url").textContent = url;
+  if ($("qr-corner")) {
+    $("qr-corner").src = qr;
+    $("qr-corner-url").textContent = url.replace(/^https?:\/\//, "");
+  }
+});
 requestAnimationFrame(tick);
