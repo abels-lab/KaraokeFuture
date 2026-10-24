@@ -1,15 +1,17 @@
 """Every setting the Settings page can change: plain-language label and help, default (from
 config.py, so environment variables still set the defaults), limits, and when it takes effect.
 `client` settings are also sent to the browser pages (singing game, intro, playback).
-The browser-side settings live in core/settings_schema_show.py, the helpers in settings_kinds."""
+The browser-side settings live in core/settings_schema_show.py and _look.py, the helpers in settings_kinds."""
 import config as c
 from core.settings_kinds import NOW, _n, _s
+from core.settings_schema_look import LOOK_SPECS
 from core.settings_schema_show import SHOW_SPECS
 
 GROUPS = [
     ("library", "Songs & downloads"), ("warmup", "Popular songs warm-up"), ("separation", "Vocal separation"), ("lyrics", "Lyrics"),
     ("timing", "Vocal detection & word timing"), ("melody", "Melody"),
     ("game", "Singing game"), ("show", "Song intro & Battle / Duet"), ("playback", "Playback"),
+    ("look", "Screen & theme"), ("access", "Guest access"),
 ]
 # Settings that no longer exist; old settings.json files may still have them (silently dropped).
 # allow_remote_settings: replaced by the host PIN (core/auth.py).
@@ -103,4 +105,4 @@ SPECS = [
     _n("melody_voiced", "melody", "Pitch confidence", 0.4, 0.1, 0.9, 0.05, "",
        "How clear the original singer's pitch must be to become a note. Lower = more notes on shouty songs."),
     _n("melody_min_note", "melody", "Shortest note", 0.1, 0.05, 0.5, 0.01, "s", "Shorter pitch blips are not notes."),
-] + SHOW_SPECS   # singing game, intro + battle, playback (all browser-side)
+] + SHOW_SPECS + LOOK_SPECS   # browser-side: game, intro + battle, playback, screen look

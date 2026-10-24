@@ -4,6 +4,7 @@ Run (single process — queue state lives in memory):
     python main.py
     # or: uvicorn main:app --host 0.0.0.0 --port 8000
 """
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -17,6 +18,7 @@ from core import cache_manager
 from core.warmer import warmer
 from core.worker import worker
 from routers import api, auth, battle, library, queue, settings, ws
+from services import tailscale
 
 setup_logging()
 log = logging.getLogger("karaoke")
@@ -43,6 +45,8 @@ async def lifespan(_: FastAPI):
     log.info("Control panel: http://localhost:%d/tv", PORT)
     log.info("Projector:     http://%s:%d/screen", ip, PORT)
     log.info("Guests:        http://%s:%d/remote", ip, PORT)
+    public = await asyncio.to_thread(tailscale.funnel_url, PORT)
+    log.info("Guests online: %s", f"{public}/remote (Tailscale Funnel)" if public else "no Tailscale Funnel to this port")
     yield
     await warmer.stop()
     await worker.stop()

@@ -28,6 +28,10 @@ $("unlock").onclick = () => {
   if (store("micsOn") === "1") Mics.start().then(() => micStrip?.render()).catch((err) => toast(`Microphones: ${err.message}`, false));
 };
 $("open-mics").onclick = () => openMicSetup();
+// Music video on / off for every screen: it's the "Show music videos" setting (this laptop is host)
+$("btn-video").onclick = () => api("/api/settings", { method: "PUT", body: { values: { show_video: !Settings.get("show_video", true) } } })
+  .then(() => Settings.load()).catch(fail);
+Settings.onChange(() => $("btn-video").classList.toggle("opacity-40", !Settings.get("show_video", true)));
 // A separate window: drag it onto the projector, then click it (or press F) for fullscreen
 $("open-screen").onclick = () => window.open("/screen", "karaoke-screen", "popup,width=1280,height=720");
 document.addEventListener("keydown", (e) => {
@@ -37,6 +41,7 @@ document.addEventListener("keydown", (e) => {
   else if (e.key === "ArrowLeft") { e.preventDefault(); seekTo(inst.currentTime - 5); }
   else if (e.key === "ArrowRight") { e.preventDefault(); seekTo(inst.currentTime + 5); }
   else if (e.key === "n") $("btn-skip").click();
+  else if (e.key === "v") $("btn-video").click();
   else if (e.key === "f") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
 });
 

@@ -2,7 +2,7 @@
 // plays but songs wait, it shows the next song's pipeline stage live (the queue status the
 // worker reports, core/worker.py, arrives with every "state" broadcast), a step indicator,
 // how long it has been at it, its place in the processing line (/api/info, fetched at most
-// every 2 s) and who comes after. Needs common.js.
+// every 2 s), who comes after, and jokes while you wait (jokes.js). Needs common.js + jokes.js.
 // createLoading(section, compact) -> { render(queue) -> shown?, poke() (something changed: refetch info) }
 // compact: a small card for the control panel, whose sidebar already lists the queue (no "Up next").
 const LOADING_STEPS = [["queued", "Waiting"], ["downloading", "Downloading"], ["separating", "Removing vocals"],
@@ -16,23 +16,26 @@ const LOADING_COMPACT = `
       <p class="truncate"><b data-l="singer" class="font-display text-xl"></b> · <span data-l="title" class="text-stone-300"></span></p>
       <ol data-l="steps" class="flex flex-wrap gap-1.5"></ol>
       <p data-l="status" class="font-mono text-xs text-stone-400"></p>
+      <div data-l="joke"></div>
     </div>
   </div>`;
 
 function createLoading(section, compact = false) {
   section.innerHTML = compact ? LOADING_COMPACT : `
-    <div class="flex w-full max-w-4xl flex-col items-center gap-[3vh] text-center">
+    <div class="flex w-full max-w-4xl flex-col items-center gap-[2vh] text-center">
       <p class="text-[clamp(.8rem,1.1vw,1.2rem)] font-semibold uppercase tracking-[0.4em] text-gold">Getting the next song ready</p>
-      <img data-l="thumb" alt="" class="h-[18vh] rounded-2xl object-cover shadow-2xl ring-1 ring-amber-200/20">
+      <img data-l="thumb" alt="" class="h-[13vh] rounded-2xl object-cover shadow-2xl ring-1 ring-amber-200/20">
       <div class="min-w-0 max-w-full">
         <h2 data-l="singer" class="font-display truncate text-[clamp(2rem,4.5vw,5rem)] font-black leading-tight"></h2>
         <p data-l="title" class="truncate text-[clamp(1rem,1.8vw,2rem)] text-stone-200"></p>
       </div>
       <ol data-l="steps" class="flex w-full flex-wrap justify-center gap-2"></ol>
       <p data-l="status" class="font-mono text-[clamp(.9rem,1.3vw,1.4rem)] text-stone-300"></p>
+      <div data-l="joke" class="w-full"></div>
       <div data-l="next" class="panel hidden w-full max-w-2xl space-y-1 px-6 py-4 text-left text-[clamp(.85rem,1.1vw,1.2rem)]"></div>
     </div>`;
   const part = (k) => section.querySelector(`[data-l="${k}"]`);
+  const jokes = createJokes(part("joke"), compact);   // jokes.js: memes and quips while we wait
   let queue = [], info = null, fetchedAt = 0, pending = null;
   const seen = {};   // uid -> {status, stageAt, firstAt}: elapsed times, measured on this device
 
@@ -90,6 +93,7 @@ function createLoading(section, compact = false) {
     section.classList.toggle("hidden", !shown);
     section.classList.toggle("flex", shown);
     if (shown) { paint(); poke(); }
+    jokes.run(shown, (queue.find((e) => e.status !== "error") || queue[0])?.status);
     return shown;
   }
 

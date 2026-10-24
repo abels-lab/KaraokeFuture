@@ -6,6 +6,7 @@ const inst = $("inst"), voc = $("voc"), seek = $("seek");
 const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $("countdown"),
                             noLyrics: $("no-lyrics"), video: $("stage-video") });
 const loading = createLoading($("loading"), true);   // compact: the projector has the big one
+const pulse = createPulse();   // adaptive theme: light follows the music
 // Same-machine projector windows get the clock instantly; other devices via the WebSocket
 const channel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-clock") : null;
 let current = null, scrubbing = false;
@@ -83,7 +84,7 @@ function skipSpokenIntro(entry) {
 }
 
 function stopSong() {
-  current = null; pause(); stage.clear(); GamePanel.clear(); Guide.forEntry(null);
+  current = null; pause(); stage.clear(); pulse.clear(); GamePanel.clear(); Guide.forEntry(null);
   [inst, voc].forEach((a) => { a.removeAttribute("src"); a.load(); });
 }
 
@@ -131,6 +132,7 @@ function tick() {
   const t = inst.currentTime;
   if (!scrubbing) { seek.value = t; $("time-cur").textContent = fmt(t); }
   stage.render(t, !inst.paused);
+  pulse.render(t, current.song_id);
   GamePanel.render(t);
 }
 requestAnimationFrame(tick);

@@ -9,11 +9,11 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
-from config import qr_svg_data_uri, remote_url
+from config import PORT, qr_svg_data_uri, remote_url
 from core import auth, settings
 from core.queue_manager import queue
 from core.worker import worker
-from services import search as smart_search
+from services import search as smart_search, tailscale
 
 router = APIRouter(prefix="/api")
 
@@ -58,9 +58,13 @@ async def player_control(req: ControlRequest, request: Request):
 # ── TV info ──────────────────────────────────────────────────────────────────
 @router.get("/info")
 async def info():
-    url = remote_url()
+    """The QR code links to the Tailscale Funnel address when there is one (works on mobile
+    data, HTTPS), else to this laptop on the home Wi-Fi; the `qr_link` setting can force either."""
+    lan, public = remote_url(), await asyncio.to_thread(tailscale.funnel_url, PORT)
+    public = public and f"{public}/remote"
+    url = public if public and settings.get("qr_link") != "lan" else lan
     return {
-        "remote_url": url,
+        "remote_url": url, "lan_url": lan, "public_url": public,
         "qr": qr_svg_data_uri(url),
         "processing": worker.current_song,   # guest songs only; warm-ups are silent
         "backlog": worker.backlog(),

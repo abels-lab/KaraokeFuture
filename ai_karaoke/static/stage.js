@@ -1,8 +1,13 @@
 // Stage renderer shared by the control panel (/tv) and the projector (/screen): lyrics with
 // word-by-word fill, the muted video locked to a clock, and break / "♪" hints from the vocal map.
+// Lyrics alternate between two fixed rows like classic karaoke: even lines on the top row, odd
+// lines on the bottom one. The upcoming line already waits (dimmed) in its own row, so nothing
+// moves when it starts; only a finished line is replaced, by the one after next.
 // Needs common.js. createStage(elements) -> { load(entry), clear(), render(time, playing) }
 function createStage({ main, next, hint, noLyrics, video }) {
   let song = null, lyrics = [], regions = [], lineIdx = -2, words = [], lastVideoSync = 0, lastT = 0;
+  const rows = [main, next];
+  let shown = [[], []];   // per row: [{w, el}] of the line on it (filled by time, both rows)
   const getJSON = async (url, fallback) => {
     if (!url) return fallback;
     try { return await (await fetch(`${url}?v=${Date.now()}`)).json(); } catch { return fallback; } // cache-busted
@@ -36,10 +41,17 @@ function createStage({ main, next, hint, noLyrics, video }) {
 
   function renderLines(idx) {
     lineIdx = idx;
-    const line = lyrics[idx], following = idx >= 0 ? lyrics[idx + 1] : null;
-    words = (line?.words || []).map((w, i) => ({ w, el: el("span", "word", i ? w.word : w.word.trimStart()) }));
-    main.replaceChildren(...words.map((x) => x.el));
-    next.textContent = following ? following.text : "";
+    rows.forEach((row, r) => {
+      // The row of the current line keeps it; the other row shows the line after it
+      const i = idx < 0 ? -1 : idx % 2 === r ? idx : idx + 1;
+      if (row.dataset.line !== String(i) || !lyrics[i]) {
+        row.dataset.line = String(i);
+        shown[r] = (lyrics[i]?.words || []).map((w, k) => ({ w, el: el("span", "word", k ? w.word : w.word.trimStart()) }));
+        row.replaceChildren(...shown[r].map((x) => x.el));
+      }
+      row.style.opacity = i === idx ? "1" : "0.55";   // the waiting line is dimmed until it starts
+    });
+    words = idx >= 0 ? shown[idx % 2] : [];
   }
 
   let lastHardSeek = 0;
@@ -84,11 +96,11 @@ function createStage({ main, next, hint, noLyrics, video }) {
     if (!song) return;
     lastT = t;
     syncVideo(t, playing);
-    // Current or upcoming line. A line stays up a little past its end (up to 1 s, but not into the
-    // next line): singers hold the last note longer than its timing says
-    const idx = lyrics.findIndex((s, i) => t <= s.end + Math.min(1, Math.max(0.4, (lyrics[i + 1]?.start ?? Infinity) - s.end - 0.1)));
+    // Current or upcoming line. A line stays current a little past its end (singers hold the last
+    // note), up to 1 s but never into the next line: its row is replaced only after that
+    const idx = lyrics.findIndex((s, i) => t <= s.end + Math.min(1, Math.max(0, (lyrics[i + 1]?.start ?? Infinity) - s.end - 0.1)));
     if (idx !== lineIdx) renderLines(idx);
-    for (const { el: span, w } of words) {
+    for (const { el: span, w } of shown.flat()) {
       const p = Math.min(1, Math.max(0, (t - w.start) / Math.max(0.05, w.end - w.start)));
       span.style.setProperty("--p", `${(p * 100).toFixed(1)}%`);
     }
@@ -107,9 +119,10 @@ function createStage({ main, next, hint, noLyrics, video }) {
   // The word being sung right now (party effects spark from it), else the whole line
   function activeWord() {
     const singing = words.find(({ w }) => w.start <= lastT && lastT <= w.end);
-    return singing ? singing.el : main.childElementCount ? main : null;
+    const row = rows[Math.max(0, lineIdx) % 2];
+    return singing ? singing.el : row.childElementCount ? row : null;
   }
 
   return { load, clear, render, seek, get song() { return song; },
-           get main() { return main; }, get activeWord() { return activeWord(); } };
+           get main() { return rows[Math.max(0, lineIdx) % 2]; }, get activeWord() { return activeWord(); } };
 }

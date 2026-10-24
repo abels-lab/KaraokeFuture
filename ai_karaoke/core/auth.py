@@ -3,7 +3,7 @@
 Role model (enforced here and in the routers, never only by hiding buttons):
 - The laptop running the karaoke is the host without a PIN: physical access = host. A
   request counts as the laptop when it comes from 127.0.0.1 / ::1 or this machine's own
-  LAN address (a phone can't send from those).
+  LAN address (a phone can't send from those) and wasn't forwarded by Tailscale Funnel.
 - Any other device becomes host by entering the host PIN (routers/auth.py). Until a PIN
   has been set on the laptop, only the laptop is host.
 - Guests log in on /remote with a name and password (core/party_db.py) and may manage only
@@ -37,10 +37,18 @@ class Who:
                 "pin_set": party_db.pin_hash() is not None}
 
 
+def _via_proxy(conn: HTTPConnection) -> bool:
+    """Tailscale Funnel / Serve forwards internet visitors from 127.0.0.1. Uvicorn already swaps in
+    the real address from X-Forwarded-For, but a forwarded or *.ts.net request is never the laptop."""
+    headers = conn.headers
+    host = headers.get("host", "").split(":")[0].lower()
+    return host.endswith(".ts.net") or any(h in headers for h in ("x-forwarded-for", "forwarded", "tailscale-funnel-request"))
+
+
 def is_this_laptop(conn: HTTPConnection) -> bool:
     """"testclient" is Starlette's TestClient default, treated like a local request."""
     host = conn.client.host if conn.client else ""
-    return host in ("127.0.0.1", "::1", "localhost", "testclient", get_local_ip())
+    return host in ("127.0.0.1", "::1", "localhost", "testclient", get_local_ip()) and not _via_proxy(conn)
 
 
 def identify(conn: HTTPConnection) -> Who:

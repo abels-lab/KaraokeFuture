@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from core import auth, cache_manager, eviction, settings
 from core.queue_manager import queue
 from core.worker import worker
-from services import downloader, lyrics_source, sources, ultrastar_source
+from services import downloader, lyrics_source, pulse, sources, ultrastar_source
 
 router = APIRouter(prefix="/api")
 HOST = [Depends(auth.require_admin)]
@@ -105,6 +105,15 @@ async def regenerate(song_id: str, req: RegenerateRequest):
             ultrastar_source.forget(song_id)
         await worker.submit_lyrics(song_id)
     return {"ok": True}
+
+
+@router.get("/songs/{song_id}/pulse")
+async def song_pulse(song_id: str):
+    """Loudness + beats of the backing track for the adaptive theme (services/pulse.py)."""
+    _check(song_id)
+    if not cache_manager.is_ready(song_id):
+        raise HTTPException(409, "The song is still being processed")
+    return await asyncio.to_thread(pulse.compute, song_id)
 
 
 @router.delete("/songs/{song_id}", dependencies=HOST)

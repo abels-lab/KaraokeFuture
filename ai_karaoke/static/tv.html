@@ -16,7 +16,7 @@
       <!-- Idle: nobody singing -->
       <section id="idle" class="flex flex-1 flex-col items-center justify-center text-center">
         <img id="idle-mic" src="/static/img/microphone.png" alt="" class="mic-glow w-80 -rotate-6">
-        <h1 class="font-display mt-6 text-7xl font-black text-gold">Karaoke Night</h1>
+        <h1 class="font-display mt-6 text-7xl font-black text-gold" data-title>Karaoke Night</h1>
         <p class="mt-3 text-2xl text-stone-200">Scan with your phone and pick a song</p>
         <div class="panel mt-8 flex items-center gap-6 p-5 text-left">
           <img id="qr-big" alt="QR code for the guest page" class="h-52 w-52 rounded-xl bg-white p-2">
@@ -43,10 +43,10 @@
           <video id="stage-video" muted playsinline preload="auto"
                  class="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700"></video>
           <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20"></div>
-          <div class="lyric-shadow relative flex h-full flex-col items-center justify-end gap-6 px-8 pb-10 text-center">
+          <div data-lyrics-box class="lyric-shadow relative flex h-full flex-col items-center justify-end gap-6 px-8 pb-10 text-center">
             <p id="countdown" class="min-h-[2rem] text-2xl font-bold text-gold"></p>
-            <p id="line-main" class="text-[clamp(1.6rem,3vw,3rem)] font-extrabold leading-tight"></p>
-            <p id="line-next" class="text-[clamp(1rem,1.6vw,1.6rem)] font-semibold text-stone-300"></p>
+            <p id="line-main" class="text-[clamp(1.6rem,3vw,3rem)] font-extrabold leading-tight transition-opacity"></p>
+            <p id="line-next" class="text-[clamp(1.6rem,3vw,3rem)] font-extrabold leading-tight transition-opacity"></p>
             <p id="no-lyrics" class="hidden text-3xl text-stone-200">No lyrics found — freestyle! 🎶</p>
           </div>
         </div>
@@ -63,6 +63,7 @@
             <button id="btn-play" data-icon="pause" class="btn-gold grid h-12 w-12 place-items-center rounded-full" title="Play / pause (Space)"></button>
             <button id="btn-fwd" class="flex h-11 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20" title="Forward 10 s (→)">10<svg viewBox="0 0 24 24" class="h-5 w-5 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
             <button id="btn-skip" data-icon="skip" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Skip (N)"></button>
+            <button id="btn-video" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Music video on / off (V)">🎬</button>
             <label class="ml-auto flex items-center gap-3 text-sm text-stone-300">
               <span>Guide vocals</span>
               <input id="guide" type="range" min="0" max="100" value="20" class="w-40">
@@ -102,7 +103,7 @@
             <a href="/library" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20">📚 Library</a>
             <a href="/settings" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20" title="Advanced settings">⚙️</a>
           </span>
-          <span>Space · ← → · N · F</span>
+          <span>Space · ← → · N · V · F</span>
         </div>
       </div>
     </aside>
@@ -120,6 +121,8 @@
   <audio id="inst" preload="auto"></audio>
   <audio id="voc" preload="auto"></audio>
   <script src="/static/common.js"></script>
+  <script src="/static/look.js"></script>
+  <script src="/static/pulse.js"></script>
   <script src="/static/stage.js"></script>
   <script src="/static/mics.js"></script>
   <script src="/static/mic-setup.js"></script>
@@ -134,6 +137,7 @@
   <script src="/static/guide.js"></script>
   <script src="/static/intro.js"></script>
   <script src="/static/intro-run.js"></script>
+  <script src="/static/jokes.js"></script>
   <script src="/static/loading.js"></script>
   <script src="/static/tv-side.js"></script>
   <script src="/static/tv.js"></script>

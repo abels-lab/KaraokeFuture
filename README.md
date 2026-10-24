@@ -42,6 +42,10 @@ Install the PyTorch CUDA trio **first**, otherwise pip may swap in a CPU-only to
 
 ## Run
 
+Double-click **`start-karaoke.bat`** (or run `.\start-karaoke.ps1`). It switches [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) on for port 8010, starts the server and opens the control panel. The QR code then links to the public `https://<laptop>.<tailnet>.ts.net/remote` address, so guests can join from mobile data too, over HTTPS. Funnel is switched off again when the server stops (`-KeepFunnel` keeps it on); `-NoFunnel` keeps everything on the home Wi-Fi, and `-Port 8000` picks another port. While Funnel is on, anybody with the link can open the guest page, so set a host PIN on the Settings page. Visitors coming through Funnel are never treated as the laptop. Settings → Guest access → "QR code opens" can force the Wi-Fi address.
+
+Or start it by hand:
+
 ```powershell
 python ai_karaoke/main.py
 ```
