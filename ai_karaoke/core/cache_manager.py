@@ -138,9 +138,11 @@ def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYT
     return evicted
 
 
-def purge_incomplete() -> list[str]:
-    """Remove folders left half-processed by a crash (call once at startup)."""
-    removed = [d.name for d in _song_dirs() if not is_ready(d.name)]
+def purge_incomplete(protect: Iterable[str] = ()) -> list[str]:
+    """Remove folders left half-processed by a crash (call once at startup),
+    excluding any songs currently protected or queued."""
+    protected = set(protect)
+    removed = [d.name for d in _song_dirs() if not is_ready(d.name) and d.name not in protected]
     for song_id in removed:
         evict(song_id)
     return removed

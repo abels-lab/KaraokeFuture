@@ -16,8 +16,10 @@ LYRICS_STORE_DIR = Path(os.getenv("KARAOKE_LYRICS_DIR", BASE_DIR / "lyrics_store
 SETTINGS_FILE = Path(os.getenv("KARAOKE_SETTINGS_FILE", BASE_DIR / "settings.json"))
 # Tonight's guests, their sessions and the host PIN (core/party_db.py). Not in git; "Wipe" empties it.
 PARTY_DB_FILE = Path(os.getenv("KARAOKE_PARTY_DB", BASE_DIR / "party" / "party.db"))
+DATA_DIR = Path(os.getenv("KARAOKE_DATA_DIR", BASE_DIR / "data"))
+QUEUE_FILE = DATA_DIR / "queue.json"
 
-for _dir in (CACHE_DIR, MODELS_DIR, STATIC_DIR, LYRICS_STORE_DIR, PARTY_DB_FILE.parent):
+for _dir in (CACHE_DIR, MODELS_DIR, STATIC_DIR, LYRICS_STORE_DIR, PARTY_DB_FILE.parent, DATA_DIR):
     _dir.mkdir(parents=True, exist_ok=True)
 
 # Files stored inside ./cache/<song_id>/

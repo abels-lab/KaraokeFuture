@@ -5,7 +5,9 @@ added, owner, guide, mode, partner}. owner = guest id of whoever queued it (None
 host); guide (0-100 %) / mode (party | score | battle) = the singer's choices, None = the control
 panel's own; partner = {id, name} of a second battle singer. See core/queue_personal.py.
 """
+import json
 import logging
+import os
 import time
 import uuid
 
@@ -25,6 +27,34 @@ class QueueManager(PersonalQueue):
     def __init__(self) -> None:
         self.entries: list[dict] = []
         self.current: dict | None = None
+
+    def _save(self) -> None:
+        try:
+            from config import QUEUE_FILE
+            data = {"entries": self.entries, "current": self.current}
+            tmp = QUEUE_FILE.with_suffix(".tmp")
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(data, fh, ensure_ascii=False, indent=2)
+            os.replace(tmp, QUEUE_FILE)
+        except Exception as e:
+            log.warning("Failed to save queue: %s", e)
+
+    def restore(self) -> None:
+        try:
+            from config import QUEUE_FILE
+            if QUEUE_FILE.is_file():
+                with open(QUEUE_FILE, "r", encoding="utf-8") as fh:
+                    data = json.load(fh)
+                self.entries = data.get("entries", [])
+                self.current = data.get("current")
+                for entry in self._everyone():
+                    sid = entry.get("song_id")
+                    if sid and cache_manager.is_ready(sid):
+                        entry["status"] = "ready"
+                        entry["media"] = media_urls(sid)
+                log.info("Restored %d queued song(s) from %s", len(self.entries), QUEUE_FILE)
+        except Exception as e:
+            log.warning("Failed to restore queue: %s", e)
 
     # ── Queries ──────────────────────────────────────────────────────────────
     def snapshot(self) -> dict:
@@ -140,6 +170,7 @@ class QueueManager(PersonalQueue):
             await self._changed()
 
     async def broadcast_state(self) -> None:
+        self._save()
         await hub.broadcast({"type": "state", "data": self.snapshot()})
 
     async def control(self, action: str, value: float | None = None) -> None:

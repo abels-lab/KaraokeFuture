@@ -58,9 +58,21 @@ function connectWS(role, onMessage) {
       if (msg.type === "settings") Settings.load();   // changed on the Settings page
       if (msg.type === "auth" && typeof Auth !== "undefined") Auth.load();   // party wiped / PIN changed
       if (msg.type === "denied") toast(msg.message, false);
+      if (msg.type === "hot_css") {
+        document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
+          const url = new URL(link.href);
+          url.searchParams.set("_v", Date.now());
+          link.href = url.toString();
+        });
+        return;
+      }
+      if (msg.type === "reload") {
+        location.reload();
+        return;
+      }
       onMessage(msg);
     };
-    ws.onclose = () => setTimeout(open, 2000);
+    ws.onclose = () => setTimeout(open, 1000);
   };
   open();
   setInterval(() => send({ type: "ping" }), 20000);

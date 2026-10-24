@@ -9,11 +9,12 @@ ai_karaoke/cache/
 ai_karaoke/models/
 ai_karaoke/lyrics_store/
 ai_karaoke/party/
+ai_karaoke/data/
 *.tmp
 *.part
 
 # Original AI-generated design sources (processed copies live in ai_karaoke/static/img/)
-Gemini_Generated_Image_*.jpeg
+Gemini_Generated_*.jpeg
 Gemini_Generated_Gif_*.gif
 Hank-meme-*.jpg
 

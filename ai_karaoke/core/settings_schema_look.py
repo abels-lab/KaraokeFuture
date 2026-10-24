@@ -14,7 +14,7 @@ LOOK_SPECS = [
        "The big title on the control panel, projector and phones.", NOW, client=True, max_len=40),
     _s("theme", "look", "Theme", "theater", "choice",
        "Theater: velvet curtains. Club: neon dance floor. Rock: stage fire. Adaptive (experimental): "
-       "the light pulses with the music's loudness and beat.", NOW, client=True,
+       "ambient stage lighting and accents adapt dynamically to the music video colors and pulse to the beat.", NOW, client=True,
        choices=[["theater", "Theater"], ["club", "Club"], ["rock", "Rock"], ["adaptive", "Adaptive (experimental)"]]),
     _s("accent", "look", "Colour preset", "theme", "choice",
        "Highlight colour for titles, buttons and sung words. “Theme colour” uses the theme's own.",

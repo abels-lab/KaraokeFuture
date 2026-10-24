@@ -14,11 +14,14 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from config import CACHE_DIR, HOST, PORT, STATIC_DIR, get_local_ip, setup_logging
+import contextlib
+
 from core import cache_manager
+from core.queue_manager import queue as queue_mgr
 from core.warmer import warmer
 from core.worker import worker
 from routers import api, auth, battle, library, queue, settings, ws
-from services import tailscale
+from services import tailscale, watcher
 
 setup_logging()
 log = logging.getLogger("karaoke")
@@ -36,11 +39,16 @@ logging.getLogger("asyncio").addFilter(_IgnoreClientResets())
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    removed = cache_manager.purge_incomplete()
+    queue_mgr.restore()
+    removed = cache_manager.purge_incomplete(protect=queue_mgr.protected_ids())
     if removed:
         log.info("Removed %d half-processed song folder(s)", len(removed))
     worker.start()
+    for entry in queue_mgr.entries:
+        if entry.get("status") != "ready":
+            await worker.submit(entry["song_id"])
     warmer.start()   # popular songs, in the background, after a short delay
+    static_watcher_task = asyncio.create_task(watcher.watch_static(), name="karaoke-static-watcher")
     ip = get_local_ip()
     log.info("Control panel: http://localhost:%d/tv", PORT)
     log.info("Projector:     http://%s:%d/screen", ip, PORT)
@@ -48,6 +56,9 @@ async def lifespan(_: FastAPI):
     public = await asyncio.to_thread(tailscale.funnel_url, PORT)
     log.info("Guests online: %s", f"{public}/remote (Tailscale Funnel)" if public else "no Tailscale Funnel to this port")
     yield
+    static_watcher_task.cancel()
+    with contextlib.suppress(asyncio.CancelledError):
+        await static_watcher_task
     await warmer.stop()
     await worker.stop()
 
@@ -94,4 +105,19 @@ async def page(page: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host=HOST, port=PORT, workers=1, log_level="info")
+    import os
+    import sys
+    dev = "--reload" in sys.argv or "--dev" in sys.argv or os.getenv("KARAOKE_DEV") == "1"
+    if dev:
+        log.info("Running in development auto-reload mode (watching core, routers, services)")
+        uvicorn.run(
+            "main:app",
+            host=HOST,
+            port=PORT,
+            reload=True,
+            reload_dirs=["core", "routers", "services"],
+            reload_includes=["*.py"],
+            log_level="info",
+        )
+    else:
+        uvicorn.run(app, host=HOST, port=PORT, workers=1, log_level="info")

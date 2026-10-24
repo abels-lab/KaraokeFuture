@@ -61,7 +61,8 @@ input[type=range]:disabled { cursor: default; opacity: .4; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
 /* ── Themes (Settings → Screen & theme; look.js sets body[data-theme]) ── */
-body[data-theme="club"]::before, body[data-theme="adaptive"]::before { background-image: url("/static/img/club.jpg"); background-position: center 40%; }
+body[data-theme="club"]::before { background-image: url("/static/img/club.jpg"); background-position: center 40%; }
+body[data-theme="adaptive"]::before { background-image: url("/static/img/servers_on_scene.jpg"); background-position: center 35%; }
 body[data-theme="club"]::after {
   background: linear-gradient(180deg, rgba(4, 6, 18, .55) 0%, rgba(4, 6, 18, .82) 55%, rgba(4, 6, 18, .95) 100%);
 }
@@ -72,13 +73,34 @@ body[data-theme="rock"]::after {
 body[data-theme="club"] .panel { background: rgba(6, 8, 22, .62); border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
 body[data-theme="rock"] .panel { background: rgba(14, 6, 3, .66); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
 body[data-theme="rock"] .font-display { letter-spacing: .02em; text-transform: uppercase; }
-/* Adaptive (experimental): pulse.js sets --level (loudness 0..1) and --beat (a flash on each beat) */
-body[data-theme="adaptive"]::after {
-  background: radial-gradient(ellipse 80% 70% at 50% 45%, rgba(4, 6, 18, calc(.75 - var(--level, 0) * .45)), rgba(4, 6, 18, .95));
+/* Adaptive (experimental): pulse.js extracts colors from the music video and pulses with loudness & beat */
+body[data-theme="adaptive"] {
+  background-color: var(--adaptive-bg, #040612);
+  transition: background-color 0.4s ease;
 }
-body[data-theme="adaptive"]::before { filter: brightness(calc(.8 + var(--beat, 0) * .7)) saturate(calc(1 + var(--level, 0))); }
-body[data-theme="adaptive"] .panel { box-shadow: 0 0 calc(var(--beat, 0) * 40px) color-mix(in srgb, var(--gold) 60%, transparent); }
-body[data-theme="adaptive"] #line-main, body[data-theme="adaptive"] #line-next { transform: scale(calc(1 + var(--beat, 0) * .025)); }
+body[data-theme="adaptive"]::before {
+  filter: brightness(calc(0.75 + var(--beat, 0) * 0.65 + var(--level, 0) * 0.25)) saturate(calc(1.1 + var(--level, 0) * 0.5));
+  transition: filter 0.1s ease-out;
+}
+body[data-theme="adaptive"]::after {
+  background: radial-gradient(
+    ellipse 85% 75% at 50% 45%,
+    var(--adaptive-glow, rgba(4, 6, 18, calc(0.7 - var(--level, 0) * 0.45))),
+    var(--adaptive-bg, rgba(4, 6, 18, 0.95))
+  );
+  transition: background 0.3s ease;
+}
+body[data-theme="adaptive"] .panel {
+  background: color-mix(in srgb, var(--adaptive-bg, #040612) 75%, transparent);
+  border-color: color-mix(in srgb, var(--adaptive-accent, var(--gold)) calc(20% + var(--beat, 0) * 35%), transparent);
+  box-shadow: 0 0 calc(15px + var(--beat, 0) * 45px + var(--level, 0) * 20px)
+              color-mix(in srgb, var(--adaptive-accent, var(--gold)) calc(30% + var(--beat, 0) * 40%), transparent);
+  transition: border-color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+body[data-theme="adaptive"] #line-main, body[data-theme="adaptive"] #line-next {
+  transform: scale(calc(1 + var(--beat, 0) * 0.03));
+  transition: transform 0.08s ease-out;
+}
 
 /* Music videos off (Settings, or the control panel's 🎬 button) */
 body.no-video video#video, body.no-video video#stage-video { display: none; }
