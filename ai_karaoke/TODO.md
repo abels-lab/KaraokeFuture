@@ -47,37 +47,61 @@
 
 ---
 
-## 3. Host-Authoritative Playback & Seamless Reload Resumption (READY TO IMPLEMENT)
+## 3. Host-Authoritative Playback & Seamless Reload Resumption (COMPLETED)
 
 ### Objective
 Make the host's playing screen (`/tv`) the authority for playback state so that during short connection blips, server restarts, or page reloads, the song does **not** restart from 0:00 and does **not** replay the 5-second intro countdown card.
 
-### Implementation Blueprint
-
+### Implementation Status: COMPLETED
 1. **Backend State Tracking (`core/queue_manager.py` & `routers/ws.py`)**:
-   - In `QueueManager`:
-     - Maintain `self.playback = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}`.
-     - Add `def update_playback(self, uid: str, time: float, duration: float, paused: bool) -> None`.
-     - Update `snapshot()` to include `"playback": self.playback`.
-     - In `_save()` and `restore()`, persist `playback` into `data/queue.json` alongside `current`.
-   - In `routers/ws.py`:
-     - In `_handle()` for `kind == "playback"` from `role == "tv"`: call `queue.update_playback(...)`.
-     - Add a handshake message `{"type": "sync_playback", "uid": ..., "time": ..., "paused": ...}` so when the host reconnects, the server immediately accepts the host's active time.
+   - `QueueManager` tracks `self.playback = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}`.
+   - `update_playback(self, uid, time_sec, duration, paused)` updates playback and persists throttled saves into `data/queue.json`.
+   - `snapshot()` includes `"playback": self.playback` and attaches `playback` to `now_playing`.
+   - `_save()` and `restore()` persist and restore `playback` alongside `current` and `played`.
+   - Handshake message `{"type": "sync_playback", "uid": ..., "time": ..., "paused": ...}` is handled in `ws.py` for reconnects and authoritative time updates.
 
 2. **Frontend Playback Authority & Session Storage (`static/tv.js`)**:
-   - On every clock tick (e.g. in `sendClock()`):
-     - `sessionStorage.setItem("karaoke_active_playback", JSON.stringify({ uid: current.uid, time: inst.currentTime, paused: inst.paused }))`.
-   - In `loadSong(entry)`:
-     - Check `sessionStorage.getItem("karaoke_active_playback")` and server `entry.playback`.
-     - If resuming an in-progress song (`uid` matches and `savedTime > 1.5s`):
-       - **Bypass the pre-song countdown card** (`IntroRun.stop()`).
-       - On metadata ready: seek `inst.currentTime = voc.currentTime = savedTime`.
-       - Call `stage.seek(savedTime)` to immediately catch up lyrics and monitor video.
-       - Resume playback if it was playing.
-   - On WebSocket reconnect (`open()` in `common.js` or `tv.js` listener):
-     - If `current && !inst.paused`: send `{"type": "sync_playback", "uid": current.uid, "time": inst.currentTime, "paused": inst.paused}`.
-   - Audio network resilience:
-     - Add `stalled` / `error` handlers on `inst` and `voc` so that if Uvicorn's restart briefly cuts the HTTP range request, the player seeks and re-buffers from the current timestamp instead of failing.
+   - Every clock tick saves active playback timestamp to `sessionStorage` (`karaoke_active_playback`).
+   - `loadSong(entry)` checks `sessionStorage` and server `entry.playback`. If resuming an in-progress song (`savedTime > 1.5s`):
+     - Bypasses the pre-song countdown card (`IntroRun.stop()`) and notifies screens to hide intro card.
+     - Seeks `inst.currentTime = voc.currentTime = savedTime` upon metadata readiness.
+     - Calls `stage.seek(savedTime)` to immediately catch up lyrics and monitor video.
+     - Resumes playback smoothly if it was playing.
+   - On WebSocket reconnect, `tv.js` sends `sync_playback` handshake with current time and paused state.
+   - Resilient audio network handling: `stalled` and `error` handlers on `inst` and `voc` re-buffer and resume from current timestamp instead of failing on temporary connection blips.
 
-3. **Projector Screen Smooth Sync (`static/screen.js`)**:
-   - Verify `onClock()` smoothly receives time jumps and applies `stage.seek(m.time)` without re-triggering intro cards or resetting video opacity.
+3. **Projector Screen Smooth Sync (`static/screen.js` & `stage.js`)**:
+   - `onState()` initializes clock directly from server playback state without resetting to 0.
+   - `onClock()` smoothly receives time jumps and applies `stage.seek(m.time)` without re-triggering intro cards or resetting video opacity.
+   - `stage.seek(t)` queues pending seeks if video metadata is loading, snapping into sync as soon as metadata arrives.
+
+
+---
+
+## 4. Enhanced Queue Navigation & Control Panel Usability (COMPLETED)
+
+### Objective
+Make the queue navigation intuitive for users and hosts:
+1. Next song and previous song buttons display real song titles instead of generic icons.
+2. Full history of played songs is retained, allowing backwards navigation if a song was mistakenly skipped.
+3. Host can view the whole queue, inspect all previously played songs, and select any past song to replay immediately.
+4. "Back to queue" button on already played songs allows re-adding them to the active lineup.
+5. Drag handle on each waiting song enables fluid reordering to any position without relying on step-by-step up/down buttons.
+
+### Implementation Summary
+- **Backend (`core/queue_manager.py`, `core/queue_personal.py`, `routers/queue.py`, `routers/api.py`, `routers/ws.py`)**:
+  - `self.played: list[dict]` keeps track of all finished and skipped songs with full metadata.
+  - `previous()`: Pops the last played song from `self.played`, places the currently active song back at index 0 of `self.entries`, and begins playback immediately.
+  - `play_played(uid)`: Allows host to select any historical song to play now.
+  - `requeue(uid)`: Returns an already played song into the upcoming queue.
+  - `move_to(uid, target_index)`: Supports arbitrary index relocation via drag-and-drop.
+  - Added REST endpoints: `POST /api/queue/previous`, `POST /api/queue/{uid}/play`, `POST /api/queue/{uid}/requeue`, `POST /api/player/previous`.
+  - Added WebSocket control action `previous` and extended `next`/`skip`.
+- **Frontend Control Panel (`static/tv.html`, `static/tv-side.js`, `static/common.js`, `static/tv.js`, `static/theme.css`)**:
+  - Replaced icon-only skip button with Previous and Next buttons that display actual song titles (`Prev: [Title]`, `Next: [Title]`), with tooltips and disabled states when history or queue is empty. Keyboard shortcuts: `P` (previous) and `N` (next).
+  - Sidebar equipped with 3 tabs: **📋 Up next**, **⏮ Played**, and **📑 All** (Whole Queue timeline).
+  - Drag handle (`⠿`) on each waiting queue row for desktop HTML5 drag & drop with amber drop indicator lines (`.drop-target-above`, `.drop-target-below`).
+  - Dedicated `playedRow` component with "▶ Play now", "↩ Queue" (back to queue), and "✕" (delete from history).
+- **Mobile Remote (`static/remote.html`, `static/remote.js`, `static/my-queue.js`)**:
+  - Added "Prev: [Title]" and "Next: [Title]" controls in the transport area.
+  - Added "Played" sub-filter pill in the Queue tab to view past songs and re-queue them.

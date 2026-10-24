@@ -27,11 +27,27 @@ class QueueManager(PersonalQueue):
     def __init__(self) -> None:
         self.entries: list[dict] = []
         self.current: dict | None = None
+        self.playback: dict = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}
+        self._last_save: float = 0.0
+
+    def update_playback(self, uid: str, time_sec: float, duration: float, paused: bool) -> None:
+        if self.current and self.current.get("uid") == uid:
+            self.playback = {
+                "uid": uid,
+                "time": round(float(time_sec), 3),
+                "duration": round(float(duration), 3),
+                "paused": bool(paused),
+                "updated_at": time.time(),
+            }
+            now = time.monotonic()
+            if now - self._last_save >= 2.0 or self.playback.get("paused") != paused:
+                self._last_save = now
+                self._save()
 
     def _save(self) -> None:
         try:
             from config import QUEUE_FILE
-            data = {"entries": self.entries, "current": self.current}
+            data = {"entries": self.entries, "current": self.current, "playback": self.playback}
             tmp = QUEUE_FILE.with_suffix(".tmp")
             with open(tmp, "w", encoding="utf-8") as fh:
                 json.dump(data, fh, ensure_ascii=False, indent=2)
@@ -47,6 +63,9 @@ class QueueManager(PersonalQueue):
                     data = json.load(fh)
                 self.entries = data.get("entries", [])
                 self.current = data.get("current")
+                self.playback = data.get("playback", {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0})
+                if not self.current:
+                    self.playback = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}
                 for entry in self._everyone():
                     sid = entry.get("song_id")
                     if sid and cache_manager.is_ready(sid):
@@ -58,8 +77,12 @@ class QueueManager(PersonalQueue):
 
     # ── Queries ──────────────────────────────────────────────────────────────
     def snapshot(self) -> dict:
-        return {"now_playing": self.current, "queue": self.entries,
-                "tv_connected": hub.tv_connected(), "screens": hub.count("screen")}
+        np = dict(self.current) if self.current else None
+        if np:
+            np["playback"] = self.playback
+        return {"now_playing": np, "queue": self.entries,
+                "tv_connected": hub.tv_connected(), "screens": hub.count("screen"),
+                "playback": self.playback}
 
     def _everyone(self) -> list[dict]:
         return self.entries + ([self.current] if self.current else [])
@@ -150,6 +173,13 @@ class QueueManager(PersonalQueue):
             self.entries.remove(ready)
             cache_manager.touch(ready["song_id"])
         self.current = ready
+        self.playback = {
+            "uid": ready["uid"] if ready else "",
+            "time": 0.0,
+            "duration": ready.get("duration", 0.0) if ready else 0.0,
+            "paused": True,
+            "updated_at": 0.0,
+        }
         await self.broadcast_state()
         return ready
 

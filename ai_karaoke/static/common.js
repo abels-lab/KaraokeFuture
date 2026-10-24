@@ -48,11 +48,14 @@ const Settings = (() => {
 })();
 
 // Auto-reconnecting WebSocket; returns send(msg)
-function connectWS(role, onMessage) {
+function connectWS(role, onMessage, onOpen) {
   let ws = null;
   const send = (msg) => ws && ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg));
   const open = () => {
     ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws?role=${role}`);
+    ws.onopen = () => {
+      onOpen?.();
+    };
     ws.onmessage = (ev) => {
       const msg = JSON.parse(ev.data);
       if (msg.type === "settings") Settings.load();   // changed on the Settings page

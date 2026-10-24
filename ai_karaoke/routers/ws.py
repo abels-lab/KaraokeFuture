@@ -14,6 +14,7 @@ Client -> server:  {"type": "ping"}
                    {"type": "control", "action": "play|pause|restart|skip|seek|seek_by", "value"}
                    {"type": "ended", "uid": "..."}                         (TV only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (TV only)
+                   {"type": "sync_playback", "uid", "time", "duration", "paused"} (TV only, reconnect handshake)
                    {"type": "intro", ...}  (TV only; the countdown is the TV's, screens just show it)
 
 Security (core/auth.py): the client is identified from its session cookie and address on
@@ -81,12 +82,32 @@ async def _handle(ws: WebSocket, role: str, msg: dict) -> None:
     elif kind == "ended":
         await queue.finish(str(msg.get("uid", "")))
     elif kind == "playback":
+        uid = str(msg.get("uid", ""))
+        t = _num(msg.get("time"))
+        dur = _num(msg.get("duration"))
+        paused = bool(msg.get("paused"))
+        queue.update_playback(uid, t, dur, paused)
         await hub.broadcast({
             "type": "playback",
-            "uid": str(msg.get("uid", "")),
-            "time": _num(msg.get("time")),
-            "duration": _num(msg.get("duration")),
-            "paused": bool(msg.get("paused")),
+            "uid": uid,
+            "time": t,
+            "duration": dur,
+            "paused": paused,
+        }, "remote", "screen")
+    elif kind == "sync_playback":
+        uid = str(msg.get("uid", ""))
+        t = _num(msg.get("time"))
+        dur = _num(msg.get("duration"))
+        if not dur and queue.current and queue.current.get("uid") == uid:
+            dur = _num(queue.current.get("duration", 0))
+        paused = bool(msg.get("paused"))
+        queue.update_playback(uid, t, dur, paused)
+        await hub.broadcast({
+            "type": "playback",
+            "uid": uid,
+            "time": t,
+            "duration": dur,
+            "paused": paused,
         }, "remote", "screen")
     elif kind == "intro":
         await _intro(msg)
