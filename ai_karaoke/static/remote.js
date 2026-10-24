@@ -32,10 +32,10 @@ $("tab-btn-queue")?.addEventListener("click", () => switchTab("queue"));
 $("btn-goto-songs")?.addEventListener("click", () => switchTab("songs"));
 
 // ── Live state ────────────────────────────────────────────────────────────
-let lastState = { now_playing: null, queue: [] };
+let lastState = { now_playing: null, queue: [], played: [] };
 function renderState(state = lastState) {
   lastState = state;
-  const { now_playing: np, queue } = state;
+  const { now_playing: np, queue = [], played = [] } = state;
   const mayControl = Auth.me.admin || Auth.owns(np);
   const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
   nowEntry = np;
@@ -44,6 +44,20 @@ function renderState(state = lastState) {
   $("np-seek").disabled = !np || !mayScrub;
   $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
   $("transport-note").classList.toggle("hidden", !np || mayControl);
+
+  // Update previous and next song buttons on remote
+  const prev = played.length > 0 ? played[played.length - 1] : null;
+  const next = queue.length > 0 ? queue[0] : null;
+  if ($("remote-btn-prev")) {
+    $("remote-btn-prev").disabled = !prev || !Auth.me.admin;
+    if ($("remote-prev-label")) $("remote-prev-label").textContent = prev ? prev.title : "None";
+    $("remote-btn-prev").title = prev ? `Previous: ${prev.title} (${singers(prev)})` : "No previous song";
+  }
+  if ($("remote-btn-next")) {
+    $("remote-btn-next").disabled = !next || !(Auth.me.admin || Auth.owns(np));
+    if ($("remote-next-label")) $("remote-next-label").textContent = next ? next.title : "Queue empty";
+    $("remote-btn-next").title = next ? `Next: ${next.title} (${singers(next)})` : "No upcoming song";
+  }
 
   document.querySelectorAll('#transport button[data-action="seek_by"]').forEach((b) => {
     b.disabled = !mayScrub;
@@ -75,7 +89,7 @@ function renderState(state = lastState) {
   // Once a song starts playing, only the host can tweak guide vocals / mode mid-song
   $("np-prefs").replaceChildren(...(isAdmin && np && !dragging ? [songPrefs(np)] : []));
   renderNowBattle();
-  renderQueue(queue);
+  renderQueue(queue, played);
 }
 Auth.onChange(() => renderState());
 
@@ -112,6 +126,9 @@ const control = (action, value = 0) =>
 document.querySelectorAll("[data-action]").forEach((btn) => {
   btn.onclick = () => control(btn.dataset.action, Number(btn.dataset.value || 0));
 });
+$("remote-btn-prev")?.addEventListener("click", () => control("previous"));
+$("remote-btn-next")?.addEventListener("click", () => control("skip"));
+
 $("np-seek").oninput = () => { scrubbing = true; $("np-cur").textContent = fmt(Number($("np-seek").value)); };
 $("np-seek").onchange = () => {
   control("seek", Number($("np-seek").value));

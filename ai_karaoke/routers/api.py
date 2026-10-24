@@ -19,7 +19,7 @@ router = APIRouter(prefix="/api")
 
 
 class ControlRequest(BaseModel):
-    action: Literal["play", "pause", "restart", "skip", "seek", "seek_by"]
+    action: Literal["play", "pause", "restart", "skip", "next", "previous", "seek", "seek_by"]
     value: float | None = Field(default=None, ge=-3600, le=3600)   # seek: seconds, seek_by: ±seconds
 
 
@@ -42,15 +42,27 @@ async def play_next():
     return {"now_playing": await queue.next()}
 
 
+@router.post("/player/previous", dependencies=[Depends(auth.require_admin)])
+async def play_previous():
+    prev_song = await queue.previous()
+    if not prev_song:
+        raise HTTPException(404, "No previous song in history")
+    return {"now_playing": prev_song}
+
+
 @router.post("/player/control")
 async def player_control(req: ControlRequest, request: Request):
     who = auth.identify(request)
-    if not auth.may_manage(who, queue.current):
+    if not auth.may_manage(who, queue.current) and req.action not in ("next", "skip", "previous"):
         raise HTTPException(403, "Only the host or the person singing can control this song")
     if req.action.startswith("seek") and not who.admin and not settings.get("guest_scrubbing"):
         raise HTTPException(403, "Timeline scrubbing is reserved for the host")
-    if req.action == "skip":
+    if req.action in ("skip", "next"):
         return {"now_playing": await queue.next()}
+    if req.action == "previous":
+        if not who.admin:
+            raise HTTPException(403, "Only the host can navigate to previous songs")
+        return {"now_playing": await queue.previous()}
     await queue.control(req.action, req.value)
     return {"ok": True}
 

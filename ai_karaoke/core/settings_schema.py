@@ -11,7 +11,7 @@ GROUPS = [
     ("library", "Songs & downloads"), ("warmup", "Popular songs warm-up"), ("separation", "Vocal separation"), ("lyrics", "Lyrics"),
     ("timing", "Vocal detection & word timing"), ("melody", "Melody"),
     ("game", "Singing game"), ("show", "Song intro & Battle / Duet"), ("playback", "Playback"),
-    ("look", "Screen & theme"), ("access", "Guest access"),
+    ("look", "Screen & theme"), ("layout", "Layout"), ("access", "Guest access"),
 ]
 # Settings that no longer exist; old settings.json files may still have them (silently dropped).
 # allow_remote_settings: replaced by the host PIN (core/auth.py).

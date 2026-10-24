@@ -35,8 +35,9 @@ class QueueRequest(BaseModel):
 
 
 class MoveRequest(BaseModel):
-    direction: Literal["up", "down", "top"]   # top = sing next (guests: their first slot)
-    scope: Literal["all", "mine"] = "all"     # the host may also move just among their own
+    direction: Literal["up", "down", "top"] | None = None   # top = sing next (guests: their first slot)
+    to_index: int | None = Field(default=None, ge=0)        # host: drag and drop to any position
+    scope: Literal["all", "mine"] = "all"                   # the host may also move just among their own
 
 
 class PrefsRequest(BaseModel):
@@ -107,6 +108,18 @@ async def surprise_me(request: Request):
                           meta.get("duration"), singer, owner, thumbnail=meta.get("thumbnail"))
 
 
+@router.post("/previous")
+async def play_previous(request: Request):
+    """Navigate backwards to the previous played song."""
+    who = auth.identify(request)
+    if not who.admin:
+        raise HTTPException(403, "Only the host can navigate to previous songs")
+    prev_song = await queue.previous()
+    if not prev_song:
+        raise HTTPException(404, "No previous song in history")
+    return {"now_playing": prev_song}
+
+
 @router.delete("/{uid}")
 async def remove_from_queue(uid: str, request: Request):
     _entry_for(request, uid)
@@ -117,14 +130,50 @@ async def remove_from_queue(uid: str, request: Request):
 @router.post("/{uid}/move")
 async def move_in_queue(uid: str, req: MoveRequest, request: Request):
     who, entry = _entry_for(request, uid)
-    if who.admin and req.scope == "all":
+    if who.admin and req.to_index is not None:
+        moved = await queue.move_to(uid, req.to_index)
+    elif who.admin and req.scope == "all" and req.direction:
         offset = {"up": -1, "down": 1, "top": -len(queue.entries)}[req.direction]
         moved = await queue.move(uid, offset)
-    else:
+    elif req.direction:
         moved = entry.get("owner") is not None and await queue.move_own(uid, entry["owner"], req.direction)
+    else:
+        moved = False
     if not moved:
         raise HTTPException(409, "Only waiting songs can be moved")
     return {"ok": True}
+
+
+@router.post("/{uid}/play")
+async def play_specific(uid: str, request: Request):
+    """Host selects a specific song from played history or queue to play right now."""
+    who = auth.identify(request)
+    if not who.admin:
+        raise HTTPException(403, "Only the host can select a song to play now")
+    if queue.find_played(uid):
+        res = await queue.play_played(uid)
+    elif entry := queue.find(uid):
+        queue.entries.remove(entry)
+        if queue.current:
+            queue.played.append(queue.current)
+        queue.current = entry
+        await queue.broadcast_state()
+        res = entry
+    else:
+        res = None
+    if not res:
+        raise HTTPException(404, "Song not found")
+    return {"now_playing": res}
+
+
+@router.post("/{uid}/requeue")
+async def requeue_song(uid: str, request: Request):
+    """Return a previously played song back into the queue."""
+    who, entry = _entry_for(request, uid)
+    requeued = await queue.requeue(uid)
+    if not requeued:
+        raise HTTPException(404, "Song not found in played history")
+    return {"ok": True, "entry": requeued}
 
 
 @router.patch("/{uid}")

@@ -11,7 +11,7 @@ Server -> client:  {"type": "state", "data": {...}}
                    {"type": "auth"}               (logins changed / party wiped: re-check who you are)
                    {"type": "denied", "message"}  (a control message this client may not send)
 Client -> server:  {"type": "ping"}
-                   {"type": "control", "action": "play|pause|restart|skip|seek|seek_by", "value"}
+                   {"type": "control", "action": "play|pause|restart|skip|next|previous|seek|seek_by", "value"}
                    {"type": "ended", "uid": "..."}                         (TV only)
                    {"type": "playback", "uid", "time", "duration", "paused"} (TV only)
                    {"type": "sync_playback", "uid", "time", "duration", "paused"} (TV only, reconnect handshake)
@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 router = APIRouter()
 
 ROLES = {"tv", "screen", "remote"}
-TV_ACTIONS = {"play", "pause", "restart", "seek", "seek_by"}
+TV_ACTIONS = {"play", "pause", "restart", "seek", "seek_by", "previous", "next", "skip"}
 
 
 def _num(value) -> float:
@@ -49,12 +49,17 @@ def _num(value) -> float:
 async def _control(ws: WebSocket, msg: dict) -> None:
     action = msg.get("action")
     who = auth.identify(ws)
-    if not auth.may_manage(who, queue.current):
+    if not auth.may_manage(who, queue.current) and action not in ("next", "skip", "previous"):
         await hub.send(ws, {"type": "denied", "message": "Only the host or the person singing can control this song"})
     elif str(action).startswith("seek") and not who.admin and not settings.get("guest_scrubbing"):
         await hub.send(ws, {"type": "denied", "message": "Timeline scrubbing is reserved for the host"})
-    elif action == "skip":
+    elif action in ("skip", "next"):
         await queue.next()
+    elif action == "previous":
+        if not who.admin:
+            await hub.send(ws, {"type": "denied", "message": "Only the host can navigate to previous songs"})
+        else:
+            await queue.previous()
     elif action in TV_ACTIONS:
         await queue.control(action, _num(msg.get("value")))
 

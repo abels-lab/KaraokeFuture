@@ -1,9 +1,10 @@
-// How the pages look, from the Settings page ("Screen & theme"), applied live on every page:
+// How the pages look, from the Settings page ("Screen & theme", "Layout"), applied live on every page:
 // theme (body data-theme: background picture, theme.css), colour preset (the --gold /
 // --gold-deep variables that titles, buttons and sung words use), the party title ([data-title]),
 // where the lyrics sit ([data-lyrics-box]), whether music videos show (body.no-video) and the
 // lyrics mode (body.lyrics-plain: no word fill, body.lyrics-off: no lyrics), video & background
-// shading intensity (--stage-dim), and QR code display (body.no-qr, body.no-qr-link, --qr-scale).
+// shading intensity (--stage-dim), QR code display (body.no-qr, body.no-qr-link, --qr-scale),
+// and side panel width (--side-panel-width) on the control panel.
 // Needs common.js (Settings). Look.infoCard(time, duration) -> should the song info card show now?
 const ACCENTS = { gold: ["#f4c25b", "#d99a2b"], neon: ["#ff5fd2", "#d01f9e"], ice: ["#7fd8ff", "#2b9bd9"],
                   lime: ["#c6f25b", "#86b51f"], fire: ["#ff7a3d", "#d8341a"], silver: ["#eef0f6", "#9ea7ba"] };
@@ -30,6 +31,12 @@ const Look = (() => {
     const qrSizeRaw = Settings.get("qr_size", 100);
     const qrScale = Math.max(0.5, Math.min(2.0, (Number(qrSizeRaw) || 100) / 100));
     document.documentElement.style.setProperty("--qr-scale", qrScale.toFixed(2));
+
+    // Side panel width on the control panel (/tv)
+    const rawSideWidth = Settings.get("side_panel_width", 28);
+    const sideWidthNum = Number(rawSideWidth) || 28;
+    const sideUnit = sideWidthNum > 100 ? "px" : "rem";
+    document.documentElement.style.setProperty("--side-panel-width", `${sideWidthNum}${sideUnit}`);
 
     const title = Settings.get("title_text", "Karaoke Night");
     document.querySelectorAll("[data-title]").forEach((e) => { e.textContent = title; });

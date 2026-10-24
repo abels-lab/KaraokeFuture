@@ -61,6 +61,17 @@
         <button data-action="seek_by" data-value="10" class="flex items-center justify-center gap-1 rounded-xl bg-white/10 py-2.5 active:bg-white/25" title="Forward 10 s">10<svg viewBox="0 0 24 24" class="h-5 w-5 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
         <button data-action="skip" data-icon="skip" class="flex justify-center rounded-xl bg-white/10 py-2.5 active:bg-white/25" title="Skip"></button>
       </div>
+      <!-- Previous and Next Song Navigation Buttons with Real Song Labels -->
+      <div id="nav-songs" class="mt-2.5 flex items-stretch gap-2 text-xs">
+        <button id="remote-btn-prev" class="flex flex-1 items-center gap-1.5 rounded-xl bg-white/10 px-2.5 py-2 text-stone-200 hover:bg-white/20 active:bg-white/25 disabled:opacity-30 disabled:pointer-events-none transition min-w-0" title="Previous song">
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 fill-current"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          <span class="truncate font-semibold"><span class="text-stone-400 font-normal">Prev: </span><span id="remote-prev-label">None</span></span>
+        </button>
+        <button id="remote-btn-next" class="flex flex-1 items-center justify-end gap-1.5 rounded-xl bg-white/10 px-2.5 py-2 text-stone-200 hover:bg-white/20 active:bg-white/25 disabled:opacity-30 disabled:pointer-events-none transition min-w-0" title="Next song">
+          <span class="truncate font-semibold text-right"><span class="text-stone-400 font-normal">Next: </span><span id="remote-next-label">Queue empty</span></span>
+          <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 shrink-0 fill-current"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>
+        </button>
+      </div>
       <p id="transport-note" class="mt-3 hidden text-xs text-stone-400">Only the singer and the host can pause or skip this song.</p>
     </section>
 
@@ -114,12 +125,13 @@
       <section>
         <div class="mb-3 flex items-center justify-between gap-2">
           <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">
-            Up next (<span id="queue-count">0</span>)
+            Queue (<span id="queue-count">0</span>)
           </h2>
-          <!-- Sub-filters: All in line vs My songs -->
+          <!-- Sub-filters: All in line vs My songs vs Already played -->
           <div id="queue-filter-pills" class="flex items-center gap-1 text-xs">
             <button id="qfilter-all" type="button" class="rounded-full bg-amber-400 text-stone-950 font-bold px-3 py-1 transition">All</button>
             <button id="qfilter-mine" type="button" class="rounded-full bg-white/10 text-stone-300 hover:bg-white/20 font-bold px-3 py-1 transition">My songs (<span id="queue-mine-count">0</span>)</button>
+            <button id="qfilter-played" type="button" class="rounded-full bg-white/10 text-stone-300 hover:bg-white/20 font-bold px-3 py-1 transition">Played (<span id="queue-played-count">0</span>)</button>
           </div>
         </div>
         <ul id="queue" class="space-y-2"></ul>
