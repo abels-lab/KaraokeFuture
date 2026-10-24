@@ -1,0 +1,17 @@
+"""Settings for the embedded AI Co-Pilot / Host Assistant."""
+from core.settings_kinds import NOW, _s
+
+AGENT_SPECS = [
+    _s("agent_provider", "agent", "AI Provider", "gemini", "choice",
+       "Model provider for the host AI assistant. Google Gemini (Google AI Studio) is recommended for low latency.",
+       NOW, choices=[["gemini", "Google Gemini (AI Studio)"], ["openai", "OpenAI / Local Ollama"]]),
+    _s("agent_api_key", "agent", "API Key", "", "text",
+       "Google AI Studio API key (starts with AIza...) or OpenAI API key. If left blank, reads from GEMINI_API_KEY environment variable.",
+       NOW, max_len=128),
+    _s("agent_model", "agent", "Model name", "gemini-2.5-flash", "text",
+       "Model to use (e.g. gemini-2.5-flash, gemini-1.5-flash, or qwen2.5-coder:7b for Ollama).",
+       NOW, max_len=64),
+    _s("agent_base_url", "agent", "Custom Base URL", "", "text",
+       "Custom endpoint when using a local LLM like Ollama or LM Studio (e.g. http://localhost:11434/v1). Leave blank for Gemini.",
+       NOW, max_len=128),
+]

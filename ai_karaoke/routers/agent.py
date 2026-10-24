@@ -1,0 +1,60 @@
+"""Host AI Assistant / Co-Pilot API endpoints."""
+import logging
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
+from core import auth
+from services import agent
+
+log = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/agent", tags=["agent"])
+
+
+class ChatRequest(BaseModel):
+    message: str
+    history: list[dict[str, str]] = []
+
+
+class DiffActionRequest(BaseModel):
+    proposal_id: str
+
+
+class UndoRequest(BaseModel):
+    path: str
+
+
+@router.post("/chat")
+async def chat(req: ChatRequest, who: auth.Who = Depends(auth.require_admin)) -> dict[str, Any]:
+    """Host AI chat: executes tools, answers questions, modifies styles or proposes Python diffs."""
+    if not req.message.strip():
+        raise HTTPException(400, "Message cannot be empty")
+    return await agent.chat_with_agent(req.message, req.history)
+
+
+@router.post("/diff/apply")
+async def apply_diff(req: DiffActionRequest, who: auth.Who = Depends(auth.require_admin)) -> dict[str, Any]:
+    """Host confirms a proposed backend diff: writes file and triggers reload."""
+    res = agent.apply_proposal(req.proposal_id)
+    if "error" in res:
+        raise HTTPException(400, res["error"])
+    return res
+
+
+@router.post("/diff/cancel")
+async def cancel_diff(req: DiffActionRequest, who: auth.Who = Depends(auth.require_admin)) -> dict[str, Any]:
+    """Host cancels a proposed backend diff."""
+    res = agent.cancel_proposal(req.proposal_id)
+    if "error" in res:
+        raise HTTPException(404, res["error"])
+    return res
+
+
+@router.post("/undo")
+async def undo_edit(req: UndoRequest, who: auth.Who = Depends(auth.require_admin)) -> dict[str, Any]:
+    """Reverts a frontend edit by restoring .bak file."""
+    res = await agent.execute_tool("undo_frontend_edit", {"path": req.path})
+    if "error" in res:
+        raise HTTPException(400, res["error"])
+    return res

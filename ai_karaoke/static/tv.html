@@ -119,6 +119,49 @@
     </div>
   </div>
 
+  <!-- DJ Co-Pilot Host Toggle Button -->
+  <button id="agent-toggle" class="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 px-5 py-3 font-extrabold text-stone-900 shadow-2xl transition hover:scale-105 active:scale-95" title="DJ Co-Pilot (Ctrl+J)">
+    <span class="text-xl">✨</span> <span>DJ Co-Pilot</span>
+  </button>
+
+  <!-- DJ Co-Pilot Host Drawer -->
+  <aside id="agent-drawer" class="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg translate-x-full flex-col border-l border-amber-400/20 bg-stone-950/95 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-in-out">
+    <header class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">✨</span>
+        <div>
+          <h2 class="font-display text-lg font-bold text-gold">DJ Co-Pilot</h2>
+          <p class="text-xs text-stone-400">Queue songs, tweak styles, or modify app live</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="agent-clear" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-stone-200" title="Clear chat history">🗑️</button>
+        <button id="agent-close" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-white" title="Close drawer (Esc)">✕</button>
+      </div>
+    </header>
+
+    <div id="agent-messages" class="flex-1 space-y-4 overflow-y-auto p-6 scrollbar-none text-sm">
+      <div class="rounded-2xl bg-white/5 p-4 border border-white/10 text-stone-300 space-y-2">
+        <p class="font-semibold text-gold">👋 Hey! I'm your Karaoke Co-Pilot.</p>
+        <p>You can speak or type commands, for example:</p>
+        <ul class="space-y-1 text-xs text-stone-400 list-disc list-inside">
+          <li><i>"Queue Queen Bohemian Rhapsody for Alice"</i></li>
+          <li><i>"Switch to adaptive theme with lime accent"</i></li>
+          <li><i>"Skip the current song"</i></li>
+          <li><i>"Make the active lyric glow with vibrant violet"</i></li>
+        </ul>
+      </div>
+    </div>
+
+    <footer class="border-t border-white/10 p-4">
+      <form id="agent-form" class="flex items-center gap-2">
+        <button type="button" id="agent-mic" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-xl transition hover:bg-white/20 active:scale-95 text-stone-300" title="Hold/click to speak (Voice DJ)">🎤</button>
+        <input type="text" id="agent-input" class="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Ask DJ Co-Pilot or say a command..." autocomplete="off">
+        <button type="submit" id="agent-send" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl btn-gold text-lg transition hover:brightness-110 active:scale-95 disabled:opacity-40" title="Send (Enter)">➤</button>
+      </form>
+    </footer>
+  </aside>
+
   <audio id="inst" preload="auto"></audio>
   <audio id="voc" preload="auto"></audio>
   <script src="/static/common.js"></script>
@@ -142,5 +185,6 @@
   <script src="/static/loading.js"></script>
   <script src="/static/tv-side.js"></script>
   <script src="/static/tv.js"></script>
+  <script src="/static/agent.js"></script>
 </body>
 </html>
