@@ -15,8 +15,11 @@ const lyricsModal = (() => {
       </div>
       <textarea data-k="text" rows="14" maxlength="20000" placeholder="Paste the lyrics here — one sung line per line"
         class="w-full rounded-xl border border-white/10 bg-black/50 p-3 text-sm leading-relaxed outline-none focus:border-amber-400"></textarea>
-      <p class="text-xs text-stone-400">Fix misheard words or paste lyrics from any site. They're synced to the
+      <div data-k="view" class="max-h-[55vh] overflow-y-auto whitespace-pre-wrap px-1 text-sm leading-relaxed text-stone-200"></div>
+      <p data-k="help" class="text-xs text-stone-400">Fix misheard words or paste lyrics from any site. They're synced to the
         singer's voice automatically and saved, so this song keeps them for good.</p>
+      <p data-k="ask" class="rounded-xl bg-amber-900/40 p-3 text-xs text-amber-100 ring-1 ring-amber-500/30">
+        🔒 Read only. Spotted a wrong word? Ask the host — they can fix the lyrics and re-sync them.</p>
       <div class="flex gap-2">
         <button type="button" data-k="clear" class="rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold">Clear</button>
         <button type="button" data-k="cancel" class="flex-1 rounded-xl bg-white/10 py-3 font-semibold">Cancel</button>
@@ -46,11 +49,14 @@ const lyricsModal = (() => {
   return async (target) => {
     song = { id: target.song_id || target.id, title: target.title };
     const host = typeof Auth === "undefined" || Auth.me.admin;   // only the host may change lyrics
-    part("text").readOnly = !host;
-    ["save", "clear"].forEach((k) => part(k).classList.toggle("hidden", !host));
-    m.querySelector("h2").textContent = host ? "Edit lyrics" : "Lyrics (only the host can change them)";
+    // Guests read plain text, not a text box that looks editable but opens no keyboard
+    ["save", "clear", "text", "help"].forEach((k) => part(k).classList.toggle("hidden", !host));
+    ["view", "ask"].forEach((k) => part(k).classList.toggle("hidden", host));
+    part("cancel").textContent = host ? "Cancel" : "Close";
+    m.querySelector("h2").textContent = host ? "Edit lyrics" : "Lyrics";
     part("song").textContent = song.title;
-    part("text").value = "Loading…";
+    const show = (text) => { part("text").value = text; part("view").textContent = text || "No lyrics yet."; };
+    show("Loading…");
     part("source").textContent = "";
     m.classList.replace("hidden", "flex");
     try {
@@ -58,9 +64,9 @@ const lyricsModal = (() => {
       const [label, color] = LYRICS_SOURCE[data.source] || ["No lyrics yet", "bg-white/10"];
       part("source").textContent = label;
       part("source").className = `shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${color}`;
-      part("text").value = data.text;
-    } catch { part("text").value = ""; }
-    part("text").scrollTop = 0; // start reading at the first line; no focus, so phones keep the keyboard down
+      show(data.text);
+    } catch { show(""); }
+    part("text").scrollTop = part("view").scrollTop = 0; // start at the first line; no focus, so phones keep the keyboard down
   };
 })();
 
