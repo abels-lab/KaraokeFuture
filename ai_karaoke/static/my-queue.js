@@ -2,8 +2,8 @@
 // own songs (never ahead of anyone else), remove them, and per song the singing mode and the
 // guide-vocal volume the control panel uses when it plays. Needs common.js, auth.js, lyrics.js.
 const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle / Duet (2 mics)"]];
-let lastQueue = [], dragging = false;
-let queueFilter = "all"; // "all" | "mine"
+let lastQueue = [], lastPlayed = [], dragging = false;
+let queueFilter = "all"; // "all" | "mine" | "played"
 
 const savePrefs = (e, changes) => {
   Object.assign(e, changes);
@@ -53,30 +53,38 @@ function lyricsActionBtn(e) {
 
 function setQueueFilter(f) {
   queueFilter = f;
-  const isAll = f === "all";
+  const isAll = f === "all", isMine = f === "mine", isPlayed = f === "played";
   $("qfilter-all")?.classList.toggle("bg-amber-400", isAll);
   $("qfilter-all")?.classList.toggle("text-stone-950", isAll);
   $("qfilter-all")?.classList.toggle("bg-white/10", !isAll);
   $("qfilter-all")?.classList.toggle("text-stone-300", !isAll);
 
-  $("qfilter-mine")?.classList.toggle("bg-amber-400", !isAll);
-  $("qfilter-mine")?.classList.toggle("text-stone-950", !isAll);
-  $("qfilter-mine")?.classList.toggle("bg-white/10", isAll);
-  $("qfilter-mine")?.classList.toggle("text-stone-300", isAll);
+  $("qfilter-mine")?.classList.toggle("bg-amber-400", isMine);
+  $("qfilter-mine")?.classList.toggle("text-stone-950", isMine);
+  $("qfilter-mine")?.classList.toggle("bg-white/10", !isMine);
+  $("qfilter-mine")?.classList.toggle("text-stone-300", !isMine);
+
+  $("qfilter-played")?.classList.toggle("bg-amber-400", isPlayed);
+  $("qfilter-played")?.classList.toggle("text-stone-950", isPlayed);
+  $("qfilter-played")?.classList.toggle("bg-white/10", !isPlayed);
+  $("qfilter-played")?.classList.toggle("text-stone-300", !isPlayed);
   renderQueue();
 }
 
 $("qfilter-all")?.addEventListener("click", () => setQueueFilter("all"));
 $("qfilter-mine")?.addEventListener("click", () => setQueueFilter("mine"));
+$("qfilter-played")?.addEventListener("click", () => setQueueFilter("played"));
 
-function renderQueue(queue = lastQueue) {
+function renderQueue(queue = lastQueue, played = lastPlayed) {
   lastQueue = queue;
+  lastPlayed = played;
   if (dragging) return;   // don't redraw under the finger; the save redraws it
   const { admin } = Auth.me;
   const mine = queue.filter(Auth.owns);
 
   if ($("queue-count")) $("queue-count").textContent = queue.length;
   if ($("queue-mine-count")) $("queue-mine-count").textContent = mine.length;
+  if ($("queue-played-count")) $("queue-played-count").textContent = played.length;
   const badge = $("tab-queue-badge");
   if (badge) {
     badge.textContent = queue.length;
@@ -85,8 +93,23 @@ function renderQueue(queue = lastQueue) {
     }`;
   }
 
-  const items = queueFilter === "mine" ? mine : queue;
   const empty = $("queue-empty");
+
+  // If viewing already played songs
+  if (queueFilter === "played") {
+    const revPlayed = [...played].reverse();
+    if (empty) {
+      empty.classList.toggle("hidden", revPlayed.length > 0);
+      if (revPlayed.length === 0) {
+        if ($("empty-title")) $("empty-title").textContent = "No songs played yet";
+        if ($("empty-sub")) $("empty-sub").textContent = "Songs that finished singing will appear here.";
+      }
+    }
+    $("queue")?.replaceChildren(...revPlayed.map((e, i) => playedRow(e, i)));
+    return;
+  }
+
+  const items = queueFilter === "mine" ? mine : queue;
   if (empty) {
     empty.classList.toggle("hidden", items.length > 0);
     if (items.length === 0) {

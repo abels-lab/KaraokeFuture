@@ -209,3 +209,23 @@ body.no-video video#video, body.no-video video#stage-video { display: none; }
 /* Lyrics mode (Settings, or the control panel's 📝 button): plain text without the word fill, or none */
 body.lyrics-plain .word { background: none; color: rgba(255, 248, 236, .95); }
 body.lyrics-off #line-main, body.lyrics-off #line-next, body.lyrics-off #no-lyrics { display: none; }
+
+
+/* Drag and Drop Queue */
+.drop-target-above {
+  box-shadow: 0 -2px 0 0 #f4c25b !important;
+  border-top-color: #f4c25b !important;
+}
+.drop-target-below {
+  box-shadow: 0 2px 0 0 #f4c25b !important;
+  border-bottom-color: #f4c25b !important;
+}
+.dragging-queue * {
+  user-select: none;
+}
+
+
+/* TV Control Panel Layout */
+body.tv #tv-layout {
+  grid-template-columns: 1fr var(--side-panel-width, 28rem) !important;
+}

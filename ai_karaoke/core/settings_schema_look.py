@@ -9,6 +9,10 @@ LOOK_SPECS = [
        "Automatic: the Tailscale Funnel address when Funnel points at this app (phones join from mobile "
        "data, over HTTPS), else the home Wi-Fi address. Start with start-karaoke.bat to switch Funnel on.",
        NOW, choices=[["auto", "Automatic (Funnel if on)"], ["lan", "Home Wi-Fi address only"]]),
+    # ── Layout ──────────────────────────────────────────────────────────────
+    _n("side_panel_width", "layout", "Side panel width", 28, 20, 50, 1, "rem",
+       "Width of the queue, controls and history sidebar on the control panel (/tv). Default is 28 rem (increased from 25 rem).",
+       NOW, client=True),
     # ── Screen & theme ──────────────────────────────────────────────────────
     _s("title_text", "look", "Party title", "Karaoke Night", "text",
        "The big title on the control panel, projector and phones.", NOW, client=True, max_len=40),

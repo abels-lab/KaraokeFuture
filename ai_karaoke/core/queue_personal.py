@@ -16,6 +16,7 @@ MODES = ("party", "score", "battle")   # battle: two mics scored side by side, o
 class PersonalQueue:
     entries: list[dict]
     current: dict | None
+    played: list[dict]
     intro: tuple[str, float] = ("", 0.0)   # (uid, monotonic end) of the intro card on screen
 
     async def move_own(self, uid: str, owner: int, direction: str) -> bool:
@@ -35,8 +36,9 @@ class PersonalQueue:
             await self.broadcast_state()
         return True
 
-    def _entry(self, uid: str) -> dict | None:   # waiting or playing now
-        return next((e for e in self.entries + [self.current] if e and e["uid"] == uid), None)
+    def _entry(self, uid: str) -> dict | None:   # waiting, playing now or played
+        all_songs = self.entries + ([self.current] if self.current else []) + getattr(self, "played", [])
+        return next((e for e in all_songs if e and e["uid"] == uid), None)
 
     async def set_prefs(self, uid: str, **prefs) -> dict | None:
         """guide (0-100 or None) / mode (MODES or None) for one entry, playing or waiting."""
@@ -71,9 +73,12 @@ class PersonalQueue:
         were guests too, so every remaining entry loses its partner."""
         before = len(self.entries)
         self.entries[:] = [e for e in self.entries if e.get("owner") is None]
+        if hasattr(self, "played"):
+            self.played[:] = [e for e in self.played if e.get("owner") is None]
         if self.current and self.current.get("owner") is not None:
             self.current["owner"] = None
-        for entry in self.entries + ([self.current] if self.current else []):
+        all_songs = self.entries + ([self.current] if self.current else []) + getattr(self, "played", [])
+        for entry in all_songs:
             entry["partner"] = None
         await self.broadcast_state()
         return before - len(self.entries)
