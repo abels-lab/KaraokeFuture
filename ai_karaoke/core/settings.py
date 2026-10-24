@@ -34,6 +34,10 @@ def coerce(spec: dict, value):
         if not math.isfinite(number) or not spec["min"] <= number <= spec["max"]:
             raise ValueError(f"{label}: must be between {spec['min']} and {spec['max']}")
         return int(number) if float(spec["step"]).is_integer() and number.is_integer() else round(number, 4)
+    if kind == "text":
+        if not isinstance(value, str) or not value.strip() or len(value.strip()) > spec["max_len"]:
+            raise ValueError(f"{label}: must be 1 to {spec['max_len']} characters")
+        return " ".join(value.split())
     allowed = [choice[0] for choice in spec["choices"]]
     match = next((a for a in allowed if str(a) == str(value)), None)
     if match is None:

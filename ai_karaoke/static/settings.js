@@ -46,6 +46,12 @@ function control(spec) {
     select.onchange = () => save(spec.key, select.value);
     return select;
   }
+  if (spec.kind === "text") {
+    const input = Object.assign(el("input", "w-56 rounded-lg bg-black/50 px-2 py-1.5 text-sm ring-1 ring-white/10 disabled:opacity-60"),
+      { maxLength: spec.max_len, value: spec.value, disabled });
+    input.onchange = () => save(spec.key, input.value);
+    return input;
+  }
   const wrap = el("label", "flex items-center gap-2");
   const input = Object.assign(el("input", "w-24 rounded-lg bg-black/50 px-2 py-1.5 text-right font-mono text-sm ring-1 ring-white/10 disabled:opacity-60"),
     { type: "number", min: spec.min, max: spec.max, step: spec.step, value: spec.value, disabled });

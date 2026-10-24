@@ -44,12 +44,15 @@ function createFx(container) {
   }
 
   // anchor: element being sung (its glow + spark source); vibe 0..1; energy 0..1
+  let lit = null;   // the lyric row glowing now
   function render(anchor, vibe, energy) {
     const now = performance.now(), dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     const box = resize();
     lights.style.opacity = String(Math.max(0, (vibe - 0.3) / 0.7));
     const line = anchor?.closest("p") || anchor;
+    if (lit && lit !== line) { lit.style.filter = ""; lit.classList.remove("vibe-shine"); }   // lyrics moved to the other row
+    lit = line;
     if (line) {
       const glow = Math.max(0, (vibe - 0.45) / 0.55);
       line.style.filter = glow ? `drop-shadow(0 0 ${6 + 26 * glow}px rgba(244,194,91,${0.35 + 0.5 * glow}))` : "";

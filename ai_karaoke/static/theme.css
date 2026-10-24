@@ -59,3 +59,30 @@ input[type=range]:disabled { cursor: default; opacity: .4; }
 ::-webkit-scrollbar-thumb { background: rgba(244, 194, 91, .25); border-radius: 8px; }
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Themes (Settings → Screen & theme; look.js sets body[data-theme]) ── */
+body[data-theme="club"]::before, body[data-theme="adaptive"]::before { background-image: url("/static/img/club.jpg"); background-position: center 40%; }
+body[data-theme="club"]::after {
+  background: linear-gradient(180deg, rgba(4, 6, 18, .55) 0%, rgba(4, 6, 18, .82) 55%, rgba(4, 6, 18, .95) 100%);
+}
+body[data-theme="rock"]::before { background-image: url("/static/img/rock.jpg"); background-position: 60% center; }
+body[data-theme="rock"]::after {
+  background: linear-gradient(180deg, rgba(10, 4, 2, .5) 0%, rgba(10, 4, 2, .8) 55%, rgba(10, 4, 2, .96) 100%);
+}
+body[data-theme="club"] .panel { background: rgba(6, 8, 22, .62); border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
+body[data-theme="rock"] .panel { background: rgba(14, 6, 3, .66); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
+body[data-theme="rock"] .font-display { letter-spacing: .02em; text-transform: uppercase; }
+/* Adaptive (experimental): pulse.js sets --level (loudness 0..1) and --beat (a flash on each beat) */
+body[data-theme="adaptive"]::after {
+  background: radial-gradient(ellipse 80% 70% at 50% 45%, rgba(4, 6, 18, calc(.75 - var(--level, 0) * .45)), rgba(4, 6, 18, .95));
+}
+body[data-theme="adaptive"]::before { filter: brightness(calc(.8 + var(--beat, 0) * .7)) saturate(calc(1 + var(--level, 0))); }
+body[data-theme="adaptive"] .panel { box-shadow: 0 0 calc(var(--beat, 0) * 40px) color-mix(in srgb, var(--gold) 60%, transparent); }
+body[data-theme="adaptive"] #line-main, body[data-theme="adaptive"] #line-next { transform: scale(calc(1 + var(--beat, 0) * .025)); }
+
+/* Music videos off (Settings, or the control panel's 🎬 button) */
+body.no-video video#video, body.no-video video#stage-video { display: none; }
+
+/* Lyrics position on the projector and the control panel's preview */
+[data-lyrics-box][data-pos="top"] { justify-content: flex-start !important; margin-top: 2vh !important; margin-bottom: auto !important; }
+[data-lyrics-box][data-pos="middle"] { justify-content: center !important; margin-top: auto !important; margin-bottom: auto !important; }

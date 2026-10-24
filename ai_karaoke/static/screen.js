@@ -8,7 +8,7 @@ const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $(
 let current = null, clock = { uid: null, time: 0, paused: true, at: 0 }, lastClockAt = 0;
 // Singing game: effects / note lanes over the stage, results card at the end of a song
 const gameView = createGameView(document.body, stage);
-const intro = createIntro(), loading = createLoading($("loading"));
+const intro = createIntro(), loading = createLoading($("loading")), pulse = createPulse();
 let game = null, gameAt = 0, introAt = 0;
 function onGame(m) {
   if (m.type === "game_result") gameView.showResults(m);
@@ -54,7 +54,7 @@ if ("BroadcastChannel" in window) {
 function onState({ now_playing: np, queue }) {
   renderUpNext(queue);
   if (!np) {
-    if (current) { stage.clear(); gameView.clear(); intro.hide(); }
+    if (current) { stage.clear(); gameView.clear(); intro.hide(); pulse.clear(); }
     current = null;
   } else if (current?.uid !== np.uid) {
     current = np;
@@ -87,6 +87,8 @@ function tick() {
   if (intro.visible && performance.now() - introAt > 1500) intro.hide();
   if (!current) return;
   stage.render(now(), !clock.paused);
+  pulse.render(now(), current.song_id);
+  $("info-card").style.opacity = Look.infoCard(now(), current.duration || 0) ? "1" : "0";   // who sings + who's next
   gameView.render(now(), performance.now() - gameAt < 1000 ? game : null); // stale = nobody singing
   // No clock for 3 s while a song should be playing: the control panel is gone or reconnecting
   $("lost").classList.toggle("hidden", clock.paused || performance.now() - lastClockAt < 3000);
