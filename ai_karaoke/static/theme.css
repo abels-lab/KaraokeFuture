@@ -62,7 +62,11 @@ input[type=range]:disabled { cursor: default; opacity: .4; }
 
 /* ── Themes (Settings → Screen & theme; look.js sets body[data-theme]) ── */
 body[data-theme="club"]::before { background-image: url("/static/img/club.jpg"); background-position: center 40%; }
-body[data-theme="adaptive"]::before { background-image: url("/static/img/servers_on_scene.jpg"); background-position: center 35%; }
+body[data-theme="adaptive"]::before {
+  background: url("/static/img/servers_on_scene.jpg") center 35% / cover no-repeat !important;
+  filter: brightness(calc(0.85 + var(--beat, 0) * 0.45 + var(--level, 0) * 0.25)) saturate(calc(1.1 + var(--level, 0) * 0.35));
+  transition: filter 0.1s ease-out;
+}
 body[data-theme="club"]::after {
   background: linear-gradient(180deg, rgba(4, 6, 18, .55) 0%, rgba(4, 6, 18, .82) 55%, rgba(4, 6, 18, .95) 100%);
 }
@@ -73,21 +77,17 @@ body[data-theme="rock"]::after {
 body[data-theme="club"] .panel { background: rgba(6, 8, 22, .62); border-color: color-mix(in srgb, var(--gold) 28%, transparent); }
 body[data-theme="rock"] .panel { background: rgba(14, 6, 3, .66); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
 body[data-theme="rock"] .font-display { letter-spacing: .02em; text-transform: uppercase; }
-/* Adaptive (experimental): pulse.js extracts colors from the music video and pulses with loudness & beat */
+/* Adaptive (experimental): servers on stage backdrop, lit by video & music */
 body[data-theme="adaptive"] {
-  background-color: var(--adaptive-bg, #040612);
-  transition: background-color 0.4s ease;
+  background-color: transparent !important;
 }
-body[data-theme="adaptive"]::before {
-  filter: brightness(calc(0.75 + var(--beat, 0) * 0.65 + var(--level, 0) * 0.25)) saturate(calc(1.1 + var(--level, 0) * 0.5));
-  transition: filter 0.1s ease-out;
-}
-body[data-theme="adaptive"]::after {
+body[data-theme="adaptive"]::after,
+body.tv[data-theme="adaptive"]::after {
   background: radial-gradient(
     ellipse 85% 75% at 50% 45%,
-    var(--adaptive-glow, rgba(4, 6, 18, calc(0.7 - var(--level, 0) * 0.45))),
-    var(--adaptive-bg, rgba(4, 6, 18, 0.95))
-  );
+    var(--adaptive-glow, rgba(4, 6, 18, calc(0.3 - var(--level, 0) * 0.2))),
+    rgba(4, 6, 18, 0.72)
+  ) !important;
   transition: background 0.3s ease;
 }
 body[data-theme="adaptive"] .panel {

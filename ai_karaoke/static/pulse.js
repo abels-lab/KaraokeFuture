@@ -192,7 +192,7 @@ function createPulse() {
     const deepR = Math.round(accR * 0.72), deepG = Math.round(accG * 0.72), deepB = Math.round(accB * 0.72);
 
     // Dynamic glow reacts to ambient video hue and flairs on beats
-    const glowAlpha = Math.min(0.85, 0.25 + level * 0.35 + beat * 0.25).toFixed(3);
+    const glowAlpha = Math.min(0.55, 0.15 + level * 0.22 + beat * 0.20).toFixed(3);
     const glowR = Math.min(255, Math.round(bgR * (1 + beat * 0.45)));
     const glowG = Math.min(255, Math.round(bgG * (1 + beat * 0.45)));
     const glowB = Math.min(255, Math.round(bgB * (1 + beat * 0.45)));
