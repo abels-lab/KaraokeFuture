@@ -86,3 +86,7 @@ body.no-video video#video, body.no-video video#stage-video { display: none; }
 /* Lyrics position on the projector and the control panel's preview */
 [data-lyrics-box][data-pos="top"] { justify-content: flex-start !important; margin-top: 2vh !important; margin-bottom: auto !important; }
 [data-lyrics-box][data-pos="middle"] { justify-content: center !important; margin-top: auto !important; margin-bottom: auto !important; }
+
+/* Lyrics mode (Settings, or the control panel's 📝 button): plain text without the word fill, or none */
+body.lyrics-plain .word { background: none; color: rgba(255, 248, 236, .95); }
+body.lyrics-off #line-main, body.lyrics-off #line-next, body.lyrics-off #no-lyrics { display: none; }

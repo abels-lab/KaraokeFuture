@@ -49,6 +49,10 @@ BASE_OPTS = {
     "socket_timeout": 10,
     "logger": _Quiet(),
     **({"js_runtimes": _JS_RUNTIMES} if _JS_RUNTIMES else {}),
+    # When YouTube puts this IP behind "Sign in to confirm you're not a bot" (less-watched videos
+    # first), its embedded and mobile web players still answer: yt-dlp falls back to them on its
+    # own. Measured: blocked videos then download as usual (opus audio, 720p video).
+    "extractor_args": {"youtube": {"player_client": ["default", "web_embedded", "mweb"]}},
 }
 
 

@@ -10,6 +10,7 @@
    the download falls back to the mirrors anyway. Measured: ~2 s on top of ~1.5 s search.
 """
 import logging
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, wait
 
@@ -65,6 +66,10 @@ def _validate(groups: list[list[dict]], stats: dict) -> list[list[dict]]:
     kept = []
     for members, future in zip(groups, futures):
         if future not in done:
+            stats["unchecked"] += 1
+            kept.append(members)
+        elif future.exception() is not None:   # a bug in one check must not sink the whole search
+            log.warning("Checking %s failed: %r", members[0]["id"], future.exception())
             stats["unchecked"] += 1
             kept.append(members)
         elif (working := future.result()) is None:

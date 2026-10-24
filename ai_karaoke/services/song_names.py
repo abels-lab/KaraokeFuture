@@ -66,6 +66,6 @@ def officialness(title: str, raw_channel: str) -> int:
     title = _DASHES.sub(" - ", title or "")
     if " - " not in title:
         return 1
-    artist = _words(title.split(" - ", 1)[0])
+    artist = _words(_FEAT.sub(" ", title.split(" - ", 1)[0]))   # "Dirty Palm feat. CRVN" is Dirty Palm's own
     channel = _words(clean_channel(raw_channel))
     return 2 if channel and channel == artist else 0

@@ -23,6 +23,10 @@ LOOK_SPECS = [
     _s("lyrics_position", "look", "Lyrics position", "bottom", "choice",
        "Where the lyrics sit on the projector (and the control panel's preview).", NOW, client=True,
        choices=[["top", "Top"], ["middle", "Middle"], ["bottom", "Bottom"]]),
+    _s("lyrics_mode", "look", "Lyrics", "full", "choice",
+       "Highlighted: words fill as they're sung. Plain: just the text, no filling. Off: no lyrics on any "
+       "screen (for singers who know the song). The control panel's 📝 button switches it too.", NOW, client=True,
+       choices=[["full", "Highlighted"], ["plain", "Plain text"], ["off", "Off"]]),
     _s("show_video", "look", "Show music videos", True, "bool",
        "Off: plain background behind the lyrics on every screen (videos still download, see Songs & downloads). "
        "The control panel's 🎬 button switches it too.", NOW, client=True),
