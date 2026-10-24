@@ -1,5 +1,6 @@
 /* Shared theater theme: velvet-and-gold palette over the stage photo. No purple. */
 :root {
+  --stage-dim: 0.4;
   --gold: #f4c25b;
   --gold-deep: #d99a2b;
   --velvet: #8f1d1d;
@@ -15,6 +16,8 @@ body::before { z-index: -2; background: url("/static/img/theater.jpg") center 30
 body::after {
   z-index: -1;
   background: linear-gradient(180deg, rgba(11, 7, 5, .62) 0%, rgba(11, 7, 5, .84) 55%, rgba(11, 7, 5, .96) 100%);
+  opacity: calc(0.2 + var(--stage-dim, 0.4) * 0.8);
+  transition: opacity 0.3s ease;
 }
 /* The TV keeps more of the stage visible, darkening the edges like a spotlight */
 body.tv::after {
@@ -101,6 +104,35 @@ body[data-theme="adaptive"] #line-main, body[data-theme="adaptive"] #line-next {
   transform: scale(calc(1 + var(--beat, 0) * 0.03));
   transition: transform 0.08s ease-out;
 }
+
+/* ── Video & background shading (Settings → Screen & theme: stage_dim) ── */
+.video-shade {
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 1.25)) 0%,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 0.3)) 50%,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 0.45)) 100%
+  );
+  transition: background 0.3s ease, opacity 0.3s ease;
+}
+body[data-lyrics-pos="top"] .video-shade {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 1.25)) 0%,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 0.3)) 50%,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 0.45)) 100%
+  );
+}
+body[data-lyrics-pos="middle"] .video-shade {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 0.45)) 0%,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 1.15)) 50%,
+    rgba(0, 0, 0, calc(var(--stage-dim, 0.4) * 0.45)) 100%
+  );
+}
+body.no-video .video-shade { opacity: 0.75; }
 
 /* Music videos off (Settings, or the control panel's 🎬 button) */
 body.no-video video#video, body.no-video video#stage-video { display: none; }

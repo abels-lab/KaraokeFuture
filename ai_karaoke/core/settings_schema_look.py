@@ -30,8 +30,12 @@ LOOK_SPECS = [
     _s("show_video", "look", "Show music videos", True, "bool",
        "Off: plain background behind the lyrics on every screen (videos still download, see Songs & downloads). "
        "The control panel's 🎬 button switches it too.", NOW, client=True),
+    _n("stage_dim", "look", "Video & background shading", 40, 0, 100, 5, "%",
+       "How much to darken the video and backdrop behind the lyrics so words stay readable. "
+       "Lower makes the video and stage photo brighter; higher increases contrast for text.",
+       NOW, client=True),
     _n("info_card_seconds", "look", "Song info card", 6, 0, 20, 1, "s",
-       "After a song starts, a small card shows who sings, the song and who's next. 0 = never.", NOW, True),
+       "After a song starts, a small card shows who sings, the song and who's next. 0 = never.", NOW, client=True),
     _s("info_card_middle", "look", "Song info card mid-song", True, "bool",
        "Show the same card once more halfway through the song.", NOW, client=True),
     _s("loading_jokes", "look", "Jokes while loading", True, "bool",
