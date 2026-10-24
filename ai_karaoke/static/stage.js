@@ -6,6 +6,7 @@
 // Needs common.js. createStage(elements) -> { load(entry), clear(), render(time, playing) }
 function createStage({ main, next, hint, noLyrics, video }) {
   let song = null, lyrics = [], regions = [], lineIdx = -2, words = [], lastVideoSync = 0, lastT = 0;
+  let pendingSeek = null;
   const rows = [main, next];
   let shown = [[], []];   // per row: [{w, el}] of the line on it (filled by time, both rows)
   const getJSON = async (url, fallback) => {
@@ -34,6 +35,7 @@ function createStage({ main, next, hint, noLyrics, video }) {
   }
 
   function clear() {
+    pendingSeek = null;
     song = null; lyrics = []; regions = [];
     setVideo(null); renderLines(-2);
     hint.textContent = ""; noLyrics.classList.add("hidden");
@@ -86,9 +88,20 @@ function createStage({ main, next, hint, noLyrics, video }) {
   }
 
   function seek(t) {
-    if (video && video.dataset.src && video.readyState >= 1) {
+    if (!video || !video.dataset.src) return;
+    if (video.readyState >= 1) {
       video.currentTime = Math.max(0, t);
       video.playbackRate = 1;
+      pendingSeek = null;
+    } else {
+      pendingSeek = t;
+      video.addEventListener("loadedmetadata", () => {
+        if (pendingSeek !== null) {
+          video.currentTime = Math.max(0, pendingSeek);
+          video.playbackRate = 1;
+          pendingSeek = null;
+        }
+      }, { once: true });
     }
   }
 

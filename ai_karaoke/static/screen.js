@@ -51,17 +51,21 @@ if ("BroadcastChannel" in window) {
   new BroadcastChannel("karaoke-game").onmessage = (e) => onGame(e.data);
 }
 
-function onState({ now_playing: np, queue }) {
+function onState({ now_playing: np, queue, playback }) {
   renderUpNext(queue);
   if (!np) {
     if (current) { stage.clear(); gameView.clear(); intro.hide(); pulse.clear(); }
     current = null;
   } else if (current?.uid !== np.uid) {
     current = np;
-    clock = { uid: np.uid, time: 0, paused: true, at: performance.now() };
+    const pb = np.playback || (playback?.uid === np.uid ? playback : null);
+    const startTime = Number(pb?.time) || 0;
+    clock = { uid: np.uid, time: startTime, paused: pb ? Boolean(pb.paused) : true, at: performance.now() };
+    lastClockAt = performance.now();
     game = null;
     intro.hide();
     stage.load(np);
+    if (startTime > 0) stage.seek?.(startTime);
     gameView.load(np);
   } else {
     current = np;   // same song, fresher details (a battle partner joined or left)

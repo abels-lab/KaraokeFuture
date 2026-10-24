@@ -47,37 +47,30 @@
 
 ---
 
-## 3. Host-Authoritative Playback & Seamless Reload Resumption (READY TO IMPLEMENT)
+## 3. Host-Authoritative Playback & Seamless Reload Resumption (COMPLETED)
 
 ### Objective
 Make the host's playing screen (`/tv`) the authority for playback state so that during short connection blips, server restarts, or page reloads, the song does **not** restart from 0:00 and does **not** replay the 5-second intro countdown card.
 
-### Implementation Blueprint
-
+### Implementation Status: COMPLETED
 1. **Backend State Tracking (`core/queue_manager.py` & `routers/ws.py`)**:
-   - In `QueueManager`:
-     - Maintain `self.playback = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}`.
-     - Add `def update_playback(self, uid: str, time: float, duration: float, paused: bool) -> None`.
-     - Update `snapshot()` to include `"playback": self.playback`.
-     - In `_save()` and `restore()`, persist `playback` into `data/queue.json` alongside `current`.
-   - In `routers/ws.py`:
-     - In `_handle()` for `kind == "playback"` from `role == "tv"`: call `queue.update_playback(...)`.
-     - Add a handshake message `{"type": "sync_playback", "uid": ..., "time": ..., "paused": ...}` so when the host reconnects, the server immediately accepts the host's active time.
+   - `QueueManager` tracks `self.playback = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}`.
+   - `update_playback(self, uid, time_sec, duration, paused)` updates playback and persists throttled saves into `data/queue.json`.
+   - `snapshot()` includes `"playback": self.playback` and attaches `playback` to `now_playing`.
+   - `_save()` and `restore()` persist and restore `playback` alongside `current` and `played`.
+   - Handshake message `{"type": "sync_playback", "uid": ..., "time": ..., "paused": ...}` is handled in `ws.py` for reconnects and authoritative time updates.
 
 2. **Frontend Playback Authority & Session Storage (`static/tv.js`)**:
-   - On every clock tick (e.g. in `sendClock()`):
-     - `sessionStorage.setItem("karaoke_active_playback", JSON.stringify({ uid: current.uid, time: inst.currentTime, paused: inst.paused }))`.
-   - In `loadSong(entry)`:
-     - Check `sessionStorage.getItem("karaoke_active_playback")` and server `entry.playback`.
-     - If resuming an in-progress song (`uid` matches and `savedTime > 1.5s`):
-       - **Bypass the pre-song countdown card** (`IntroRun.stop()`).
-       - On metadata ready: seek `inst.currentTime = voc.currentTime = savedTime`.
-       - Call `stage.seek(savedTime)` to immediately catch up lyrics and monitor video.
-       - Resume playback if it was playing.
-   - On WebSocket reconnect (`open()` in `common.js` or `tv.js` listener):
-     - If `current && !inst.paused`: send `{"type": "sync_playback", "uid": current.uid, "time": inst.currentTime, "paused": inst.paused}`.
-   - Audio network resilience:
-     - Add `stalled` / `error` handlers on `inst` and `voc` so that if Uvicorn's restart briefly cuts the HTTP range request, the player seeks and re-buffers from the current timestamp instead of failing.
+   - Every clock tick saves active playback timestamp to `sessionStorage` (`karaoke_active_playback`).
+   - `loadSong(entry)` checks `sessionStorage` and server `entry.playback`. If resuming an in-progress song (`savedTime > 1.5s`):
+     - Bypasses the pre-song countdown card (`IntroRun.stop()`) and notifies screens to hide intro card.
+     - Seeks `inst.currentTime = voc.currentTime = savedTime` upon metadata readiness.
+     - Calls `stage.seek(savedTime)` to immediately catch up lyrics and monitor video.
+     - Resumes playback smoothly if it was playing.
+   - On WebSocket reconnect, `tv.js` sends `sync_playback` handshake with current time and paused state.
+   - Resilient audio network handling: `stalled` and `error` handlers on `inst` and `voc` re-buffer and resume from current timestamp instead of failing on temporary connection blips.
 
-3. **Projector Screen Smooth Sync (`static/screen.js`)**:
-   - Verify `onClock()` smoothly receives time jumps and applies `stage.seek(m.time)` without re-triggering intro cards or resetting video opacity.
+3. **Projector Screen Smooth Sync (`static/screen.js` & `stage.js`)**:
+   - `onState()` initializes clock directly from server playback state without resetting to 0.
+   - `onClock()` smoothly receives time jumps and applies `stage.seek(m.time)` without re-triggering intro cards or resetting video opacity.
+   - `stage.seek(t)` queues pending seeks if video metadata is loading, snapping into sync as soon as metadata arrives.

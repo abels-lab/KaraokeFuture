@@ -51,7 +51,12 @@ function renderState(state = lastState) {
     b.classList.toggle("pointer-events-none", !mayScrub);
   });
 
-  if (!np) renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
+  if (!np) {
+    renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
+  } else {
+    const pb = np.playback || (state.playback?.uid === np.uid ? state.playback : null);
+    if (pb && Number.isFinite(pb.time)) renderPlayback(pb);
+  }
 
   const isAdmin = Boolean(Auth.me.admin);
   $("np-lyrics").classList.toggle("hidden", !np);
