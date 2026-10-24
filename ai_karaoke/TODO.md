@@ -1,7 +1,7 @@
 # KaraokeFuture - Backlog & Improvement Notes
 
 > [!NOTE]
-> Notes and backlog items recorded for future development sessions. Nothing in this document is currently being implemented.
+> Notes and backlog items recorded for future development sessions.
 
 ---
 
@@ -47,16 +47,37 @@
 
 ---
 
-## 3. Host-Authoritative Playback & Seamless Reload Resumption
+## 3. Host-Authoritative Playback & Seamless Reload Resumption (READY TO IMPLEMENT)
 
-### Observations
-- When the server restarts or the browser reloads mid-song, the song starts from `0:00` and replays the 5-second intro countdown card.
+### Objective
+Make the host's playing screen (`/tv`) the authority for playback state so that during short connection blips, server restarts, or page reloads, the song does **not** restart from 0:00 and does **not** replay the 5-second intro countdown card.
 
-### Planned Architecture
-1. **Host Screen as Source of Truth**:
-   - The host screen (`/tv`) controls audio playback locally via `<audio id="inst">` and `<audio id="voc">`.
-   - On short server reboots or Wi-Fi blips, the host audio continues playing seamlessly from browser RAM.
-   - On reconnect, the host reports its active timestamp and song UID back to the server; the server adopts the host's state.
-2. **Session Storage Restore on Page Reload**:
-   - Save playback position (`uid`, `currentTime`, `paused`) to `sessionStorage` on every clock tick.
-   - On fresh page load / F5, if the song was already in progress, immediately seek audio, skip the intro countdown, and resume without disruption.
+### Implementation Blueprint
+
+1. **Backend State Tracking (`core/queue_manager.py` & `routers/ws.py`)**:
+   - In `QueueManager`:
+     - Maintain `self.playback = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}`.
+     - Add `def update_playback(self, uid: str, time: float, duration: float, paused: bool) -> None`.
+     - Update `snapshot()` to include `"playback": self.playback`.
+     - In `_save()` and `restore()`, persist `playback` into `data/queue.json` alongside `current`.
+   - In `routers/ws.py`:
+     - In `_handle()` for `kind == "playback"` from `role == "tv"`: call `queue.update_playback(...)`.
+     - Add a handshake message `{"type": "sync_playback", "uid": ..., "time": ..., "paused": ...}` so when the host reconnects, the server immediately accepts the host's active time.
+
+2. **Frontend Playback Authority & Session Storage (`static/tv.js`)**:
+   - On every clock tick (e.g. in `sendClock()`):
+     - `sessionStorage.setItem("karaoke_active_playback", JSON.stringify({ uid: current.uid, time: inst.currentTime, paused: inst.paused }))`.
+   - In `loadSong(entry)`:
+     - Check `sessionStorage.getItem("karaoke_active_playback")` and server `entry.playback`.
+     - If resuming an in-progress song (`uid` matches and `savedTime > 1.5s`):
+       - **Bypass the pre-song countdown card** (`IntroRun.stop()`).
+       - On metadata ready: seek `inst.currentTime = voc.currentTime = savedTime`.
+       - Call `stage.seek(savedTime)` to immediately catch up lyrics and monitor video.
+       - Resume playback if it was playing.
+   - On WebSocket reconnect (`open()` in `common.js` or `tv.js` listener):
+     - If `current && !inst.paused`: send `{"type": "sync_playback", "uid": current.uid, "time": inst.currentTime, "paused": inst.paused}`.
+   - Audio network resilience:
+     - Add `stalled` / `error` handlers on `inst` and `voc` so that if Uvicorn's restart briefly cuts the HTTP range request, the player seeks and re-buffers from the current timestamp instead of failing.
+
+3. **Projector Screen Smooth Sync (`static/screen.js`)**:
+   - Verify `onClock()` smoothly receives time jumps and applies `stage.seek(m.time)` without re-triggering intro cards or resetting video opacity.
