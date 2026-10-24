@@ -64,6 +64,7 @@
             <button id="btn-fwd" class="flex h-11 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20" title="Forward 10 s (→)">10<svg viewBox="0 0 24 24" class="h-5 w-5 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
             <button id="btn-skip" data-icon="skip" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Skip (N)"></button>
             <button id="btn-video" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Music video on / off (V)">🎬</button>
+            <button id="btn-lyrics" class="flex h-11 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20" title="Lyrics: highlighted → plain → off (L)">📝 <span id="lyrics-mode"></span></button>
             <label class="ml-auto flex items-center gap-3 text-sm text-stone-300">
               <span>Guide vocals</span>
               <input id="guide" type="range" min="0" max="100" value="20" class="w-40">
@@ -103,7 +104,7 @@
             <a href="/library" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20">📚 Library</a>
             <a href="/settings" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20" title="Advanced settings">⚙️</a>
           </span>
-          <span>Space · ← → · N · V · F</span>
+          <span>Space · ← → · N · V · L · F</span>
         </div>
       </div>
     </aside>

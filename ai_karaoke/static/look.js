@@ -1,7 +1,8 @@
 // How the pages look, from the Settings page ("Screen & theme"), applied live on every page:
 // theme (body data-theme: background picture, theme.css), colour preset (the --gold /
 // --gold-deep variables that titles, buttons and sung words use), the party title ([data-title]),
-// where the lyrics sit ([data-lyrics-box]) and whether music videos show (body.no-video).
+// where the lyrics sit ([data-lyrics-box]), whether music videos show (body.no-video) and the
+// lyrics mode (body.lyrics-plain: no word fill, body.lyrics-off: no lyrics).
 // Needs common.js (Settings). Look.infoCard(time, duration) -> should the song info card show now?
 const ACCENTS = { gold: ["#f4c25b", "#d99a2b"], neon: ["#ff5fd2", "#d01f9e"], ice: ["#7fd8ff", "#2b9bd9"],
                   lime: ["#c6f25b", "#86b51f"], fire: ["#ff7a3d", "#d8341a"], silver: ["#eef0f6", "#9ea7ba"] };
@@ -18,6 +19,9 @@ const Look = (() => {
     document.querySelectorAll("[data-title]").forEach((e) => { e.textContent = title; });
     document.querySelectorAll("[data-lyrics-box]").forEach((e) => { e.dataset.pos = Settings.get("lyrics_position", "bottom"); });
     document.body.classList.toggle("no-video", !Settings.get("show_video", true));
+    const lyrics = Settings.get("lyrics_mode", "full");
+    document.body.classList.toggle("lyrics-plain", lyrics === "plain");
+    document.body.classList.toggle("lyrics-off", lyrics === "off");
   }
   Settings.onChange(apply);
 
