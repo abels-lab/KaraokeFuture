@@ -74,3 +74,84 @@ Make the host's playing screen (`/tv`) the authority for playback state so that 
    - `onState()` initializes clock directly from server playback state without resetting to 0.
    - `onClock()` smoothly receives time jumps and applies `stage.seek(m.time)` without re-triggering intro cards or resetting video opacity.
    - `stage.seek(t)` queues pending seeks if video metadata is loading, snapping into sync as soon as metadata arrives.
+
+---
+
+## 5. Control Panel (`/tv`) UI Weak Points & Guest Interaction Vulnerabilities
+
+### Objective
+Audit the host control panel (`/tv`), identify fragile UI/layout points under real-world party conditions, and address potential disruptions caused by manual guest setups and phone actions (`/remote`).
+
+---
+
+### A. Control Panel (`/tv`) UI Weak Points & Layout Flaws
+
+1. **Transport Bar Wrapping on Compact / Scaled Laptop Displays**:
+   - **Issue**: In `static/tv.html`, the playback control bar (`footer.panel`) contains Previous & Next buttons with text labels (`max-w-[210px]`), 5 circular transport buttons, 2 screen toggles, and the Guide Vocal slider (`w-28 xl:w-36` + labels).
+   - **Vulnerability**: On standard karaoke laptops (1366x768 or 1080p with 125%–150% Windows display scaling), the effective viewport width for the stage column is only ~550px–650px. The controls wrap into 2 or 3 chaotic rows, pushing the video monitor up or clipping the time scrubber.
+   - **Recommended Fix**:
+     - Implement responsive media queries in `theme.css`: collapse `btn-prev` and `btn-next` to icon-only (or truncated max-w 120px) under `1200px` screen width.
+     - Stack or condense the Guide slider into a compact popover or vertical mini-fader on smaller viewports.
+
+2. **Idle Screen Overflow with Multiple Loading Tracks**:
+   - **Issue**: On the idle screen (`#idle`), `#loading` (loading card list from `loading.js`) renders directly underneath the large microphone image (`w-80`) and the large QR code box (`h-52 w-52`).
+   - **Vulnerability**: When 3 or more songs are queued and being processed concurrently, the total height exceeds standard screen viewports, introducing a vertical scrollbar on what is meant to be a clean TV display, and pushing the QR code off the top.
+   - **Recommended Fix**:
+     - Scale down `#idle-mic` and `#qr-big` when songs are loading (`#idle.has-loading` styling).
+     - Set a max-height on `#loading` with clean internal scrolling or a carousel/paged view of pending downloads.
+
+3. **DJ Co-Pilot Drawer / Floating Button Occlusion**:
+   - **Issue**: The `✨ DJ Co-Pilot` toggle button is fixed at `bottom-6 right-6` (or `left-6`). When on the right, it directly overlaps the bottom sidebar links (`🎤 Microphones`, `📽 Open projector screen`, `📚 Library`, `⚙️ Settings`).
+   - **Vulnerability**: When the chat drawer opens, it completely blocks the host from viewing either the active playback monitor or the queue and transport controls.
+   - **Recommended Fix**:
+     - Implement an integrated "Split Screen / Docked Column" mode (`agent_layout_mode: split`) that resizes `#tv-layout` to a 3-column grid (`Stage | Co-Pilot | Queue`), shrinking the video instead of floating above it.
+     - Reposition the toggle button above the sidebar footer actions (e.g. `bottom-20`) to prevent blocking the projector or settings buttons.
+
+4. **Monitor Lyric Text Overflow on Long Lines**:
+   - **Issue**: Lyrics inside `#monitor` use `text-[clamp(1.6rem,3vw,3rem)]` with `flex-col justify-end`.
+   - **Vulnerability**: Fast rap verses or multi-clause lyrics (15+ words in a line) wrap onto 3–4 lines on compact laptop monitors, colliding with `#countdown` or pushing the active line outside the monitor frame.
+   - **Recommended Fix**:
+     - Add dynamic font size stepping in `static/stage.js`: if a line exceeds 45 characters, dynamically drop the font size by 20–30% (`text-sm`/`text-base` fallback) to prevent overflow.
+
+---
+
+### B. Potential Troubles Caused by Manual Guest Setups & Actions (`/remote`)
+
+1. **Unthrottled Queue Flooding (Spamming Songs)**:
+   - **Issue**: Any guest on mobile (`/remote`) can search and queue songs repeatedly up to the global `max_queue` limit (default: 50).
+   - **Vulnerability**: A single enthusiastic or trolling guest can queue 15–20 songs in two minutes. This consumes GPU/CPU stem separation resources for hours and starves other singers from getting their turn.
+   - **Recommended Fix**:
+     - Add a **"Fair Queueing"** rule in `core/queue_manager.py`: enforce a per-guest active limit (e.g., max 2 unplayed songs per guest session).
+     - Add a configurable cooldown timer (e.g., 60 seconds between song submissions per guest).
+
+2. **Mid-Song Guide Vocal & Game Mode Hijacking**:
+   - **Issue**: When a guest is on `/remote`, they can modify their song's guide-vocal percentage (0% to 100%) and mode ("party", "score", "battle").
+   - **Vulnerability**: In `static/tv.js` lines 62–67, any update to `np.guide` received from WebSocket immediately sets `Guide.forEntry(current)`. If the guest drags their phone slider to 0% (muting vocals) or 100% (drowning out the singer) while the song is playing, it overrides the host laptop's physical slider live!
+   - **Recommended Fix**:
+     - Add a **Host Override Lock**: once the host moves the physical guide slider on `/tv`, flag the song as `host_guide_locked = true` for the rest of that track, ignoring further remote slider inputs from the guest.
+
+3. **Singer Name Impersonation & Clashing**:
+   - **Issue**: `/remote` has an open text field for singer names with no reservation or unique validation.
+   - **Vulnerability**: A guest can enter "Host", "Everyone", or the exact name of another guest at the party. This allows guests to impersonate others, clutter the queue history, or bypass host identity expectations.
+   - **Recommended Fix**:
+     - Disallow the reserved name "Host" on `/remote` unless authorized by host PIN.
+     - Append subtle guest session IDs or unique color avatars (e.g. `Alice #2`) if two phones use the exact same name.
+
+4. **Unauthorized Battle / Duet Hijacking**:
+   - **Issue**: If a song is queued in `battle` mode, any guest on the remote can tap "Join" (`/api/queue/{uid}/join`) to become the partner.
+   - **Vulnerability**: An uninvited guest can tap "Join" and force themselves into someone else's duet or battle without the original singer's knowledge or approval.
+   - **Recommended Fix**:
+     - Add an approval request handshake: when a guest taps "Join", singer 1 or the host must tap "Accept" on their screen, or singer 1 can specify a partner by name when queueing.
+
+5. **Audio Autoplay Lockout on Browser Start (`#unlock`)**:
+   - **Issue**: Browsers block audio playback until user interaction (`#unlock` overlay).
+   - **Vulnerability**: If `/tv` is launched or auto-refreshed, and a guest on phone starts playback or a song becomes ready while nobody has clicked the laptop screen, the intro counts down and tries to play, but the browser blocks audio. The lyrics and timer tick silently.
+   - **Recommended Fix**:
+     - Check `AudioContext.state` / `inst.paused` on page load: if autoplay is blocked, show a prominent glowing "Audio Suspended - Click to Enable Sound" banner that alerts the host immediately before songs start.
+
+6. **Broken Downloads / DRM Streams Stalling the Stage**:
+   - **Issue**: Guests frequently select SoundCloud DRM tracks or geo-restricted YouTube links that fail yt-dlp download with 403 or DRM errors.
+   - **Vulnerability**: In some edge cases, an errored song in the queue displays a red error badge, but if it is at index 0 and idle, the stage can stall without automatically advancing to the next playable song.
+   - **Recommended Fix**:
+     - When a song encounters an unrecoverable download error, show a toast notification ("Skipping unplayable track: [Title]") and automatically trigger `queue.next()` to keep the party moving smoothly.
+
