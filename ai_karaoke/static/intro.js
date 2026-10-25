@@ -4,9 +4,21 @@
 // Needs common.js. createIntro({hint}) -> { show({entry, left, mode, names}), hide(), visible }
 const INTRO_MODES = { off: "🎤 Sing along", party: "✨ Party mode", hard: "🏆 Score mode", battle: "⚔️ Battle / Duet" };
 
-function createIntro({ hint = false } = {}) {
-  const card = el("div", "fixed inset-0 z-40 hidden cursor-pointer flex-col items-center justify-center gap-[2.5vh] bg-black/80 p-8 text-center backdrop-blur-sm");
-  card.innerHTML = `
+function createIntro({ hint = false, container = document.body } = {}) {
+  const isEmbed = container !== document.body;
+  const posClasses = isEmbed
+    ? "absolute inset-0 z-30 hidden cursor-pointer flex-col items-center justify-center gap-3 bg-black/85 p-4 text-center backdrop-blur-sm rounded-2xl"
+    : "fixed inset-0 z-40 hidden cursor-pointer flex-col items-center justify-center gap-[2.5vh] bg-black/80 p-8 text-center backdrop-blur-sm";
+  const card = el("div", posClasses);
+  card.innerHTML = isEmbed ? `
+    <p data-i="mode" class="rounded-full bg-amber-400/15 px-4 py-1 text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-gold ring-1 ring-amber-400/40"></p>
+    <p class="text-xs uppercase tracking-[0.35em] text-stone-300">Get ready</p>
+    <h2 data-i="names" class="font-display max-w-[90%] text-2xl sm:text-4xl font-black leading-tight"></h2>
+    <p data-i="title" class="max-w-[85%] truncate text-base sm:text-xl font-semibold"></p>
+    <p data-i="artist" class="max-w-[85%] truncate text-xs sm:text-sm text-stone-300"></p>
+    <p data-i="count" class="font-display mic-glow text-6xl sm:text-7xl font-black leading-none text-gold"></p>
+    <p data-i="hint" class="text-xs text-stone-400">Click or press Enter to start now</p>`
+  : `
     <p data-i="mode" class="rounded-full bg-amber-400/15 px-5 py-1.5 text-[clamp(.9rem,1.5vw,1.6rem)] font-bold uppercase tracking-[0.3em] text-gold ring-1 ring-amber-400/40"></p>
     <p class="text-[clamp(.8rem,1.2vw,1.3rem)] uppercase tracking-[0.45em] text-stone-300">Get ready</p>
     <h2 data-i="names" class="font-display max-w-[90%] text-[clamp(2rem,6vw,6.5rem)] font-black leading-tight"></h2>
@@ -14,7 +26,7 @@ function createIntro({ hint = false } = {}) {
     <p data-i="artist" class="max-w-[85%] truncate text-[clamp(.9rem,1.5vw,1.6rem)] text-stone-300"></p>
     <p data-i="count" class="font-display mic-glow text-[clamp(5rem,16vw,16rem)] font-black leading-none text-gold"></p>
     <p data-i="hint" class="text-sm text-stone-400">Click, or press Enter, to start now</p>`;
-  document.body.append(card);
+  container.append(card);
   const part = (k) => card.querySelector(`[data-i="${k}"]`);
   part("hint").classList.toggle("hidden", !hint);
   let shownCount = null;
