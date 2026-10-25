@@ -17,4 +17,7 @@ AGENT_SPECS = [
     _s("agent_drawer_position", "agent", "DJ Co-Pilot Panel Side", "right", "choice",
        "Which side the DJ Co-Pilot drawer opens on (/tv): 'left' or 'right'. Left side keeps the queue sidebar visible.",
        NOW, client=True, choices=[["right", "Right side"], ["left", "Left side"]]),
+    _s("agent_layout_mode", "agent", "DJ Co-Pilot Layout Mode", "split", "choice",
+       "How DJ Co-Pilot opens on /tv: 'split' (docked 3-column stage) or 'drawer' (floating slide-over).",
+       NOW, client=True, choices=[["split", "Docked Split Screen (Stage | Co-Pilot | Queue)"], ["drawer", "Floating Drawer Overlay"]]),
 ]

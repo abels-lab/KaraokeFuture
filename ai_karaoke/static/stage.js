@@ -38,6 +38,7 @@ function createStage({ main, next, hint, noLyrics, video }) {
     pendingSeek = null;
     song = null; lyrics = []; regions = [];
     setVideo(null); renderLines(-2);
+    rows.forEach((row) => { row.style.fontSize = ""; });
     hint.textContent = ""; noLyrics.classList.add("hidden");
   }
 
@@ -48,8 +49,20 @@ function createStage({ main, next, hint, noLyrics, video }) {
       const i = idx < 0 ? -1 : idx % 2 === r ? idx : idx + 1;
       if (row.dataset.line !== String(i) || !lyrics[i]) {
         row.dataset.line = String(i);
-        shown[r] = (lyrics[i]?.words || []).map((w, k) => ({ w, el: el("span", "word", k ? w.word : w.word.trimStart()) }));
+        const line = lyrics[i];
+        const lineWords = line?.words || [];
+        shown[r] = lineWords.map((w, k) => ({ w, el: el("span", "word", k ? w.word : w.word.trimStart()) }));
         row.replaceChildren(...shown[r].map((x) => x.el));
+
+        // Dynamic font size stepping for long lines to prevent overflow on compact monitors
+        const totalChars = line ? (line.text ? line.text.length : lineWords.reduce((sum, w) => sum + (w.word ? w.word.length : 0), 0)) : 0;
+        if (totalChars > 65) {
+          row.style.fontSize = "clamp(1.1rem, 1.8vw, 1.9rem)";
+        } else if (totalChars > 45) {
+          row.style.fontSize = "clamp(1.3rem, 2.3vw, 2.3rem)";
+        } else {
+          row.style.fontSize = "";
+        }
       }
       row.style.opacity = i === idx ? "1" : "0.55";   // the waiting line is dimmed until it starts
     });

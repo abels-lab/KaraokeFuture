@@ -5,11 +5,13 @@
   const closeBtn = $("agent-close");
   const clearBtn = $("agent-clear");
   const sideToggleBtn = $("agent-side-toggle");
+  const modeToggleBtn = $("agent-mode-toggle");
   const messagesEl = $("agent-messages");
   const form = $("agent-form");
   const input = $("agent-input");
   const sendBtn = $("agent-send");
   const micBtn = $("agent-mic");
+  const tvLayout = $("tv-layout");
 
   if (!toggleBtn || !drawer) return;
 
@@ -17,41 +19,68 @@
   let isListening = false;
   let recognition = null;
   let currentSide = "right";
+  let layoutMode = "split";
+  let isOpen = false;
 
   function isDrawerOpen() {
-    return !drawer.classList.contains("translate-x-full") && !drawer.classList.contains("-translate-x-full");
+    return isOpen;
+  }
+
+  function updateLayout() {
+    const isSplit = layoutMode === "split";
+    const isLeft = currentSide === "left";
+
+    // Toggle button side & position (kept safely at bottom-20 above footer actions)
+    toggleBtn.classList.remove("left-6", "right-6");
+    toggleBtn.classList.add(isLeft ? "left-6" : "right-6");
+
+    // Container layout
+    if (tvLayout) {
+      tvLayout.classList.toggle("agent-split", isSplit);
+      tvLayout.classList.toggle("agent-on-left", isSplit && isLeft);
+      tvLayout.classList.toggle("agent-open", isOpen);
+    }
+
+    // Drawer classes
+    drawer.classList.toggle("mode-split", isSplit);
+    drawer.classList.toggle("mode-drawer", !isSplit);
+    drawer.classList.toggle("drawer-left", isLeft);
+    drawer.classList.toggle("drawer-right", !isLeft);
+    drawer.classList.toggle("drawer-closed", !isOpen);
+
+    // Clean up legacy Tailwind translate classes
+    drawer.classList.remove("translate-x-full", "-translate-x-full");
+
+    // Mode toggle button title / icon
+    if (modeToggleBtn) {
+      modeToggleBtn.textContent = isSplit ? "◫" : "❐";
+      modeToggleBtn.title = isSplit ? "Switch to Floating Drawer (Overlay)" : "Switch to Docked Split Screen (3-Column)";
+    }
+    if (sideToggleBtn) {
+      sideToggleBtn.title = isLeft ? "Switch side (Dock to Right)" : "Switch side (Dock to Left)";
+    }
   }
 
   function applyDrawerPosition(side) {
     currentSide = side === "left" ? "left" : "right";
-    const open = isDrawerOpen();
+    updateLayout();
+  }
 
-    if (currentSide === "left") {
-      toggleBtn.classList.remove("right-6");
-      toggleBtn.classList.add("left-6");
-      drawer.classList.remove("right-0", "border-l");
-      drawer.classList.add("left-0", "border-r");
-    } else {
-      toggleBtn.classList.remove("left-6");
-      toggleBtn.classList.add("right-6");
-      drawer.classList.remove("left-0", "border-r");
-      drawer.classList.add("right-0", "border-l");
-    }
-
-    drawer.classList.remove("translate-x-full", "-translate-x-full");
-    if (!open) {
-      drawer.classList.add(currentSide === "left" ? "-translate-x-full" : "translate-x-full");
-    }
+  function applyLayoutMode(mode) {
+    layoutMode = mode === "drawer" ? "drawer" : "split";
+    updateLayout();
   }
 
   // ── Open / Close Drawer ────────────────────────────────────────────────────
   function openDrawer() {
-    drawer.classList.remove("translate-x-full", "-translate-x-full");
+    isOpen = true;
+    updateLayout();
     input.focus();
   }
 
   function closeDrawer() {
-    drawer.classList.add(currentSide === "left" ? "-translate-x-full" : "translate-x-full");
+    isOpen = false;
+    updateLayout();
   }
 
   toggleBtn.onclick = () => {
@@ -68,12 +97,27 @@
     };
   }
 
+  if (modeToggleBtn) {
+    modeToggleBtn.onclick = async () => {
+      const nextMode = layoutMode === "split" ? "drawer" : "split";
+      applyLayoutMode(nextMode);
+      await api("/api/settings", { method: "PUT", body: { values: { agent_layout_mode: nextMode } } }).catch(() => {});
+    };
+  }
+
   if (typeof Settings !== "undefined") {
     Settings.onChange(() => {
       const s = Settings.get("agent_drawer_position", "right");
-      if (s !== currentSide) applyDrawerPosition(s);
+      const m = Settings.get("agent_layout_mode", "split");
+      if (s !== currentSide || m !== layoutMode) {
+        currentSide = s;
+        layoutMode = m;
+        updateLayout();
+      }
     });
-    applyDrawerPosition(Settings.get("agent_drawer_position", "right"));
+    currentSide = Settings.get("agent_drawer_position", "right");
+    layoutMode = Settings.get("agent_layout_mode", "split");
+    updateLayout();
   }
 
   document.addEventListener("keydown", (e) => {

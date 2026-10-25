@@ -115,34 +115,39 @@ Audit the host control panel (`/tv`), identify fragile UI/layout points under re
 
 ---
 
-### A. Control Panel (`/tv`) UI Weak Points & Layout Flaws
+### A. Control Panel (`/tv`) UI Weak Points & Layout Flaws (COMPLETED)
 
 1. **Transport Bar Wrapping on Compact / Scaled Laptop Displays**:
    - **Issue**: In `static/tv.html`, the playback control bar (`footer.panel`) contains Previous & Next buttons with text labels (`max-w-[210px]`), 5 circular transport buttons, 2 screen toggles, and the Guide Vocal slider (`w-28 xl:w-36` + labels).
    - **Vulnerability**: On standard karaoke laptops (1366x768 or 1080p with 125%–150% Windows display scaling), the effective viewport width for the stage column is only ~550px–650px. The controls wrap into 2 or 3 chaotic rows, pushing the video monitor up or clipping the time scrubber.
-   - **Recommended Fix**:
-     - Implement responsive media queries in `theme.css`: collapse `btn-prev` and `btn-next` to icon-only (or truncated max-w 120px) under `1200px` screen width.
-     - Stack or condense the Guide slider into a compact popover or vertical mini-fader on smaller viewports.
+   - **Implementation**:
+     - Added responsive media queries in `static/theme.css`: Previous and Next buttons dynamically truncate at `<= 1400px`, drop `Prev:` / `Next:` prefix badges at `<= 1250px`, and collapse to compact icon-only buttons at `<= 1100px` with complete song metadata preserved in tooltips.
+     - Condensed Guide Vocal slider and labels under `<= 1250px` and `<= 1100px` viewports, and adapted transport bar to narrower column widths when 3-column split mode is active.
 
 2. **Idle Screen Overflow with Multiple Loading Tracks**:
    - **Issue**: On the idle screen (`#idle`), `#loading` (loading card list from `loading.js`) renders directly underneath the large microphone image (`w-80`) and the large QR code box (`h-52 w-52`).
    - **Vulnerability**: When 3 or more songs are queued and being processed concurrently, the total height exceeds standard screen viewports, introducing a vertical scrollbar on what is meant to be a clean TV display, and pushing the QR code off the top.
-   - **Recommended Fix**:
-     - Scale down `#idle-mic` and `#qr-big` when songs are loading (`#idle.has-loading` styling).
-     - Set a max-height on `#loading` with clean internal scrolling or a carousel/paged view of pending downloads.
+   - **Implementation**:
+     - In `static/tv.js`, toggled `#idle.has-loading` state when waiting songs are queued.
+     - In `static/theme.css`, scaled down `#idle-mic` to 5.5rem, `#qr-big` to 6.5rem, and condensed titles and padding under `.has-loading`.
+     - In `static/loading.js` & `static/theme.css`, placed a `32vh` max-height constraint with clean internal scrolling (`overflow-y: auto`) and added multi-song queue status summaries (`⏳ Also waiting: ...`).
 
 3. **DJ Co-Pilot Drawer / Floating Button Occlusion**:
    - **Issue**: The `✨ DJ Co-Pilot` toggle button is fixed at `bottom-6 right-6` (or `left-6`). When on the right, it directly overlaps the bottom sidebar links (`🎤 Microphones`, `📽 Open projector screen`, `📚 Library`, `⚙️ Settings`).
    - **Vulnerability**: When the chat drawer opens, it completely blocks the host from viewing either the active playback monitor or the queue and transport controls.
-   - **Recommended Fix**:
-     - Implement an integrated "Split Screen / Docked Column" mode (`agent_layout_mode: split`) that resizes `#tv-layout` to a 3-column grid (`Stage | Co-Pilot | Queue`), shrinking the video instead of floating above it.
-     - Reposition the toggle button above the sidebar footer actions (e.g. `bottom-20`) to prevent blocking the projector or settings buttons.
+   - **Implementation**:
+     - Repositioned the floating toggle button to `bottom-20 right-6` (and `bottom-20 left-6`), lifting it well clear of the sidebar footer actions.
+     - Moved `#agent-drawer` directly into `#tv-layout` and created a 3-column docked split mode (`Stage | Co-Pilot | Queue` via `agent_layout_mode: "split"`), shrinking the video stage cleanly rather than occluding it.
+     - Added `agent_layout_mode` setting to `core/settings_schema_agent.py` and implemented mode toggle button (`◫`) in `#agent-drawer` header and Settings sync in `static/agent.js`.
+     - Auto-hides floating toggle button when docked split screen is open.
 
 4. **Monitor Lyric Text Overflow on Long Lines**:
    - **Issue**: Lyrics inside `#monitor` use `text-[clamp(1.6rem,3vw,3rem)]` with `flex-col justify-end`.
    - **Vulnerability**: Fast rap verses or multi-clause lyrics (15+ words in a line) wrap onto 3–4 lines on compact laptop monitors, colliding with `#countdown` or pushing the active line outside the monitor frame.
-   - **Recommended Fix**:
-     - Add dynamic font size stepping in `static/stage.js`: if a line exceeds 45 characters, dynamically drop the font size by 20–30% (`text-sm`/`text-base` fallback) to prevent overflow.
+   - **Implementation**:
+     - In `static/stage.js`, implemented dynamic font size stepping inside `renderLines(idx)`: lines exceeding 45 characters drop font size by ~20-30% (`clamp(1.3rem, 2.3vw, 2.3rem)`), and lines exceeding 65 characters drop to `clamp(1.1rem, 1.8vw, 1.9rem)`.
+     - Reset font styling in `clear()`.
+     - Added `word-break: break-word` and compact vertical padding in `static/theme.css` for screens with height `<= 800px`.
 
 ---
 

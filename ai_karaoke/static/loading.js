@@ -76,7 +76,22 @@ function createLoading(section, compact = false) {
     }));
     const clock = head.status === "ready" || head.status === "error" ? "" : ` · ${fmt((now - s.stageAt) / 1000)} at this step · ${fmt((now - s.firstAt) / 1000)} in total`;
     part("status").textContent = lineText(head) + clock;
-    if (compact) return;
+    if (compact) {
+      const laterCompact = queue.filter((e) => e !== head);
+      let nextEl = part("compact-next");
+      if (laterCompact.length) {
+        if (!nextEl) {
+          nextEl = el("div", "mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-stone-400 truncate");
+          nextEl.setAttribute("data-l", "compact-next");
+          section.querySelector(".panel")?.append(nextEl);
+        }
+        const names = laterCompact.slice(0, 2).map((e) => `${e.title} (${singers(e)})`).join(", ") + (laterCompact.length > 2 ? ` +${laterCompact.length - 2} more` : "");
+        nextEl.textContent = `⏳ Also waiting: ${names}`;
+      } else if (nextEl) {
+        nextEl.remove();
+      }
+      return;
+    }
     const later = queue.filter((e) => e !== head).slice(0, 4);
     part("next").classList.toggle("hidden", !later.length);
     part("next").replaceChildren(el("p", "font-semibold uppercase tracking-widest text-gold", "Up next"), ...later.map((e, i) => {

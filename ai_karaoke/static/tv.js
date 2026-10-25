@@ -80,7 +80,8 @@ function showStage(on, queue = []) {
   $("stage").classList.toggle("hidden", !on);
   const waiting = loading.render(on ? [] : queue);   // nothing plays, songs wait: show their progress
   $("idle").classList.toggle("hidden", on);
-  $("idle-mic").classList.toggle("hidden", waiting);   // room for the loading card under the QR code
+  $("idle").classList.toggle("has-loading", waiting);
+  $("idle-mic").classList.remove("hidden");
 }
 const showSinger = (entry) => { $("np-singer").textContent = singers(entry); $("np-title").textContent = entry.title; };
 

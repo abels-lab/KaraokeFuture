@@ -34,6 +34,11 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.get("status"), "ok")
         self.assertEqual(settings.get("agent_drawer_position"), "left")
 
+        # Test layout mode setting
+        res = await agent.execute_tool("change_setting", {"key": "agent_layout_mode", "value": "drawer"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("agent_layout_mode"), "drawer")
+
     @patch("core.worker.worker.submit", new_callable=AsyncMock)
     @patch("services.search.run")
     async def test_search_and_queue(self, mock_search, mock_submit):

@@ -14,17 +14,17 @@
   <div id="tv-layout" class="grid h-full" style="grid-template-columns: 1fr var(--side-panel-width, 28rem);">
     <main class="flex min-w-0 flex-col p-10">
       <!-- Idle: nobody singing -->
-      <section id="idle" class="flex flex-1 flex-col items-center justify-center text-center">
-        <img id="idle-mic" src="/static/img/microphone.png" alt="" class="mic-glow w-80 -rotate-6">
-        <h1 class="font-display mt-6 text-7xl font-black text-gold" data-title>Karaoke Night</h1>
-        <p class="mt-3 text-2xl text-stone-200">Scan with your phone and pick a song</p>
-        <div class="panel mt-8 flex items-center gap-6 p-5 text-left">
-          <img id="qr-big" alt="QR code for the guest page" class="h-52 w-52 rounded-xl bg-white p-2">
+      <section id="idle" class="flex flex-1 flex-col items-center justify-center text-center transition-all">
+        <img id="idle-mic" src="/static/img/microphone.png" alt="" class="mic-glow w-80 -rotate-6 transition-all duration-300">
+        <h1 class="font-display mt-6 text-7xl font-black text-gold transition-all duration-300" data-title>Karaoke Night</h1>
+        <p class="mt-3 text-2xl text-stone-200 transition-all duration-300">Scan with your phone and pick a song</p>
+        <div id="idle-qr-panel" class="panel mt-8 flex items-center gap-6 p-5 text-left transition-all duration-300">
+          <img id="qr-big" alt="QR code for the guest page" class="h-52 w-52 rounded-xl bg-white p-2 transition-all duration-300">
           <p id="qr-url-big" class="max-w-xs break-all font-mono text-lg text-gold"></p>
         </div>
         <!-- Songs wait, the next one is still being prepared: a compact card (loading.js); the
              full-size loading screen is the projector's (/screen) -->
-        <section id="loading" class="mt-6 hidden w-full justify-center"></section>
+        <section id="loading" class="mt-6 hidden w-full justify-center max-h-[35vh] overflow-y-auto scrollbar-none"></section>
       </section>
 
       <!-- Stage: a song is playing -->
@@ -57,12 +57,12 @@
             <input id="seek" type="range" min="0" max="0" step="0.1" value="0" class="flex-1" title="Drag to scrub">
             <span id="time-dur" class="w-12">0:00</span>
           </div>
-          <div class="flex items-center gap-2 flex-wrap xl:flex-nowrap">
+          <div id="transport-bar" class="flex items-center gap-2 flex-wrap xl:flex-nowrap">
             <!-- Previous Song Button with Real Label -->
-            <button id="btn-prev" class="flex h-11 max-w-[210px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition" title="Previous song (P)">
+            <button id="btn-prev" class="flex h-11 max-w-[210px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition shrink-0" title="Previous song (P)">
               <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 fill-current"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
-              <span class="text-stone-400 font-normal shrink-0">Prev:</span>
-              <span id="btn-prev-label" class="truncate font-bold text-stone-200">No previous song</span>
+              <span class="btn-nav-prefix text-stone-400 font-normal shrink-0">Prev:</span>
+              <span id="btn-prev-label" class="btn-nav-text truncate font-bold text-stone-200">No previous song</span>
             </button>
 
             <!-- Transport Controls -->
@@ -72,9 +72,9 @@
             <button id="btn-fwd" class="flex h-11 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20" title="Forward 10 s (→)">10<svg viewBox="0 0 24 24" class="h-4 w-4 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
 
             <!-- Next Song Button with Real Label -->
-            <button id="btn-next" class="flex h-11 max-w-[210px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition" title="Next song (N)">
-              <span class="text-stone-400 font-normal shrink-0">Next:</span>
-              <span id="btn-next-label" class="truncate font-bold text-stone-200">Queue empty</span>
+            <button id="btn-next" class="flex h-11 max-w-[210px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition shrink-0" title="Next song (N)">
+              <span class="btn-nav-prefix text-stone-400 font-normal shrink-0">Next:</span>
+              <span id="btn-next-label" class="btn-nav-text truncate font-bold text-stone-200">Queue empty</span>
               <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 fill-current"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>
             </button>
 
@@ -83,9 +83,9 @@
             <button id="btn-lyrics" class="flex h-11 shrink-0 items-center gap-1 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20" title="Lyrics: highlighted → plain → off (L)">📝 <span id="lyrics-mode"></span></button>
 
             <!-- Guide vocals slider -->
-            <label class="ml-auto flex items-center gap-2 text-xs text-stone-300 shrink-0">
-              <span>Guide</span>
-              <input id="guide" type="range" min="0" max="100" value="20" class="w-28 xl:w-36">
+            <label id="guide-control" class="ml-auto flex items-center gap-2 text-xs text-stone-300 shrink-0">
+              <span class="guide-title">Guide</span>
+              <input id="guide" type="range" min="0" max="100" value="20" class="guide-slider w-28 xl:w-36">
               <span id="guide-value" class="w-8 text-right font-mono">20%</span>
               <span id="guide-note" class="hidden rounded-full bg-amber-900/70 px-2 py-0.5 text-[10px] text-amber-200"
                     title="Set by the singer on their phone; moving the slider changes only this song">choice</span>
@@ -95,7 +95,47 @@
       </section>
     </main>
 
-    <aside class="panel my-4 mr-4 flex min-h-0 flex-col gap-4 p-5">
+    <!-- DJ Co-Pilot Host Drawer / Docked Column -->
+    <aside id="agent-drawer" class="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg translate-x-full flex-col border-l border-amber-400/20 bg-stone-950/95 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-in-out">
+      <header class="flex items-center justify-between border-b border-white/10 px-6 py-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">✨</span>
+          <div>
+            <h2 class="font-display text-lg font-bold text-gold">DJ Co-Pilot</h2>
+            <p class="text-xs text-stone-400">Queue songs, tweak styles, or modify app live</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="agent-mode-toggle" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-stone-200" title="Toggle Dock Mode (Split / Drawer)">◫</button>
+          <button id="agent-side-toggle" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-stone-200" title="Switch side (Left / Right)">⇆</button>
+          <button id="agent-clear" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-stone-200" title="Clear chat history">🗑️</button>
+          <button id="agent-close" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-white" title="Close drawer (Esc)">✕</button>
+        </div>
+      </header>
+
+      <div id="agent-messages" class="flex-1 space-y-4 overflow-y-auto p-6 scrollbar-none text-sm">
+        <div class="rounded-2xl bg-white/5 p-4 border border-white/10 text-stone-300 space-y-2">
+          <p class="font-semibold text-gold">👋 Hey! I'm your Karaoke Co-Pilot.</p>
+          <p>You can speak or type commands, for example:</p>
+          <ul class="space-y-1 text-xs text-stone-400 list-disc list-inside">
+            <li><i>"Queue Queen Bohemian Rhapsody for Alice"</i></li>
+            <li><i>"Switch to adaptive theme with lime accent"</i></li>
+            <li><i>"Skip the current song"</i></li>
+            <li><i>"Make the active lyric glow with vibrant violet"</i></li>
+          </ul>
+        </div>
+      </div>
+
+      <footer class="border-t border-white/10 p-4">
+        <form id="agent-form" class="flex items-center gap-2">
+          <button type="button" id="agent-mic" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-xl transition hover:bg-white/20 active:scale-95 text-stone-300" title="Hold/click to speak (Voice DJ)">🎤</button>
+          <input type="text" id="agent-input" class="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Ask DJ Co-Pilot or say a command..." autocomplete="off">
+          <button type="submit" id="agent-send" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl btn-gold text-lg transition hover:brightness-110 active:scale-95 disabled:opacity-40" title="Send (Enter)">➤</button>
+        </form>
+      </footer>
+    </aside>
+
+    <aside id="tv-sidebar" class="panel my-4 mr-4 flex min-h-0 flex-col gap-4 p-5">
       <div class="flex items-center gap-4">
         <img id="qr" alt="QR code" class="h-24 w-24 shrink-0 rounded-xl bg-white p-1">
         <div class="min-w-0">
@@ -181,48 +221,9 @@
   </div>
 
   <!-- DJ Co-Pilot Host Toggle Button -->
-  <button id="agent-toggle" class="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 px-5 py-3 font-extrabold text-stone-900 shadow-2xl transition hover:scale-105 active:scale-95" title="DJ Co-Pilot (Ctrl+J)">
+  <button id="agent-toggle" class="fixed bottom-20 right-6 z-40 flex items-center gap-2.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 px-5 py-3 font-extrabold text-stone-900 shadow-2xl transition hover:scale-105 active:scale-95" title="DJ Co-Pilot (Ctrl+J)">
     <span class="text-xl">✨</span> <span>DJ Co-Pilot</span>
   </button>
-
-  <!-- DJ Co-Pilot Host Drawer -->
-  <aside id="agent-drawer" class="fixed inset-y-0 right-0 z-50 flex w-full max-w-lg translate-x-full flex-col border-l border-amber-400/20 bg-stone-950/95 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-in-out">
-    <header class="flex items-center justify-between border-b border-white/10 px-6 py-4">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">✨</span>
-        <div>
-          <h2 class="font-display text-lg font-bold text-gold">DJ Co-Pilot</h2>
-          <p class="text-xs text-stone-400">Queue songs, tweak styles, or modify app live</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-2">
-        <button id="agent-side-toggle" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-stone-200" title="Switch side (Left / Right)">⇆</button>
-        <button id="agent-clear" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-stone-200" title="Clear chat history">🗑️</button>
-        <button id="agent-close" class="rounded-lg p-2 text-stone-400 hover:bg-white/10 hover:text-white" title="Close drawer (Esc)">✕</button>
-      </div>
-    </header>
-
-    <div id="agent-messages" class="flex-1 space-y-4 overflow-y-auto p-6 scrollbar-none text-sm">
-      <div class="rounded-2xl bg-white/5 p-4 border border-white/10 text-stone-300 space-y-2">
-        <p class="font-semibold text-gold">👋 Hey! I'm your Karaoke Co-Pilot.</p>
-        <p>You can speak or type commands, for example:</p>
-        <ul class="space-y-1 text-xs text-stone-400 list-disc list-inside">
-          <li><i>"Queue Queen Bohemian Rhapsody for Alice"</i></li>
-          <li><i>"Switch to adaptive theme with lime accent"</i></li>
-          <li><i>"Skip the current song"</i></li>
-          <li><i>"Make the active lyric glow with vibrant violet"</i></li>
-        </ul>
-      </div>
-    </div>
-
-    <footer class="border-t border-white/10 p-4">
-      <form id="agent-form" class="flex items-center gap-2">
-        <button type="button" id="agent-mic" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-xl transition hover:bg-white/20 active:scale-95 text-stone-300" title="Hold/click to speak (Voice DJ)">🎤</button>
-        <input type="text" id="agent-input" class="flex-1 rounded-xl bg-white/10 px-4 py-2.5 text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-400" placeholder="Ask DJ Co-Pilot or say a command..." autocomplete="off">
-        <button type="submit" id="agent-send" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl btn-gold text-lg transition hover:brightness-110 active:scale-95 disabled:opacity-40" title="Send (Enter)">➤</button>
-      </form>
-    </footer>
-  </aside>
 
   <audio id="inst" preload="auto"></audio>
   <audio id="voc" preload="auto"></audio>
