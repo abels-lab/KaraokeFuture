@@ -49,14 +49,28 @@ if ($NoFunnel) {
 
 $env:KARAOKE_PORT = "$Port"
 $env:PYTHONUNBUFFERED = "1"
-if (-not $NoBrowser) {
-    # Opens once the server answers, without holding up the server's own output
+if (-not $NoBrowser -and $env:KARAOKE_NO_BROWSER -ne "1") {
+    # Opens once the server answers, without holding up the server's own output.
+    # If a /tv tab is already open and connected from a previous session, skips opening a duplicate tab.
     Start-Job -ArgumentList $Port {
         param($p)
+        $alreadyConnected = $false
         foreach ($i in 1..60) {
-            try { Invoke-WebRequest "http://localhost:$p/api/auth/me" -UseBasicParsing -TimeoutSec 2 | Out-Null; break } catch { Start-Sleep 1 }
+            try {
+                $state = Invoke-RestMethod "http://localhost:$p/api/queue" -TimeoutSec 2
+                Start-Sleep -Milliseconds 700
+                $state = Invoke-RestMethod "http://localhost:$p/api/queue" -TimeoutSec 2
+                if ($state.tv_connected) {
+                    $alreadyConnected = $true
+                }
+                break
+            } catch {
+                Start-Sleep 1
+            }
         }
-        Start-Process "http://localhost:$p/tv"
+        if (-not $alreadyConnected) {
+            Start-Process "http://localhost:$p/tv"
+        }
     } | Out-Null
 }
 
