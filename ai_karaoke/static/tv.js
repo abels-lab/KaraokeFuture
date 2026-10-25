@@ -46,9 +46,14 @@ function onState({ now_playing: np, queue = [], played = [], screens = 0 }) {
     try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
     if (current) stopSong();
     showStage(false, queue);
+    if (window.__pendingReload) { location.reload(); return; }
     return;
   }
-  if (!current || current.uid !== np.uid) { loadSong(np); return; }
+  if (!current || current.uid !== np.uid) {
+    if (window.__pendingReload && current) { location.reload(); return; }
+    loadSong(np);
+    return;
+  }
   if (JSON.stringify(current.partner) !== JSON.stringify(np.partner)) { // a second singer joined / left
     current.partner = np.partner;
     showSinger(current);

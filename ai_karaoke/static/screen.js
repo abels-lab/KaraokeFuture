@@ -56,7 +56,9 @@ function onState({ now_playing: np, queue, playback }) {
   if (!np) {
     if (current) { stage.clear(); gameView.clear(); intro.hide(); pulse.clear(); }
     current = null;
+    if (window.__pendingReload) { location.reload(); return; }
   } else if (current?.uid !== np.uid) {
+    if (window.__pendingReload && current) { location.reload(); return; }
     current = np;
     const pb = np.playback || (playback?.uid === np.uid ? playback : null);
     const startTime = Number(pb?.time) || 0;
