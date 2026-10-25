@@ -118,6 +118,7 @@ if __name__ == "__main__":
             reload=True,
             reload_dirs=["core", "routers", "services"],
             reload_includes=["*.py"],
+            reload_excludes=["cache/*", "data/*", "lyrics_store/*", "party/*", "*.json", "*.db", "*.log"],
             log_level="info",
         )
     else:

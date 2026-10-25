@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/static/theme.css">
 </head>
 <body class="tv h-full overflow-hidden antialiased">
-  <div class="grid h-full grid-cols-[1fr_25rem]">
+  <div id="tv-layout" class="grid h-full" style="grid-template-columns: 1fr var(--side-panel-width, 28rem);">
     <main class="flex min-w-0 flex-col p-10">
       <!-- Idle: nobody singing -->
       <section id="idle" class="flex flex-1 flex-col items-center justify-center text-center">
@@ -57,20 +57,38 @@
             <input id="seek" type="range" min="0" max="0" step="0.1" value="0" class="flex-1" title="Drag to scrub">
             <span id="time-dur" class="w-12">0:00</span>
           </div>
-          <div class="flex items-center gap-2">
-            <button id="btn-restart" data-icon="restart" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Restart"></button>
-            <button id="btn-back" data-icon="back" class="flex h-11 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20" title="Back 10 s (←)">10</button>
-            <button id="btn-play" data-icon="pause" class="btn-gold grid h-12 w-12 place-items-center rounded-full" title="Play / pause (Space)"></button>
-            <button id="btn-fwd" class="flex h-11 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20" title="Forward 10 s (→)">10<svg viewBox="0 0 24 24" class="h-5 w-5 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
-            <button id="btn-skip" data-icon="skip" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Skip (N)"></button>
-            <button id="btn-video" class="grid h-11 w-11 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Music video on / off (V)">🎬</button>
-            <button id="btn-lyrics" class="flex h-11 items-center gap-1 rounded-full bg-white/10 px-3 text-sm font-semibold hover:bg-white/20" title="Lyrics: highlighted → plain → off (L)">📝 <span id="lyrics-mode"></span></button>
-            <label class="ml-auto flex items-center gap-3 text-sm text-stone-300">
-              <span>Guide vocals</span>
-              <input id="guide" type="range" min="0" max="100" value="20" class="w-40">
-              <span id="guide-value" class="w-10 text-right font-mono">20%</span>
-              <span id="guide-note" class="hidden rounded-full bg-amber-900/70 px-2 py-0.5 text-[11px] text-amber-200"
-                    title="Set by the singer on their phone; moving the slider changes only this song">singer's choice</span>
+          <div class="flex items-center gap-2 flex-wrap xl:flex-nowrap">
+            <!-- Previous Song Button with Real Label -->
+            <button id="btn-prev" class="flex h-11 max-w-[210px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition" title="Previous song (P)">
+              <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 fill-current"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+              <span class="text-stone-400 font-normal shrink-0">Prev:</span>
+              <span id="btn-prev-label" class="truncate font-bold text-stone-200">No previous song</span>
+            </button>
+
+            <!-- Transport Controls -->
+            <button id="btn-restart" data-icon="restart" class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Restart (0:00)"></button>
+            <button id="btn-back" data-icon="back" class="flex h-11 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20" title="Back 10 s (←)">10</button>
+            <button id="btn-play" data-icon="pause" class="btn-gold grid h-12 w-12 shrink-0 place-items-center rounded-full shadow-lg" title="Play / pause (Space)"></button>
+            <button id="btn-fwd" class="flex h-11 shrink-0 items-center gap-1 rounded-full bg-white/10 px-2.5 text-xs font-semibold hover:bg-white/20" title="Forward 10 s (→)">10<svg viewBox="0 0 24 24" class="h-4 w-4 fill-current"><path d="M13 6v12l8.5-6zM4 18l8.5-6L4 6z"/></svg></button>
+
+            <!-- Next Song Button with Real Label -->
+            <button id="btn-next" class="flex h-11 max-w-[210px] items-center gap-1.5 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20 disabled:opacity-30 disabled:pointer-events-none transition" title="Next song (N)">
+              <span class="text-stone-400 font-normal shrink-0">Next:</span>
+              <span id="btn-next-label" class="truncate font-bold text-stone-200">Queue empty</span>
+              <svg viewBox="0 0 24 24" class="h-4 w-4 shrink-0 fill-current"><path d="M6 18l8.5-6L6 6v12zM16 6h2v12h-2z"/></svg>
+            </button>
+
+            <!-- Screen controls -->
+            <button id="btn-video" class="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/10 hover:bg-white/20" title="Music video on / off (V)">🎬</button>
+            <button id="btn-lyrics" class="flex h-11 shrink-0 items-center gap-1 rounded-full bg-white/10 px-3 text-xs font-semibold hover:bg-white/20" title="Lyrics: highlighted → plain → off (L)">📝 <span id="lyrics-mode"></span></button>
+
+            <!-- Guide vocals slider -->
+            <label class="ml-auto flex items-center gap-2 text-xs text-stone-300 shrink-0">
+              <span>Guide</span>
+              <input id="guide" type="range" min="0" max="100" value="20" class="w-28 xl:w-36">
+              <span id="guide-value" class="w-8 text-right font-mono">20%</span>
+              <span id="guide-note" class="hidden rounded-full bg-amber-900/70 px-2 py-0.5 text-[10px] text-amber-200"
+                    title="Set by the singer on their phone; moving the slider changes only this song">choice</span>
             </label>
           </div>
         </footer>
@@ -85,12 +103,55 @@
           <p id="qr-url" class="break-all font-mono text-xs text-stone-400"></p>
         </div>
       </div>
-      <h3 class="flex items-center gap-2 text-lg font-bold">
-        Up next <span id="queue-count" class="rounded-full bg-white/10 px-2 text-sm">0</span>
-      </h3>
-      <ul id="queue" class="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1"></ul>
-      <p id="queue-empty" class="text-stone-400">The queue is empty — grab your phone!</p>
-      <div class="space-y-2 border-t border-white/10 pt-3 text-xs text-stone-500">
+
+      <!-- Navigation Tabs: Up next, Already played, All -->
+      <div class="flex rounded-xl bg-black/50 p-1 ring-1 ring-white/10 text-xs font-bold gap-1 shrink-0">
+        <button id="tab-side-upcoming" type="button" class="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all bg-amber-400 text-stone-950 shadow-sm">
+          <span>📋 Up next</span>
+          <span id="queue-count" class="rounded-full bg-black/25 px-1.5 py-0.2 text-[10px] font-mono font-bold">0</span>
+        </button>
+        <button id="tab-side-played" type="button" class="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all text-stone-400 hover:text-stone-200">
+          <span>⏮ Played</span>
+          <span id="played-count" class="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px] font-mono font-bold">0</span>
+        </button>
+        <button id="tab-side-all" type="button" class="flex-1 flex items-center justify-center gap-1.5 rounded-lg py-1.5 transition-all text-stone-400 hover:text-stone-200">
+          <span>📑 All</span>
+          <span id="all-count" class="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px] font-mono font-bold">0</span>
+        </button>
+      </div>
+
+      <!-- Container for lists -->
+      <div id="side-lists" class="min-h-0 flex-1 overflow-y-auto pr-1 space-y-4">
+        <!-- Upcoming Section -->
+        <div id="section-upcoming" class="space-y-2">
+          <ul id="queue" class="space-y-2"></ul>
+          <p id="queue-empty" class="text-stone-400 text-xs text-center py-4">The queue is empty — grab your phone!</p>
+        </div>
+
+        <!-- Played Section -->
+        <div id="section-played" class="hidden space-y-2">
+          <ul id="played-list" class="space-y-2"></ul>
+          <p id="played-empty" class="text-stone-400 text-xs text-center py-4">No songs have played yet</p>
+        </div>
+
+        <!-- All Section (Whole Queue view) -->
+        <div id="section-all" class="hidden space-y-4">
+          <div id="all-now-box" class="space-y-1.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-amber-400">Now Singing</p>
+            <div id="all-now-card"></div>
+          </div>
+          <div class="space-y-1.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Up Next (<span id="all-up-count">0</span>)</p>
+            <ul id="all-queue-list" class="space-y-2"></ul>
+          </div>
+          <div class="space-y-1.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Already Played (<span id="all-played-count">0</span>)</p>
+            <ul id="all-played-list" class="space-y-2"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-2 border-t border-white/10 pt-3 text-xs text-stone-500 shrink-0">
         <div id="game-controls" class="flex gap-2">
           <button id="open-mics" class="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-stone-200 hover:bg-white/20">🎤 Microphones</button>
         </div>
@@ -104,14 +165,14 @@
             <a href="/library" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20">📚 Library</a>
             <a href="/settings" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20" title="Advanced settings">⚙️</a>
           </span>
-          <span>Space · ← → · N · V · L · F</span>
+          <span>Space · P / N · ← → · V · L · F</span>
         </div>
       </div>
     </aside>
   </div>
 
   <!-- Browsers block audio until the page gets one click -->
-  <div id="unlock" class="fixed inset-0 z-50 grid cursor-pointer place-items-center bg-black/75">
+  <div id="unlock" class="fixed inset-0 z-50 hidden grid cursor-pointer place-items-center bg-black/75">
     <div class="panel flex flex-col items-center px-16 py-10 text-center">
       <img src="/static/img/microphone.png" alt="" class="mic-glow w-48 -rotate-6">
       <p class="font-display mt-4 text-5xl font-black text-gold">Start the show</p>

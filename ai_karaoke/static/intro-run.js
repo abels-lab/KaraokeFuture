@@ -6,7 +6,8 @@
 // over or skipped by the host), false = stopped (another song came, or play/pause was pressed
 // elsewhere and already took over). details() -> {mode, names} for the card, read live.
 const IntroRun = (() => {
-  const card = createIntro({ hint: true });
+  const container = $("monitor") || document.body;
+  const card = createIntro({ hint: true, container });
   const channel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-clock") : null;
   let run = null, lastSent = 0, lastCount = 0;
 

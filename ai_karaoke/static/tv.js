@@ -16,21 +16,44 @@ const send = connectWS("tv", (msg) => {
   else if (msg.type === "control") onControl(msg.action, msg.value);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
   else if (msg.type === "library") loading.poke();   // a pipeline stage moved on
+}, () => {
+  if (current && !inst.paused) {
+    send({
+      type: "sync_playback",
+      uid: current.uid,
+      time: inst.currentTime,
+      duration: inst.duration || 0,
+      paused: inst.paused,
+    });
+  }
 });
 GamePanel.init(send);
 
 function sendClock() {
   if (!current) return;
+  try {
+    sessionStorage.setItem("karaoke_active_playback", JSON.stringify({ uid: current.uid, time: inst.currentTime, paused: inst.paused }));
+  } catch {}
   const clock = { type: "playback", uid: current.uid, time: inst.currentTime, duration: inst.duration || 0, paused: inst.paused };
   send(clock);
   channel?.postMessage(clock);
 }
 setInterval(sendClock, 250);
 
-function onState({ now_playing: np, queue, screens = 0 }) {
-  renderSide(queue, screens);
-  if (!np) { if (current) stopSong(); showStage(false, queue); return; }
-  if (!current || current.uid !== np.uid) { loadSong(np); return; }
+function onState({ now_playing: np, queue = [], played = [], screens = 0 }) {
+  renderSide(queue, played, screens, np);
+  if (!np) {
+    try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
+    if (current) stopSong();
+    showStage(false, queue);
+    if (window.__pendingReload) { location.reload(); return; }
+    return;
+  }
+  if (!current || current.uid !== np.uid) {
+    if (window.__pendingReload && current) { location.reload(); return; }
+    loadSong(np);
+    return;
+  }
   if (JSON.stringify(current.partner) !== JSON.stringify(np.partner)) { // a second singer joined / left
     current.partner = np.partner;
     showSinger(current);
@@ -68,11 +91,54 @@ async function loadSong(entry) {
   showStage(true);
   inst.src = entry.media.instrumental; voc.src = entry.media.vocals;
   Guide.forEntry(entry); // the singer's own guide volume, if they chose one
+
+  let savedTime = 0, wasPaused = false;
+  try {
+    const raw = sessionStorage.getItem("karaoke_active_playback");
+    if (raw) {
+      const sp = JSON.parse(raw);
+      if (sp?.uid === entry.uid && Number.isFinite(sp.time)) {
+        savedTime = Number(sp.time);
+        wasPaused = Boolean(sp.paused);
+      }
+    }
+  } catch {}
+  if (entry.playback && (entry.playback.uid === entry.uid || !entry.playback.uid) && Number.isFinite(entry.playback.time)) {
+    const srvTime = Number(entry.playback.time);
+    if (srvTime > savedTime) {
+      savedTime = srvTime;
+      wasPaused = Boolean(entry.playback.paused);
+    }
+  }
+
+  const isResuming = savedTime > 1.5;
+
   await Promise.all([stage.load(entry), GamePanel.load(entry)]);
   if (current !== entry) return; // another song started while lyrics loaded
-  skipSpokenIntro(entry);
-  // The intro card counts down; play() from anywhere (Space, a phone) cuts it short itself
-  if (await IntroRun.start(entry, GamePanel.intro, send) && current === entry) play();
+
+  if (isResuming) {
+    IntroRun.stop();
+    const introMsg = { type: "intro", uid: entry.uid, left: 0, total: 0, mode: entry.mode || "", names: [] };
+    send(introMsg);
+    channel?.postMessage(introMsg);
+
+    const applyResume = () => {
+      if (current !== entry) return;
+      seekTo(savedTime);
+      stage.seek?.(savedTime);
+      if (!wasPaused) play();
+    };
+
+    if (inst.readyState >= 1) {
+      applyResume();
+    } else {
+      inst.addEventListener("loadedmetadata", applyResume, { once: true });
+    }
+  } else {
+    skipSpokenIntro(entry);
+    // The intro card counts down; play() from anywhere (Space, a phone) cuts it short itself
+    if (await IntroRun.start(entry, GamePanel.intro, send) && current === entry) play();
+  }
 }
 
 // A music video's spoken intro / skit (SponsorBlock intro_end): start at the music instead
@@ -84,6 +150,7 @@ function skipSpokenIntro(entry) {
 }
 
 function stopSong() {
+  try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
   current = null; pause(); stage.clear(); pulse.clear(); GamePanel.clear(); Guide.forEntry(null);
   [inst, voc].forEach((a) => { a.removeAttribute("src"); a.load(); });
 }
@@ -107,9 +174,71 @@ function seekTo(t) {
   stage.seek?.(target);
 }
 
-const reportEnded = (delay = 0) => { const uid = current?.uid; if (uid) setTimeout(() => send({ type: "ended", uid }), delay); };
+const reportEnded = (delay = 0) => {
+  try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
+  const uid = current?.uid;
+  if (uid) setTimeout(() => send({ type: "ended", uid }), delay);
+};
 inst.onended = () => reportEnded(GamePanel.finish()); // game on: results stay up before the next song
-inst.onerror = () => inst.getAttribute("src") && reportEnded(3000); // broken file -> skip
+
+let instRetries = 0, lastRetryTime = 0;
+function handleAudioError(audio, isInst) {
+  if (!current) return;
+  const src = audio.getAttribute("src");
+  if (!src) return;
+
+  const now = performance.now();
+  if (now - lastRetryTime > 15000) instRetries = 0;
+  lastRetryTime = now;
+  instRetries++;
+
+  if (instRetries <= 5) {
+    const resumeAt = audio.currentTime;
+    const wasPlaying = !audio.paused;
+    setTimeout(() => {
+      if (!current) return;
+      audio.load();
+      const onReady = () => {
+        if (!current) return;
+        audio.currentTime = resumeAt;
+        if (wasPlaying) audio.play().catch(() => {});
+      };
+      if (audio.readyState >= 1) onReady();
+      else audio.addEventListener("loadedmetadata", onReady, { once: true });
+    }, 800);
+  } else if (isInst) {
+    reportEnded(3000); // truly broken after 5 retries -> skip
+  }
+}
+
+function handleAudioStall(audio) {
+  if (!current || audio.paused) return;
+  const t = audio.currentTime;
+  try { audio.currentTime = t; } catch {}
+}
+
+inst.onerror = () => handleAudioError(inst, true);
+voc.onerror = () => handleAudioError(voc, false);
+
+let instStallTimer = null;
+inst.onstalled = () => {
+  clearTimeout(instStallTimer);
+  instStallTimer = setTimeout(() => handleAudioStall(inst), 1500);
+};
+let vocStallTimer = null;
+voc.onstalled = () => {
+  clearTimeout(vocStallTimer);
+  vocStallTimer = setTimeout(() => handleAudioStall(voc), 1500);
+};
+
+inst.onplaying = () => {
+  instRetries = 0;
+  clearTimeout(instStallTimer);
+};
+voc.onplaying = () => {
+  clearTimeout(vocStallTimer);
+};
+
 inst.onplay = inst.onpause = () => { setIcon($("btn-play"), inst.paused ? "play" : "pause"); sendClock(); };
 inst.onseeked = sendClock; // screens jump at once instead of waiting for the next tick
 inst.onloadedmetadata = () => { seek.max = inst.duration; $("time-dur").textContent = fmt(inst.duration); };
