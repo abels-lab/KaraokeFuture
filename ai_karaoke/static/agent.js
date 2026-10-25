@@ -4,6 +4,7 @@
   const drawer = $("agent-drawer");
   const closeBtn = $("agent-close");
   const clearBtn = $("agent-clear");
+  const sideToggleBtn = $("agent-side-toggle");
   const messagesEl = $("agent-messages");
   const form = $("agent-form");
   const input = $("agent-input");
@@ -15,29 +16,72 @@
   let history = [];
   let isListening = false;
   let recognition = null;
+  let currentSide = "right";
+
+  function isDrawerOpen() {
+    return !drawer.classList.contains("translate-x-full") && !drawer.classList.contains("-translate-x-full");
+  }
+
+  function applyDrawerPosition(side) {
+    currentSide = side === "left" ? "left" : "right";
+    const open = isDrawerOpen();
+
+    if (currentSide === "left") {
+      toggleBtn.classList.remove("right-6");
+      toggleBtn.classList.add("left-6");
+      drawer.classList.remove("right-0", "border-l");
+      drawer.classList.add("left-0", "border-r");
+    } else {
+      toggleBtn.classList.remove("left-6");
+      toggleBtn.classList.add("right-6");
+      drawer.classList.remove("left-0", "border-r");
+      drawer.classList.add("right-0", "border-l");
+    }
+
+    drawer.classList.remove("translate-x-full", "-translate-x-full");
+    if (!open) {
+      drawer.classList.add(currentSide === "left" ? "-translate-x-full" : "translate-x-full");
+    }
+  }
 
   // ── Open / Close Drawer ────────────────────────────────────────────────────
   function openDrawer() {
-    drawer.classList.remove("translate-x-full");
+    drawer.classList.remove("translate-x-full", "-translate-x-full");
     input.focus();
   }
 
   function closeDrawer() {
-    drawer.classList.add("translate-x-full");
+    drawer.classList.add(currentSide === "left" ? "-translate-x-full" : "translate-x-full");
   }
 
   toggleBtn.onclick = () => {
-    if (drawer.classList.contains("translate-x-full")) openDrawer();
-    else closeDrawer();
+    if (isDrawerOpen()) closeDrawer();
+    else openDrawer();
   };
   closeBtn.onclick = closeDrawer;
 
+  if (sideToggleBtn) {
+    sideToggleBtn.onclick = async () => {
+      const nextSide = currentSide === "left" ? "right" : "left";
+      applyDrawerPosition(nextSide);
+      await api("/api/settings", { method: "PUT", body: { values: { agent_drawer_position: nextSide } } }).catch(() => {});
+    };
+  }
+
+  if (typeof Settings !== "undefined") {
+    Settings.onChange(() => {
+      const s = Settings.get("agent_drawer_position", "right");
+      if (s !== currentSide) applyDrawerPosition(s);
+    });
+    applyDrawerPosition(Settings.get("agent_drawer_position", "right"));
+  }
+
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !drawer.classList.contains("translate-x-full")) closeDrawer();
+    if (e.key === "Escape" && isDrawerOpen()) closeDrawer();
     if ((e.ctrlKey || e.metaKey) && (e.key === "j" || e.key === "J")) {
       e.preventDefault();
-      if (drawer.classList.contains("translate-x-full")) openDrawer();
-      else closeDrawer();
+      if (isDrawerOpen()) closeDrawer();
+      else openDrawer();
     }
   });
 

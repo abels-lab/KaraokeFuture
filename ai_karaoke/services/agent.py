@@ -26,14 +26,16 @@ PENDING_PROPOSALS: dict[str, dict] = {}
 SYSTEM_PROMPT = """You are the AI Karaoke Host & DJ Co-Pilot for AI Karaoke.
 You assist the host with running the party:
 1. Finding and enqueuing songs for singers (use search_and_queue).
-2. Changing app settings (themes, accents, durations, volume, guest permissions).
+2. Changing app settings and layout (themes, accents, panel dock position, durations, volume, guest permissions).
+   - When asked to move or dock the chat panel / DJ drawer to the left or right, immediately call change_setting(key="agent_drawer_position", value="left") or value="right".
 3. Queue management (skipping songs, moving, removing).
-4. Live frontend code editing (static/*.css, static/*.js, static/*.html): modify styles, lyric sizes, colors, animations directly via edit_frontend_file.
+4. Live frontend code editing (static/*.css, static/*.js, static/*.html): modify styles, lyric sizes, colors, animations directly via edit_frontend_file (supports full content OR old_snippet and new_snippet for quick surgical edits).
 5. Server backend code modifications (core/*.py, routers/*.py, services/*.py): propose changes via propose_backend_diff so the host can review the diff.
 
 Guidelines:
 - Keep verbal responses concise, witty, and party-ready.
-- When the host asks to queue a song or change something, immediately call the appropriate tool.
+- When the host asks to queue a song, change settings, or move the chat panel, immediately call the appropriate tool.
+- For moving this chat drawer to the left or right, ALWAYS call change_setting(key="agent_drawer_position", value="left"|"right").
 - For frontend visual tweaks, read the file first with read_code_file if needed, then apply with edit_frontend_file.
 - For Python code, always use propose_backend_diff. Never attempt to edit backend files directly.
 """
@@ -52,7 +54,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "change_setting",
-        "description": "Change an application setting (e.g. theme to 'adaptive', accent to 'lime', show_video to true/false, guest_scrubbing, cache_limit_gb).",
+        "description": "Change an application setting (e.g. agent_drawer_position to 'left' or 'right' to move this chat panel, theme to 'adaptive', accent to 'lime', show_video to true/false, guest_scrubbing, cache_limit_gb).",
         "parameters": {
             "type": "OBJECT",
             "properties": {
@@ -101,15 +103,17 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "edit_frontend_file",
-        "description": "Directly edit a frontend file in static/ (e.g. static/theme.css, static/remote.html). Automatically backs up and hot-reloads.",
+        "description": "Directly edit a frontend file in static/ (e.g. static/theme.css, static/remote.html). Provide either full 'content' OR 'old_snippet' and 'new_snippet' for quick surgical edits. Automatically backs up and hot-reloads.",
         "parameters": {
             "type": "OBJECT",
             "properties": {
                 "path": {"type": "STRING", "description": "Relative path in static/ (e.g. static/theme.css)"},
-                "content": {"type": "STRING", "description": "New full content of the file"},
+                "content": {"type": "STRING", "description": "New full content of the file (optional if using snippets)"},
+                "old_snippet": {"type": "STRING", "description": "Exact text snippet to replace in the file (optional if using content)"},
+                "new_snippet": {"type": "STRING", "description": "Replacement text snippet (optional if using content)"},
                 "summary": {"type": "STRING", "description": "Short description of the modification"},
             },
-            "required": ["path", "content", "summary"],
+            "required": ["path", "summary"],
         },
     },
     {
@@ -255,6 +259,8 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
     elif name == "edit_frontend_file":
         rel = args.get("path", "")
         content = args.get("content", "")
+        old_snippet = args.get("old_snippet", "")
+        new_snippet = args.get("new_snippet", "")
         summary = args.get("summary", "Frontend edit")
         target = _safe_path(rel)
         if not target or not str(target).startswith(str(BASE_DIR / "static")):
@@ -263,7 +269,20 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
             if target.is_file():
                 bak = target.with_suffix(target.suffix + ".bak")
                 bak.write_bytes(target.read_bytes())
-            target.write_text(content, encoding="utf-8")
+                current_text = target.read_text(encoding="utf-8")
+            else:
+                current_text = ""
+
+            if old_snippet:
+                norm_old = old_snippet.replace("\r\n", "\n")
+                norm_curr = current_text.replace("\r\n", "\n")
+                if norm_old not in norm_curr:
+                    return {"error": "Could not locate exact old_snippet in file"}
+                final_content = norm_curr.replace(norm_old, new_snippet.replace("\r\n", "\n"))
+            else:
+                final_content = content
+
+            target.write_text(final_content, encoding="utf-8")
             return {"status": "applied", "path": rel, "summary": summary, "backed_up": True}
         except Exception as e:
             return {"error": str(e)}
@@ -417,7 +436,7 @@ async def _chat_gemini(message: str, history: list[dict], model: str, api_key: s
     proposals = []
     async with httpx.AsyncClient(timeout=30.0) as client:
         # Loop for function calling
-        for _ in range(5):  # max 5 tool call rounds per turn
+        for _ in range(8):  # max 8 tool call rounds per turn
             payload = {
                 "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
                 "contents": contents,
@@ -520,7 +539,7 @@ async def _chat_openai(message: str, history: list[dict], model: str, api_key: s
     proposals = []
 
     async with httpx.AsyncClient(timeout=45.0) as client:
-        for _ in range(5):
+        for _ in range(8):
             payload = {
                 "model": model,
                 "messages": messages,

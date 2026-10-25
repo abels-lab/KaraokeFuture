@@ -29,6 +29,11 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.get("status"), "ok")
         self.assertEqual(settings.get("accent"), "neon")
 
+        # Test drawer position setting
+        res = await agent.execute_tool("change_setting", {"key": "agent_drawer_position", "value": "left"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("agent_drawer_position"), "left")
+
     @patch("services.search.run")
     async def test_search_and_queue(self, mock_search):
         mock_search.return_value = ([{
@@ -73,10 +78,20 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(css_file.read_text(encoding="utf-8"), "body { color: blue; }")
             self.assertTrue((static_dir / "test.css.bak").is_file())
 
+            # Surgical snippet edit
+            snippet_res = await agent.execute_tool("edit_frontend_file", {
+                "path": "static/test.css",
+                "old_snippet": "color: blue;",
+                "new_snippet": "color: green;",
+                "summary": "make green",
+            })
+            self.assertEqual(snippet_res.get("status"), "applied")
+            self.assertEqual(css_file.read_text(encoding="utf-8"), "body { color: green; }")
+
             # Undo restores backup
             undo_res = await agent.execute_tool("undo_frontend_edit", {"path": "static/test.css"})
             self.assertEqual(undo_res.get("status"), "undone")
-            self.assertEqual(css_file.read_text(encoding="utf-8"), "body { color: red; }")
+            self.assertEqual(css_file.read_text(encoding="utf-8"), "body { color: blue; }")
 
     async def test_backend_diff_proposal_apply_and_cancel(self):
         core_dir = self.base_path / "core"

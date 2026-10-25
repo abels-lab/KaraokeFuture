@@ -14,4 +14,7 @@ AGENT_SPECS = [
     _s("agent_base_url", "agent", "Custom Base URL", "", "text",
        "Custom endpoint when using a local LLM like Ollama or LM Studio (e.g. http://localhost:11434/v1). Leave blank for Gemini.",
        NOW, max_len=128),
+    _s("agent_drawer_position", "agent", "DJ Co-Pilot Panel Side", "right", "choice",
+       "Which side the DJ Co-Pilot drawer opens on (/tv): 'left' or 'right'. Left side keeps the queue sidebar visible.",
+       NOW, client=True, choices=[["right", "Right side"], ["left", "Left side"]]),
 ]
