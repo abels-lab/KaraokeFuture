@@ -150,7 +150,7 @@
         btn.disabled = true;
         btn.textContent = "Reverting…";
         try {
-          const res = await api("/api/agent/undo", { path });
+          const res = await api("/api/agent/undo", { method: "POST", body: { path } });
           if (res.status === "undone") {
             btn.replaceWith(document.createTextNode("✓ Reverted"));
             toast(`Reverted ${path}`, true);
@@ -174,7 +174,7 @@
           applyBtn.disabled = true;
           applyBtn.textContent = "Applying…";
           try {
-            const res = await api("/api/agent/diff/apply", { proposal_id: propId });
+            const res = await api("/api/agent/diff/apply", { method: "POST", body: { proposal_id: propId } });
             card.innerHTML = `<div class="rounded-xl bg-emerald-900/40 border border-emerald-500/40 p-3 text-emerald-200 font-semibold">✓ Applied to ${res.path} — server restarting cleanly with queue restored!</div>`;
           } catch (err) {
             toast(err.message || "Failed to apply diff", false);
@@ -187,7 +187,7 @@
       if (cancelBtn) {
         cancelBtn.onclick = async () => {
           try {
-            await api("/api/agent/diff/cancel", { proposal_id: propId });
+            await api("/api/agent/diff/cancel", { method: "POST", body: { proposal_id: propId } });
             card.remove();
           } catch {
             card.remove();
@@ -293,7 +293,7 @@
     scrollDown();
 
     try {
-      const res = await api("/api/agent/chat", { message: msg, history });
+      const res = await api("/api/agent/chat", { method: "POST", body: { message: msg, history } });
       thinkingEl.remove();
 
       history.push({ role: "user", content: msg });

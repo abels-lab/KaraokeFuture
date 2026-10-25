@@ -382,6 +382,8 @@ async def chat_with_agent(message: str, history: list[dict[str, str]] | None = N
     history = history or []
 
     if provider == "gemini":
+        if not model or model.strip().removeprefix("models/") == "gemini-2.5-flash":
+            model = "gemini-3.8-flash"
         return await _chat_gemini(message, history, model, api_key)
     else:
         return await _chat_openai(message, history, model, api_key)
@@ -426,7 +428,7 @@ async def _chat_gemini(message: str, history: list[dict], model: str, api_key: s
                 log.error("Gemini API error %d: %s", res.status_code, res.text)
                 tip = ""
                 if res.status_code == 404:
-                    tip = f"\n\n💡 *Tip: Model '{clean_model}' was not found. Try 'gemini-2.5-flash', 'gemini-2.0-flash', or 'gemini-1.5-flash' in Settings → AI Co-Pilot.*"
+                    tip = f"\n\n💡 *Tip: Model '{clean_model}' was not found. Try 'gemini-3.8-flash', 'gemini-flash-latest', or 'gemini-3.5-flash' in Settings → AI Co-Pilot.*"
                 elif res.status_code == 400 and "API_KEY_INVALID" in res.text:
                     tip = "\n\n💡 *Tip: Google AI Studio API key appears invalid. Check Settings → AI Co-Pilot.*"
                 return {"reply": f"❌ Gemini API Error ({res.status_code}): {res.text[:250]}{tip}", "tool_calls": []}
