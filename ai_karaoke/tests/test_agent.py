@@ -34,8 +34,9 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.get("status"), "ok")
         self.assertEqual(settings.get("agent_drawer_position"), "left")
 
+    @patch("core.worker.worker.submit", new_callable=AsyncMock)
     @patch("services.search.run")
-    async def test_search_and_queue(self, mock_search):
+    async def test_search_and_queue(self, mock_search, mock_submit):
         mock_search.return_value = ([{
             "id": "test_123",
             "title": "Bohemian Rhapsody",
@@ -47,6 +48,7 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.get("status"), "queued")
         self.assertEqual(res.get("singer"), "Alice")
         self.assertEqual(res.get("title"), "Bohemian Rhapsody")
+        mock_submit.assert_called_once_with("test_123")
 
     async def test_read_code_file_safety(self):
         # Path traversal outside project root should be rejected

@@ -10,8 +10,9 @@ from typing import Any
 
 import httpx
 
-from config import BASE_DIR
-from core import settings
+from config import BASE_DIR, MELODY_FILE
+from core import cache_manager, settings
+from core.worker import worker
 from core.hub import hub
 from core.queue_manager import queue
 import asyncio
@@ -203,6 +204,7 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         query = args.get("query", "").strip()
         singer = args.get("singer", "Host").strip()
         mode = args.get("mode")
+        play_now = args.get("play_now", False)
         if not query:
             return {"error": "Empty query"}
         results, _ = await asyncio.to_thread(smart_search.run, query)
@@ -219,23 +221,42 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
             thumbnail=top.get("thumbnail"),
             mode=mode,
         )
+        await worker.submit(song_id)
+        if cache_manager.is_ready(song_id) and not cache_manager.song_file(song_id, MELODY_FILE).is_file():
+            await worker.submit_melody(song_id)
+
+        # If idle and song is already processed, auto-start playback immediately
+        if (queue.current is None or play_now) and entry.get("status") == "ready":
+            await queue.next()
+
+        is_now_playing = bool(queue.current and queue.current.get("uid") == entry["uid"])
         return {
-            "status": "queued",
+            "status": "playing" if is_now_playing else "queued",
             "title": entry["title"],
             "singer": singer,
             "uid": entry["uid"],
+            "ready": entry.get("status") == "ready",
+            "now_playing": is_now_playing,
         }
 
     elif name == "queue_action":
         action = args.get("action")
         uid = args.get("uid")
         offset = args.get("offset", 0)
-        if action == "skip":
-            if queue.current:
-                await queue.next()
-                return {"status": "skipped"}
-            return {"error": "Nothing currently playing"}
-        elif action in ("play", "pause", "restart"):
+        if action in ("skip", "next"):
+            started = await queue.next()
+            if started:
+                return {"status": "skipped", "now_playing": started["title"]}
+            return {"error": "No more ready songs in queue"}
+        elif action == "play":
+            if queue.current is None:
+                started = await queue.next()
+                if started:
+                    return {"status": "started", "now_playing": started["title"]}
+                return {"error": "No ready songs in queue to play"}
+            await queue.control("play")
+            return {"status": "play"}
+        elif action in ("pause", "restart"):
             await queue.control(action)
             return {"status": action}
         elif action == "remove" and uid:
