@@ -70,6 +70,13 @@ function connectWS(role, onMessage, onOpen) {
         return;
       }
       if (msg.type === "reload") {
+        const isPlaying = (typeof inst !== "undefined" && inst && !inst.paused)
+          || (typeof clock !== "undefined" && clock && !clock.paused && clock.uid);
+        if (isPlaying) {
+          window.__pendingReload = true;
+          toast("Update ready — auto-refreshing after this song (click to reload now)", true, () => location.reload());
+          return;
+        }
         location.reload();
         return;
       }
@@ -83,19 +90,28 @@ function connectWS(role, onMessage, onOpen) {
 }
 
 let toastTimer = null;
-function toast(text, ok = true) {
+function toast(text, ok = true, onClick = null) {
   let t = $("toast");
   if (!t) {
-    t = el("div", "pointer-events-none fixed inset-x-4 bottom-6 z-50 mx-auto max-w-md rounded-xl px-4 py-3 text-center font-semibold shadow-2xl transition duration-300");
+    t = el("div", "fixed inset-x-4 bottom-6 z-50 mx-auto max-w-md rounded-xl px-4 py-3 text-center font-semibold shadow-2xl transition duration-300");
     t.id = "toast";
     document.body.append(t);
   }
   t.textContent = text;
   t.classList.toggle("bg-emerald-700", ok);
   t.classList.toggle("bg-red-800", !ok);
+  if (onClick) {
+    t.classList.remove("pointer-events-none");
+    t.classList.add("cursor-pointer");
+    t.onclick = onClick;
+  } else {
+    t.classList.add("pointer-events-none");
+    t.classList.remove("cursor-pointer");
+    t.onclick = null;
+  }
   t.style.opacity = "1"; t.style.transform = "none";
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.opacity = "0"; t.style.transform = "translateY(1.5rem)"; }, 2600);
+  toastTimer = setTimeout(() => { t.style.opacity = "0"; t.style.transform = "translateY(1.5rem)"; }, 3500);
 }
 const fail = (err) => toast(err.message, false);
 
