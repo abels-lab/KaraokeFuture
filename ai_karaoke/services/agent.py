@@ -14,6 +14,8 @@ from config import BASE_DIR
 from core import settings
 from core.hub import hub
 from core.queue_manager import queue
+import asyncio
+from services import search as smart_search
 from services import sources
 
 log = logging.getLogger(__name__)
@@ -199,15 +201,16 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         mode = args.get("mode")
         if not query:
             return {"error": "Empty query"}
-        results = await sources.search_all(query)
+        results, _ = await asyncio.to_thread(smart_search.run, query)
         if not results:
             return {"error": f"No songs found for '{query}'"}
         top = results[0]
+        song_id = top.get("id") or top.get("song_id")
         entry = await queue.add(
-            song_id=top["song_id"],
-            title=top["title"],
-            channel=top["channel"],
-            duration=top.get("duration", 0),
+            song_id=song_id,
+            title=top.get("title", "Unknown"),
+            channel=top.get("channel", ""),
+            duration=top.get("duration", 0) or 0,
             singer=singer,
             thumbnail=top.get("thumbnail"),
             mode=mode,
@@ -385,7 +388,8 @@ async def chat_with_agent(message: str, history: list[dict[str, str]] | None = N
 
 
 async def _chat_gemini(message: str, history: list[dict], model: str, api_key: str) -> dict[str, Any]:
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
+    clean_model = model.strip().removeprefix("models/")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{clean_model}:generateContent?key={api_key}"
     
     # Format Gemini contents
     contents = []
@@ -420,7 +424,12 @@ async def _chat_gemini(message: str, history: list[dict], model: str, api_key: s
             res = await client.post(url, json=payload)
             if res.status_code != 200:
                 log.error("Gemini API error %d: %s", res.status_code, res.text)
-                return {"reply": f"❌ Gemini API Error ({res.status_code}): {res.text[:200]}", "tool_calls": []}
+                tip = ""
+                if res.status_code == 404:
+                    tip = f"\n\n💡 *Tip: Model '{clean_model}' was not found. Try 'gemini-2.5-flash', 'gemini-2.0-flash', or 'gemini-1.5-flash' in Settings → AI Co-Pilot.*"
+                elif res.status_code == 400 and "API_KEY_INVALID" in res.text:
+                    tip = "\n\n💡 *Tip: Google AI Studio API key appears invalid. Check Settings → AI Co-Pilot.*"
+                return {"reply": f"❌ Gemini API Error ({res.status_code}): {res.text[:250]}{tip}", "tool_calls": []}
 
             data = res.json()
             candidates = data.get("candidates", [])
@@ -466,6 +475,20 @@ async def _chat_gemini(message: str, history: list[dict], model: str, api_key: s
     return {"reply": "Tool execution completed.", "tool_calls": executed_tools, "proposals": proposals}
 
 
+def _normalize_openai_schema(params: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(params, dict):
+        return params
+    out = {}
+    for k, v in params.items():
+        if k == "type" and isinstance(v, str):
+            out[k] = v.lower()
+        elif isinstance(v, dict):
+            out[k] = _normalize_openai_schema(v)
+        else:
+            out[k] = v
+    return out
+
+
 async def _chat_openai(message: str, history: list[dict], model: str, api_key: str) -> dict[str, Any]:
     base_url = settings.get("agent_base_url").strip().rstrip("/")
     if not base_url:
@@ -484,11 +507,7 @@ async def _chat_openai(message: str, history: list[dict], model: str, api_key: s
             "function": {
                 "name": t["name"],
                 "description": t["description"],
-                "parameters": {
-                    "type": "object",
-                    "properties": t["parameters"]["properties"],
-                    "required": t["parameters"]["required"],
-                },
+                "parameters": _normalize_openai_schema(t["parameters"]),
             },
         }
         for t in TOOLS_SCHEMA

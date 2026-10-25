@@ -9,7 +9,7 @@ AGENT_SPECS = [
        "Google AI Studio API key (starts with AIza...) or OpenAI API key. If left blank, reads from GEMINI_API_KEY environment variable.",
        NOW, max_len=128),
     _s("agent_model", "agent", "Model name", "gemini-2.5-flash", "text",
-       "Model to use (e.g. gemini-2.5-flash, gemini-1.5-flash, or qwen2.5-coder:7b for Ollama).",
+       "Model to use (e.g. gemini-2.5-flash, gemini-2.0-flash, gemini-1.5-flash, or qwen2.5-coder:7b for Ollama).",
        NOW, max_len=64),
     _s("agent_base_url", "agent", "Custom Base URL", "", "text",
        "Custom endpoint when using a local LLM like Ollama or LM Studio (e.g. http://localhost:11434/v1). Leave blank for Gemini.",
