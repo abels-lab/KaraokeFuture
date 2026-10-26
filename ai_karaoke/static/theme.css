@@ -41,6 +41,41 @@ body.tv::after {
 input[type=range] { accent-color: var(--gold); cursor: pointer; }
 input[type=range]:disabled { cursor: default; opacity: .4; }
 
+/* Guide Vocal Slider */
+.guide-slider {
+  width: var(--guide-slider-width, 25%);
+  min-width: 5.5rem;
+  max-width: 7.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  outline: none;
+  transition: width 0.2s ease;
+}
+
+body.smiley-guide .guide-slider::-webkit-slider-thumb,
+.guide-slider.thumb-smiley::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: #f4c25b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='19' font-size='19'%3E%F0%9F%98%8A%3C/text%3E%3C/svg%3E") center/contain no-repeat;
+  border: none;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+body.smiley-guide .guide-slider::-moz-range-thumb,
+.guide-slider.thumb-smiley::-moz-range-thumb {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: #f4c25b url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ctext y='19' font-size='19'%3E%F0%9F%98%8A%3C/text%3E%3C/svg%3E") center/contain no-repeat;
+  border: none;
+  cursor: pointer;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
 /* Karaoke word fill: --p runs 0% -> 100% while the word is sung */
 .word {
   white-space: pre-wrap;
@@ -225,238 +260,94 @@ body.lyrics-off #line-main, body.lyrics-off #line-next, body.lyrics-off #no-lyri
 }
 
 
-/* TV Control Panel Layout */
-body.tv #tv-layout {
-  grid-template-columns: 1fr var(--side-panel-width, 28rem) !important;
-}
 
-/* ── Section A: Control Panel Responsive & Usability Enhancements ── */
-
-/* 1. Responsive Transport Bar */
-@media (max-width: 1400px) {
-  #btn-prev, #btn-next {
-    max-width: 140px;
-  }
-}
-
-@media (max-width: 1250px) {
-  #btn-prev .btn-nav-prefix,
-  #btn-next .btn-nav-prefix {
-    display: none;
-  }
-  #btn-prev, #btn-next {
-    max-width: 115px;
-  }
-  .guide-slider {
-    width: 5rem !important;
-  }
-  #btn-lyrics {
-    padding-left: 0.5rem;
-    padding-right: 0.5rem;
-  }
-}
-
-@media (max-width: 1100px) {
-  #btn-prev, #btn-next {
-    max-width: 2.75rem !important;
-    width: 2.75rem !important;
-    padding: 0 !important;
-    justify-content: center !important;
-  }
-  #btn-prev .btn-nav-text,
-  #btn-next .btn-nav-text {
-    display: none !important;
-  }
-  #guide-control {
-    gap: 0.25rem !important;
-  }
-  .guide-slider {
-    width: 3.5rem !important;
-  }
-}
-
-/* Transport bar adaptations in 3-column docked split mode */
-.agent-split #btn-prev,
-.agent-split #btn-next {
-  max-width: 120px;
-}
-.agent-split #btn-prev .btn-nav-prefix,
-.agent-split #btn-next .btn-nav-prefix {
-  display: none;
-}
-.agent-split .guide-slider {
-  width: 4.5rem !important;
-}
-
-@media (max-width: 1500px) {
-  .agent-split #btn-prev,
-  .agent-split #btn-next {
-    max-width: 2.75rem !important;
-    width: 2.75rem !important;
-    padding: 0 !important;
-    justify-content: center !important;
-  }
-  .agent-split #btn-prev .btn-nav-text,
-  .agent-split #btn-next .btn-nav-text {
-    display: none !important;
-  }
-  .agent-split .guide-slider {
-    width: 3.5rem !important;
-  }
-  .agent-split #guide-control .guide-title {
-    font-size: 10px;
-  }
-}
-
-/* 2. Idle Screen Loading State: prevent viewport overflow when loading card appears */
-#idle.has-loading {
-  justify-content: center;
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-}
-#idle.has-loading #idle-mic {
-  width: 5.5rem !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  display: block !important;
-  opacity: 0.85;
-}
-#idle.has-loading h1[data-title] {
-  margin-top: 0.5rem !important;
-  font-size: 2.25rem !important;
-  line-height: 1.15 !important;
-}
-#idle.has-loading p.text-2xl {
-  margin-top: 0.25rem !important;
-  font-size: 1rem !important;
-}
-#idle.has-loading #idle-qr-panel {
-  margin-top: 0.75rem !important;
-  padding: 0.6rem 1.25rem !important;
-  gap: 1rem !important;
-}
-#idle.has-loading #qr-big {
-  width: 6.5rem !important;
-  height: 6.5rem !important;
-  padding: 0.25rem !important;
-}
-#idle.has-loading #qr-url-big {
-  font-size: 0.85rem !important;
-}
-#idle.has-loading #loading {
-  margin-top: 0.75rem !important;
-  max-height: 32vh !important;
-  overflow-y: auto !important;
-}
-
-/* 3. DJ Co-Pilot Layout & Docking Modes */
+/* ── TV Control Panel 3-Column Workstation Layout ── */
 :root {
-  --agent-panel-width: 26rem;
+  --side-panel-width: 26rem;
+  --agent-panel-width: 27rem;
 }
 
-/* Base Drawer styling (when in floating drawer mode) */
-#agent-drawer.mode-drawer {
-  position: fixed !important;
-  inset-block: 0 !important;
-  z-index: 50 !important;
-  width: 100% !important;
-  max-width: 30rem !important;
+body.tv #tv-layout {
+  display: grid !important;
+  grid-template-columns: minmax(20rem, var(--agent-panel-width, 27rem)) minmax(0, 1fr) var(--side-panel-width, 26rem) !important;
   height: 100% !important;
-  transition: transform 300ms ease-in-out !important;
-}
-#agent-drawer.mode-drawer.drawer-right {
-  right: 0 !important;
-  left: auto !important;
-  border-left-width: 1px !important;
-  border-right-width: 0 !important;
-}
-#agent-drawer.mode-drawer.drawer-left {
-  left: 0 !important;
-  right: auto !important;
-  border-right-width: 1px !important;
-  border-left-width: 0 !important;
-}
-#agent-drawer.mode-drawer.drawer-closed.drawer-right {
-  transform: translateX(100%) !important;
-}
-#agent-drawer.mode-drawer.drawer-closed.drawer-left {
-  transform: translateX(-100%) !important;
-}
-#agent-drawer.mode-drawer:not(.drawer-closed) {
-  transform: translateX(0) !important;
+  width: 100% !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
 }
 
-/* Split / Docked Mode (3-column TV layout: Stage | Co-Pilot | Queue) */
-#tv-layout.agent-split.agent-open {
-  grid-template-columns: minmax(0, 1fr) var(--agent-panel-width, 26rem) var(--side-panel-width, 28rem) !important;
-}
-
-#tv-layout.agent-split.agent-open.agent-on-left {
-  grid-template-columns: var(--agent-panel-width, 26rem) minmax(0, 1fr) var(--side-panel-width, 28rem) !important;
-}
-
-#agent-drawer.mode-split {
+/* DJ Co-Pilot permanently docked in left column */
+#agent-drawer {
   position: relative !important;
   inset: auto !important;
   transform: none !important;
   max-width: none !important;
-  width: auto !important;
-  height: calc(100% - 2rem) !important;
-  margin-top: 1rem !important;
-  margin-bottom: 1rem !important;
-  margin-right: 0.5rem !important;
+  width: 100% !important;
+  box-shadow: none !important;
   border-radius: 1rem !important;
-  border: 1px solid rgba(244, 194, 91, 0.2) !important;
-  z-index: 10 !important;
-  display: flex !important;
+  background: rgba(14, 9, 6, .62) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(244, 194, 91, .14) !important;
 }
 
-#tv-layout.agent-split.agent-on-left #agent-drawer.mode-split {
-  order: -1 !important;
-  margin-left: 1rem !important;
-  margin-right: 0 !important;
-}
-
-/* When split mode is active but drawer is closed: hide agent-drawer and maintain 2 columns */
-#tv-layout:not(.agent-open) #agent-drawer.mode-split {
-  display: none !important;
-}
-
-/* Hide toggle button while docked drawer is openly visible in split mode */
-#tv-layout.agent-split.agent-open + #agent-toggle,
-#tv-layout.agent-split.agent-open ~ #agent-toggle {
-  display: none !important;
-}
-
-/* Floating toggle button: sits safely at bottom-20 above footer actions */
 #agent-toggle {
-  bottom: 5rem !important; /* bottom-20 */
+  display: none !important;
 }
 
-@media (max-width: 1200px) {
-  :root {
-    --agent-panel-width: 22rem;
+/* 1. Idle Screen inside Preview Box (Control Panel only) */
+#tv-layout #idle-mic {
+  max-height: 5rem;
+  width: auto;
+}
+#tv-layout #idle.has-loading #idle-mic {
+  max-height: 3.5rem !important;
+  opacity: 0.85;
+}
+#tv-layout #idle.has-loading h1[data-title] {
+  margin-top: 0.25rem !important;
+  font-size: 1.5rem !important;
+  line-height: 1.2 !important;
+}
+#tv-layout #idle.has-loading #loading {
+  margin-top: 0.5rem !important;
+  max-height: 45vh !important;
+  overflow-y: auto !important;
+}
+
+/* 2. Responsive Workstation Layout */
+@media (max-width: 1280px) {
+  body.tv #tv-layout {
+    grid-template-columns: minmax(18rem, 23rem) minmax(0, 1fr) minmax(18rem, 22rem) !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
   }
 }
 
-@media (max-width: 950px) {
-  #tv-layout.agent-split.agent-open {
-    grid-template-columns: 1fr var(--side-panel-width, 28rem) !important;
+@media (max-width: 1024px) {
+  body.tv #tv-layout {
+    grid-template-columns: 1fr 1fr !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
   }
-  #agent-drawer.mode-split {
-    position: fixed !important;
-    inset-block: 0 !important;
-    right: 0 !important;
-    width: 100% !important;
-    max-width: 24rem !important;
-    height: 100% !important;
-    margin: 0 !important;
-    border-radius: 0 !important;
-    z-index: 50 !important;
+  body.tv #tv-layout > :first-child {
+    grid-column: span 2;
   }
 }
 
-/* 4. Monitor Lyrics Responsive Spacing & Word Wrap */
+@media (max-width: 640px) {
+  body.tv #tv-layout {
+    grid-template-columns: 1fr !important;
+  }
+  body.tv #tv-layout > * {
+    grid-column: span 1 !important;
+  }
+}
+
+/* 3. Monitor Lyrics Responsive Spacing & Word Wrap */
 #line-main, #line-next {
   transition: font-size 0.2s ease, opacity 0.2s ease;
   word-break: break-word;
@@ -465,7 +356,7 @@ body.tv #tv-layout {
 
 @media (max-height: 800px) {
   [data-lyrics-box] {
-    gap: 1rem !important;
-    padding-bottom: 1.5rem !important;
+    gap: 0.75rem !important;
+    padding-bottom: 1.25rem !important;
   }
 }

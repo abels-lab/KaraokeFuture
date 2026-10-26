@@ -27,3 +27,5 @@ Thumbs.db
 # Settings changed on the Settings page (per installation)
 ai_karaoke/settings.json
 ai_karaoke/settings.tmp
+
+*.bak

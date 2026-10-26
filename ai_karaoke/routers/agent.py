@@ -58,3 +58,15 @@ async def undo_edit(req: UndoRequest, who: auth.Who = Depends(auth.require_admin
     if "error" in res:
         raise HTTPException(400, res["error"])
     return res
+
+
+@router.get("/improvements")
+async def get_improvements(who: auth.Who = Depends(auth.require_admin)) -> list[dict[str, Any]]:
+    """Retrieve logged agent capability gaps, tool errors, and host feature requests."""
+    return agent.list_improvements(limit=50)
+
+@router.get("/ui-config")
+async def get_ui_config() -> dict[str, Any]:
+    """Retrieve active Control Panel UI customization config."""
+    return agent.get_ui_config()
+

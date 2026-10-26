@@ -1,0 +1,418 @@
+<mxfile host="app.diagrams.net" agent="5.0 (Windows NT 10.0; Win64; x64)">
+  <diagram id="03018318-947c-dd8e-b7a3-06fadd420f32" name="Page-1">
+    <mxGraphModel dx="2001" dy="1249" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1650" pageHeight="1920" background="none" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="frame_stage" parent="1" style="rounded=0;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=22;fontStyle=1;align=left;verticalAlign=top;spacingLeft=25;spacingTop=12;fillColor=#f8f9fa;strokeColor=#212529;strokeWidth=2;" value="&lt;b&gt;Control Panel — Stage View&lt;/b&gt; (Live Stage Monitor, Queue &amp; Audio Core)" vertex="1">
+          <mxGeometry height="870" width="1580" x="10" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qr_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="&lt;b&gt;📱 Join the Party&lt;/b&gt;" vertex="1">
+          <mxGeometry height="220" width="340" x="60" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qr_box" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffffff;strokeColor=#212529;strokeWidth=2;fontColor=#212529;" value="QR Code&lt;br&gt;&lt;span style=&quot;font-size:10px;font-weight:normal;color:#6c757d;&quot;&gt;[Scan with phone]&lt;/span&gt;" vertex="1">
+          <mxGeometry height="145" width="145" x="75" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qr_info" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;fillColor=#f8f9fa;strokeColor=#dee2e6;" value="&lt;b style=&quot;font-size:12px;color:#212529;&quot;&gt;Instant Phone Remote&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Scan or visit URL:&lt;/span&gt;&lt;br&gt;&lt;b style=&quot;font-size:11px;color:#1864ab;&quot;&gt;http://192.168.x.x:8000/remote&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#2b8a3e;font-weight:bold;&quot;&gt;📱 4 guests connected&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Tailscale Funnel / LAN&lt;/span&gt;" vertex="1">
+          <mxGeometry height="145" width="155" x="230" y="80" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qr_tip" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=9;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#6c757d;" value="&lt;span style=&quot;font-size:9px;color:#6c757d;&quot;&gt;Persistent across all SPA tabs &amp;bull; Zero client app install required&lt;/span&gt;" vertex="1">
+          <mxGeometry height="25" width="330" x="65" y="235" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_chat_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="570" width="340" x="60" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_chat_tab1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="&lt;b&gt;💬 Party Chat (4)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="32" width="150" x="70" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_chat_tab2" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="✨ DJ Co-Pilot" vertex="1">
+          <mxGeometry height="32" width="155" x="230" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_router_badge" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=8;fillColor=#fff9db;strokeColor=#fcc419;strokeWidth=1;fontColor=#e67700;" value="⚡ &lt;b&gt;Local Smart Router&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;&quot;&gt;0-Cost regex/search + Track Quality Filter:&lt;br&gt;Auto-warns &amp; strips burned-in karaoke video tracks&lt;/span&gt;" vertex="1">
+          <mxGeometry height="46" width="315" x="70" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_msg_feed" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=#f8f9fa;strokeColor=#e9ecef;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="400" width="315" x="70" y="395" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_b1" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#e7f5ff;strokeColor=#74c0fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Alice:&lt;/b&gt; &quot;play Queen - Don&#39;t Stop Me Now&quot;&lt;br&gt;&lt;span style=&quot;color:#1864ab;font-size:10px;&quot;&gt;⚡ Local match: Original Studio Audio selected&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#2b8a3e;font-size:10px;&quot;&gt;✅ Added to queue (#1)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="66" width="305" x="75" y="405" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_b2" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#fff9db;strokeColor=#ffd43b;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;⚠️ Track Quality Filter:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#d9480f;&quot;&gt;Filtered out &#39;Karaoke Version&#39; (burned-in lyrics)&lt;br&gt;→ Suggested &amp; queued Official Audio + AI Stems&lt;/span&gt;" vertex="1">
+          <mxGeometry height="66" width="305" x="75" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_b3" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#e7f5ff;strokeColor=#74c0fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Bob:&lt;/b&gt; &quot;Someone duet with me on Oasis next! 🎸&quot;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;2 min ago via Phone Remote&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="305" x="75" y="555" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_b4" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#f3f0ff;strokeColor=#b197fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;✨ DJ Co-Pilot:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;&quot;&gt;&quot;Crowd energy peaking! Queued up upbeat classics for Alice &amp; Dan next.&quot;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="305" x="75" y="615" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_b5" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#e7f5ff;strokeColor=#74c0fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Charlie:&lt;/b&gt; /song Mr. Brightside&lt;br&gt;&lt;span style=&quot;color:#2b8a3e;font-size:10px;&quot;&gt;⚡ Instant cached match (0.02s) — Queued #3&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="305" x="75" y="688" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_b6" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=9;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#868e96;" value="&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;💡 Guests can request songs, vote &amp; chat directly from mobile web remote&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="305" x="75" y="746" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_chat_mic" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="🎤" vertex="1">
+          <mxGeometry height="34" width="36" x="70" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_chat_input" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;fillColor=#ffffff;strokeColor=#ced4da;strokeWidth=1;fontColor=#495057;" value="Type message or /song..." vertex="1">
+          <mxGeometry height="34" width="208" x="112" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_chat_send" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#e7f5ff;strokeColor=#1971c2;strokeWidth=1.5;fontColor=#1864ab;" value="➤ Send" vertex="1">
+          <mxGeometry height="34" width="59" x="326" y="808" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_proj_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="360" width="640" x="440" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_proj_live" parent="1" style="rounded=1;arcSize=16;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff5f5;strokeColor=#ff8787;strokeWidth=1;fontColor=#e03131;" value="&lt;b style=&quot;color:#e03131;&quot;&gt;🔴 LIVE 1:1 PROJECTOR MIRROR&lt;/b&gt; &lt;span style=&quot;color:#495057;font-size:10px;&quot;&gt;(/screen)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="28" width="330" x="455" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_proj_status" parent="1" style="rounded=1;arcSize=16;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ebfbee;strokeColor=#40c057;strokeWidth=1;fontColor=#2b8a3e;" value="&lt;b style=&quot;color:#2b8a3e;&quot;&gt;📽 Projector: Connected&lt;/b&gt;" vertex="1">
+          <mxGeometry height="28" width="140" x="925" y="60" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_screen_box" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;align=center;verticalAlign=middle;fillColor=#1a1d20;strokeColor=#343a40;strokeWidth=2;fontColor=#f8f9fa;" value="" vertex="1">
+          <mxGeometry height="245" width="610" x="455" y="96" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_hud" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#ffd43b;" value="&lt;span style=&quot;color:#ffd43b;font-size:13px;&quot;&gt;★ Now Singing: Freddie Mercury — Bohemian Rhapsody&lt;/span&gt;" vertex="1">
+          <mxGeometry height="25" width="360" x="468" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_pitch" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=right;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#69db7c;" value="&lt;span style=&quot;color:#69db7c;font-size:11px;&quot;&gt;P1 Score: 94 pts ★★★ | Pitch: In-Tune 🎶&lt;/span&gt;" vertex="1">
+          <mxGeometry height="25" width="215" x="840" y="105" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_video" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#868e96;" value="[ 🎬 Music Video Playback — 1080p Stage Feed &amp;bull; 40% Backdrop Shading ]" vertex="1">
+          <mxGeometry height="55" width="584" x="468" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_qr" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=9;align=center;verticalAlign=middle;fillColor=#ffffff;strokeColor=#495057;strokeWidth=1;fontColor=#212529;" value="📱 Join&lt;br&gt;[QR]" vertex="1">
+          <mxGeometry height="55" width="55" x="995" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_count" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#ffd43b;" value="&lt;span style=&quot;color:#ffd43b;font-size:12px;letter-spacing:5px;&quot;&gt;● ● ● 3&lt;/span&gt;" vertex="1">
+          <mxGeometry height="20" width="584" x="468" y="220" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_line1" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=17;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" value="&lt;b style=&quot;font-size:17px;color:#ffe066;&quot;&gt;&quot;Tonight I&#39;m gonna have myself a real good time...&quot;&lt;/b&gt;" vertex="1">
+          <mxGeometry height="38" width="584" x="468" y="244" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_scr_line2" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;" value="&lt;span style=&quot;font-size:13px;color:#adb5bd;&quot;&gt;&quot;I feel alive and the world I&#39;ll turn it inside out, yeah&quot;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="28" width="584" x="468" y="282" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_proj_foot" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#495057;" value="&lt;span style=&quot;font-size:9.5px;color:#495057;&quot;&gt;1:1 Dual-display sync &amp;bull; 60fps lyrics wipe &amp;bull; Native HTML5 dual audio pipeline (Separated Inst + Vocals)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="20" width="610" x="455" y="345" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_ctrl_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="&lt;b&gt;Live Show &amp;amp; Hardware Controls&lt;/b&gt;" vertex="1">
+          <mxGeometry height="210" width="640" x="440" y="430" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_btn_video" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🎬 Video: ON (V)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="36" width="140" x="455" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_btn_lyrics" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;📝 Lyrics: Highl. (L)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="36" width="150" x="605" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_btn_open_proj" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#e7f5ff;strokeColor=#1971c2;strokeWidth=1.5;fontColor=#1864ab;" value="&lt;b&gt;📽 Open Projector&lt;/b&gt;" vertex="1">
+          <mxGeometry height="36" width="155" x="765" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_btn_offset" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;⏱ Lyrics Offset: 0ms&lt;/b&gt;" vertex="1">
+          <mxGeometry height="36" width="135" x="930" y="465" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_game_mode" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🎮 Mode:&lt;/b&gt; [ Party (Casual) ] &lt;b style=&quot;color:#d9480f;&quot;&gt;[★ Score]&lt;/b&gt; [ ⚔️ Battle ]&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Real-time pitch tracking &amp;amp; note accuracy scoring&lt;/span&gt;" vertex="1">
+          <mxGeometry height="56" width="300" x="455" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_mics_box" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🎤 Microphones &amp;amp; Live Pitch Meter (P1 / P2):&lt;/b&gt;&lt;br&gt;P1: [████████░░] -12dB &amp;bull; P2: [██████░░░░] -18dB&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1864ab;&quot;&gt;[Setup &amp;amp; Calibrate Mics] [Audio FX: Echo/Reverb]&lt;/span&gt;" vertex="1">
+          <mxGeometry height="56" width="300" x="765" y="510" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_hw_fs" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;⛶ Fullscreen (F)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;&quot;&gt;Projector / Stage&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="140" x="455" y="574" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_hw_theme" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🎨 Theme: Theater&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;&quot;&gt;Gold Accent&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="145" x="605" y="574" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_hw_lights" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;💡 Stage Lights&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;&quot;&gt;Beat Pulse FX&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="145" x="760" y="574" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_hw_sfx" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;📣 Soundboard SFX&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;&quot;&gt;Applause / Airhorn&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="150" x="915" y="574" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_spa_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="&lt;b&gt;Views &amp;amp; Screens (In-Place SPA Switcher — Keeps WS &amp;amp; Audio Alive)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="200" width="640" x="440" y="660" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_spa_btn1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="&lt;b&gt;📺 Stage (Active)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9.5px;&quot;&gt;Live monitor &amp; lyrics&lt;/span&gt;" vertex="1">
+          <mxGeometry height="55" width="145" x="455" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_spa_btn2" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;⚙️ Settings (In-Place)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9.5px;&quot;&gt;Audio keeps playing&lt;/span&gt;" vertex="1">
+          <mxGeometry height="55" width="145" x="610" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_spa_btn3" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;📚 Song Library&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9.5px;&quot;&gt;Search, stems, cache&lt;/span&gt;" vertex="1">
+          <mxGeometry height="55" width="145" x="765" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_spa_btn4" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;📱 Host Remote&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9.5px;&quot;&gt;Mobile host &amp; PIN&lt;/span&gt;" vertex="1">
+          <mxGeometry height="55" width="145" x="920" y="695" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_spa_foot" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🔑 Host PIN Status:&lt;/b&gt; Master Host Authenticated &amp;bull; &lt;b&gt;WebSocket:&lt;/b&gt; Connected (Zero audio drops)&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;&lt;b&gt;Shortcuts:&lt;/b&gt; [Space] Play/Pause &amp;bull; [P / N] Prev/Next Song &amp;bull; [← / →] Seek &amp;plusmn;10s &amp;bull; [V] Video &amp;bull; [L] Lyrics Mode &amp;bull; [F] Fullscreen&lt;/span&gt;" vertex="1">
+          <mxGeometry height="82" width="610" x="455" y="762" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_np_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="220" width="450" x="1110" y="50" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_np_head" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=13;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" value="🎤 &lt;b&gt;Now Singing:&lt;/b&gt; &lt;span style=&quot;font-size:15px;color:#d9480f;&quot;&gt;Freddie — Bohemian Rhapsody&lt;/span&gt;" vertex="1">
+          <mxGeometry height="32" width="430" x="1120" y="56" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_np_seek" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=center;verticalAlign=middle;fillColor=#f8f9fa;strokeColor=#dee2e6;strokeWidth=1;" value="&lt;span style=&quot;font-family:monospace;font-size:11px;&quot;&gt;[0:42] ━━━━━━●────────────────────────── [5:55]&lt;/span&gt;" vertex="1">
+          <mxGeometry height="28" width="430" x="1120" y="92" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_tr_prev" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="⏮ Prev: Song" vertex="1">
+          <mxGeometry height="38" width="88" x="1120" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_tr_restart" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="↺ 0:00" vertex="1">
+          <mxGeometry height="38" width="48" x="1214" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_tr_back" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="⏪ -10s" vertex="1">
+          <mxGeometry height="38" width="52" x="1268" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_tr_play" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="&lt;b&gt;⏯ Pause&lt;/b&gt;" vertex="1">
+          <mxGeometry height="38" width="68" x="1326" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_tr_fwd" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="⏩ +10s" vertex="1">
+          <mxGeometry height="38" width="52" x="1400" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_tr_next" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="⏭ Next: Alice" vertex="1">
+          <mxGeometry height="38" width="92" x="1458" y="128" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_np_guide" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Guide Vocals:&lt;/b&gt; [━━━━●──────] &lt;b&gt;25%&lt;/b&gt; &amp;nbsp; [🔒 Host Lock]&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Balances backing track vs original vocal guide (Singer choice on phone: 25%)&lt;br&gt;Dual audio stem playback: &lt;b&gt;instrumental.wav&lt;/b&gt; + &lt;b&gt;vocals.wav&lt;/b&gt;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="84" width="430" x="1120" y="174" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_queue_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="570" width="450" x="1110" y="290" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qtab_next" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="&lt;b&gt;📋 Up Next (4)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="34" width="135" x="1120" y="298" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qtab_played" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="⏮ Played (12)" vertex="1">
+          <mxGeometry height="34" width="135" x="1265" y="298" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qtab_all" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="📑 All (17)" vertex="1">
+          <mxGeometry height="34" width="140" x="1410" y="298" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_q_actions" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=10;align=center;verticalAlign=middle;fillColor=#f8f9fa;strokeColor=#e9ecef;" value="[🔍 Search queue] &amp;nbsp;&amp;nbsp; [➕ Quick Add Song] &amp;nbsp;&amp;nbsp; [🎲 Randomize]" vertex="1">
+          <mxGeometry height="30" width="430" x="1120" y="338" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi1" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;[⠿] 1. Alice — Don&#39;t Stop Me Now&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#2b8a3e;&quot;&gt;Ready ✅ (Vocals separated, video synced)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Singer: Alice | 3:29 | Duet Mode&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="430" x="1120" y="376" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi1_play" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#e7f5ff;strokeColor=#1971c2;strokeWidth=1.5;fontColor=#1864ab;" value="▶" vertex="1">
+          <mxGeometry height="26" width="32" x="1475" y="382" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi1_del" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff5f5;strokeColor=#fa5252;strokeWidth=1.5;fontColor=#e03131;" value="✕" vertex="1">
+          <mxGeometry height="26" width="32" x="1512" y="382" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi2" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;[⠿] 2. Bob — Wonderwall&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#e67700;&quot;&gt;Separating vocals 65% ⏳ (BS-Roformer)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Singer: Bob | 4:18 | Party Mode&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="430" x="1120" y="448" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi2_del" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff5f5;strokeColor=#fa5252;strokeWidth=1.5;fontColor=#e03131;" value="✕" vertex="1">
+          <mxGeometry height="26" width="32" x="1512" y="454" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi3" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;[⠿] 3. Charlie — Mr. Brightside&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#1864ab;&quot;&gt;Queued (Cached offline ⚡)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Singer: Charlie | 3:42 | Solo&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="430" x="1120" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi3_play" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#e7f5ff;strokeColor=#1971c2;strokeWidth=1.5;fontColor=#1864ab;" value="▶" vertex="1">
+          <mxGeometry height="26" width="32" x="1475" y="526" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi3_del" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff5f5;strokeColor=#fa5252;strokeWidth=1.5;fontColor=#e03131;" value="✕" vertex="1">
+          <mxGeometry height="26" width="32" x="1512" y="526" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi4" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;[⠿] 4. Diana — ABBA: Dancing Queen&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Queued (Background warm-up pipeline 📥)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Singer: Diana | 3:51 | Battle Mode&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="430" x="1120" y="592" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi4_play" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#e7f5ff;strokeColor=#1971c2;strokeWidth=1.5;fontColor=#1864ab;" value="▶" vertex="1">
+          <mxGeometry height="26" width="32" x="1475" y="598" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_qi4_del" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff5f5;strokeColor=#fa5252;strokeWidth=1.5;fontColor=#e03131;" value="✕" vertex="1">
+          <mxGeometry height="26" width="32" x="1512" y="598" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_q_policy" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Fair Queue Policy:&lt;/b&gt; 1 active song per singer &amp;bull; Auto-rotates queue&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Drag handle &lt;b&gt;[⠿]&lt;/b&gt; to reorder &amp;bull; Songs auto-advance at completion&lt;/span&gt;&lt;br&gt;[⏸ Pause Queue] &amp;nbsp; [🔀 Shuffle Unplayed] &amp;nbsp; [🧹 Clear Queue]" vertex="1">
+          <mxGeometry height="84" width="430" x="1120" y="664" as="geometry" />
+        </mxCell>
+        <mxCell id="f1_q_history" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Recent History (12 songs played):&lt;/b&gt;&lt;br&gt;✓ Elton John — Rocket Man (Alice &amp;amp; Bob &amp;bull; Score: 89)&lt;br&gt;✓ Journey — Don&#39;t Stop Believin&#39; (Dan &amp;bull; Score: 95)&lt;br&gt;&lt;span style=&quot;color:#1864ab;font-size:10px;&quot;&gt;Click Played tab above to view full history &amp;amp; re-queue songs →&lt;/span&gt;" vertex="1">
+          <mxGeometry height="88" width="430" x="1120" y="756" as="geometry" />
+        </mxCell>
+        <mxCell id="frame_settings" parent="1" style="rounded=0;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=22;fontStyle=1;align=left;verticalAlign=top;spacingLeft=25;spacingTop=12;fillColor=#f8f9fa;strokeColor=#212529;strokeWidth=2;" value="&lt;b&gt;Control Panel — Settings SPA View&lt;/b&gt; (In-Place SPA Switcher — Audio &amp;amp; WS Kept Alive)" vertex="1">
+          <mxGeometry height="870" width="1580" x="10" y="990" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_qr_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="&lt;b&gt;📱 Join the Party&lt;/b&gt;" vertex="1">
+          <mxGeometry height="220" width="340" x="60" y="1020" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_qr_box" parent="1" style="whiteSpace=wrap;html=1;aspect=fixed;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=16;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffffff;strokeColor=#212529;strokeWidth=2;fontColor=#212529;" value="QR Code&lt;br&gt;&lt;span style=&quot;font-size:10px;font-weight:normal;color:#6c757d;&quot;&gt;[Persistent QR]&lt;/span&gt;" vertex="1">
+          <mxGeometry height="145" width="145" x="75" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_qr_info" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;fillColor=#f8f9fa;strokeColor=#dee2e6;" value="&lt;b style=&quot;font-size:12px;color:#212529;&quot;&gt;Instant Phone Remote&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Scan or visit URL:&lt;/span&gt;&lt;br&gt;&lt;b style=&quot;font-size:11px;color:#1864ab;&quot;&gt;http://192.168.x.x:8000/remote&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;span style=&quot;font-size:11px;color:#2b8a3e;font-weight:bold;&quot;&gt;📱 4 guests connected&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;WebSocket alive ⚡&lt;/span&gt;" vertex="1">
+          <mxGeometry height="145" width="155" x="230" y="1050" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_qr_tip" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=9;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#6c757d;" value="&lt;span style=&quot;font-size:9px;color:#6c757d;&quot;&gt;Settings editing never disconnects guests or interrupts playback&lt;/span&gt;" vertex="1">
+          <mxGeometry height="25" width="330" x="65" y="1205" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_chat_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="570" width="340" x="60" y="1260" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_chat_tab1" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="&lt;b&gt;💬 Party Chat (4)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="32" width="150" x="70" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_chat_tab2" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="✨ DJ Co-Pilot" vertex="1">
+          <mxGeometry height="32" width="155" x="230" y="1270" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_router_badge" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=8;spacingRight=8;fillColor=#fff9db;strokeColor=#fcc419;strokeWidth=1;fontColor=#e67700;" value="⚡ &lt;b&gt;Local Smart Router&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;&quot;&gt;0-Cost regex/search + Track Quality Filter:&lt;br&gt;Runs silently in background while editing settings&lt;/span&gt;" vertex="1">
+          <mxGeometry height="46" width="315" x="70" y="1310" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_msg_feed" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fillColor=#f8f9fa;strokeColor=#e9ecef;strokeWidth=1;" value="" vertex="1">
+          <mxGeometry height="400" width="315" x="70" y="1365" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_b1" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#e7f5ff;strokeColor=#74c0fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Alice:&lt;/b&gt; &quot;play Queen - Don&#39;t Stop Me Now&quot;&lt;br&gt;&lt;span style=&quot;color:#1864ab;font-size:10px;&quot;&gt;⚡ Local match: Original Studio Audio selected&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;color:#2b8a3e;font-size:10px;&quot;&gt;✅ Added to queue (#1)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="66" width="305" x="75" y="1375" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_b2" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#fff9db;strokeColor=#ffd43b;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;⚠️ Track Quality Filter:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#d9480f;&quot;&gt;Filtered out &#39;Karaoke Version&#39; (burned-in lyrics)&lt;br&gt;→ Suggested &amp; queued Official Audio + AI Stems&lt;/span&gt;" vertex="1">
+          <mxGeometry height="66" width="305" x="75" y="1450" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_b3" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#e7f5ff;strokeColor=#74c0fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Bob:&lt;/b&gt; &quot;Someone duet with me on Oasis next! 🎸&quot;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;2 min ago via Phone Remote&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="305" x="75" y="1525" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_b4" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#f3f0ff;strokeColor=#b197fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;✨ DJ Co-Pilot:&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;&quot;&gt;&quot;Screen &amp; Theme updated: Adaptive visual theme is now mirroring music video colors!&quot;&lt;/span&gt;" vertex="1">
+          <mxGeometry height="64" width="305" x="75" y="1585" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_b5" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#e7f5ff;strokeColor=#74c0fc;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Charlie:&lt;/b&gt; &quot;Stage looks fantastic! 🌟&quot;&lt;br&gt;&lt;span style=&quot;color:#2b8a3e;font-size:10px;&quot;&gt;Live update verified on projector mirror&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="305" x="75" y="1658" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_b6" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=9;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#868e96;" value="&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;💡 Chat &amp;amp; DJ Co-Pilot stay active during settings editing&lt;/span&gt;" vertex="1">
+          <mxGeometry height="40" width="305" x="75" y="1716" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_chat_mic" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="🎤" vertex="1">
+          <mxGeometry height="34" width="36" x="70" y="1778" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_chat_input" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;fillColor=#ffffff;strokeColor=#ced4da;strokeWidth=1;fontColor=#495057;" value="Type message or /song..." vertex="1">
+          <mxGeometry height="34" width="208" x="112" y="1778" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_chat_send" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#e7f5ff;strokeColor=#1971c2;strokeWidth=1.5;fontColor=#1864ab;" value="➤ Send" vertex="1">
+          <mxGeometry height="34" width="59" x="326" y="1778" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_top_bar" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="70" width="1120" x="440" y="1020" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_btn_back" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff3bf;strokeColor=#f59f00;strokeWidth=1.5;fontColor=#7950f2;" value="&lt;b&gt;⬅ Back to Stage&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="135" x="455" y="1035" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_nav_stage" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="📺 Stage" vertex="1">
+          <mxGeometry height="40" width="80" x="600" y="1035" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_nav_settings" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="&lt;b&gt;⚙️ Settings (Active)&lt;/b&gt;" vertex="1">
+          <mxGeometry height="40" width="140" x="690" y="1035" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_nav_lib" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="📚 Library" vertex="1">
+          <mxGeometry height="40" width="85" x="840" y="1035" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_nav_remote" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="📱 Remote" vertex="1">
+          <mxGeometry height="40" width="85" x="935" y="1035" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_mini_player" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#fff9db;strokeColor=#f59f00;strokeWidth=1.5;fontColor=#212529;" value="&lt;b&gt;🎶 Playing:&lt;/b&gt; Freddie — Bohemian Rhapsody &lt;span style=&quot;font-family:monospace;font-size:11px;&quot;&gt;[0:42 / 5:55]&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-family:monospace;font-size:10px;&quot;&gt;[━━●──────────]&lt;/span&gt; &amp;nbsp; &lt;b&gt;[⏯ Pause]&lt;/b&gt; &amp;nbsp; &lt;b&gt;[⏭ Skip]&lt;/b&gt; &amp;nbsp; Vol: [80%] &amp;nbsp; &lt;span style=&quot;font-size:10px;color:#2b8a3e;font-weight:bold;&quot;&gt;Audio Alive ✅&lt;/span&gt;" vertex="1">
+          <mxGeometry height="54" width="515" x="1030" y="1028" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_groups_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="&lt;b&gt;Settings Groups &amp;amp; Party Admin&lt;/b&gt;" vertex="1">
+          <mxGeometry height="720" width="400" x="440" y="1110" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_filter_input" parent="1" style="rounded=1;arcSize=8;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;fillColor=#ffffff;strokeColor=#ced4da;strokeWidth=1;fontColor=#495057;" value="🔍 Find a setting... (e.g. lyrics, cache, mics, theme)" vertex="1">
+          <mxGeometry height="36" width="370" x="455" y="1145" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_party_admin" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b style=&quot;font-size:13px;color:#d9480f;&quot;&gt;🔑 Party &amp;amp; Host PIN Security&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#2b8a3e;&quot;&gt;Host Authenticated &amp;bull; Full master access&lt;/span&gt;&lt;br&gt;[🔑 Change Host PIN (4–12 digits)]&lt;br&gt;[🧹 Wipe Party DB (Reset queue/guests, keep songs)]" vertex="1">
+          <mxGeometry height="95" width="370" x="455" y="1190" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat_label" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" value="&lt;b style=&quot;font-size:11px;color:#495057;&quot;&gt;SELECT SETTINGS CATEGORY (12 GROUPS):&lt;/b&gt;" vertex="1">
+          <mxGeometry height="20" width="370" x="455" y="1295" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat1" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#fff9db;strokeColor=#f59f00;strokeWidth=1.5;fontColor=#212529;" value="&lt;b&gt;▶ 🖥 Screen &amp;amp; Theme (Active)&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Themes, lyric styles, video backdrop, projector QR&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1320" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat2" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🎵 Playback &amp;amp; Audio Sync&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Lyrics latency offset, guide vocals, auto-advance&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1374" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat3" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🎤 Microphones &amp;amp; Scoring&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Dual mic inputs, pitch tolerance, Battle &amp;amp; Duet rules&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1428" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat4" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🧠 AI Stem Separation &amp;amp; Whisper&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;BS-Roformer, Whisper Turbo, Meta MMS word timing&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1482" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat5" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;💬 Chat, Local Router &amp;amp; DJ Agent&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;0-Cost regex router, track quality filter, Co-Pilot&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1536" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat6" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🛡 Fair Queueing &amp;amp; Guest Limits&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Max queue length, 1-song-per-guest fair rotation&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1590" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat7" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;📥 Songs, Downloads &amp;amp; Cache&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Cache limit (GB), SoundCloud fallback, video quality&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1644" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_cat8" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;🔥 Popular Songs Warm-Up&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#6c757d;&quot;&gt;Pre-process karaoke hits in background while idle&lt;/span&gt;" vertex="1">
+          <mxGeometry height="48" width="370" x="455" y="1698" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_btn_reset_all" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#fff5f5;strokeColor=#fa5252;strokeWidth=1.5;fontColor=#e03131;" value="&lt;b&gt;↺ Reset All to Defaults&lt;/b&gt;&lt;br&gt;&lt;span style=&quot;font-size:9.5px;&quot;&gt;Revert all 12 categories to factory defaults&lt;/span&gt;" vertex="1">
+          <mxGeometry height="55" width="370" x="455" y="1756" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_settings_card" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fillColor=#fcfcfd;strokeColor=#495057;strokeWidth=1.5;" value="" vertex="1">
+          <mxGeometry height="720" width="700" x="860" y="1110" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_grp_title" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=16;fontStyle=1;align=left;verticalAlign=middle;fillColor=none;strokeColor=none;" value="&lt;b&gt;🖥 Screen &amp;amp; Theme Settings&lt;/b&gt; &lt;span style=&quot;font-size:11px;color:#2b8a3e;&quot;&gt;(Category 1 of 12)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="35" width="480" x="875" y="1118" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_grp_reset" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="↺ Reset Group" vertex="1">
+          <mxGeometry height="32" width="135" x="1410" y="1118" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s1_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Theme Style&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Visual backdrop: Theater (curtains), Club (neon), Rock (fire), Adaptive (video-reactive)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: theater &amp;bull; Current: theater&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1158" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s1_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="Theater ▼" vertex="1">
+          <mxGeometry height="32" width="115" x="1420" y="1170" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s2_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Colour Preset (Accent)&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Highlight colour for titles, buttons, and lyric highlights across all displays&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: theme &amp;bull; Current: gold&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1224" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s2_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="Gold ▼" vertex="1">
+          <mxGeometry height="32" width="115" x="1420" y="1236" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s3_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Lyrics Display Mode&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Highlighted (word wipe), Plain (static text), or Off (freestyle/singers who know lyrics)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: full &amp;bull; Current: full&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1290" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s3_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="Highlighted ▼" vertex="1">
+          <mxGeometry height="32" width="115" x="1420" y="1302" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s4_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Show Music Video Backdrop&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Plays official music video behind lyrics. If off, renders dynamic stage visualizer&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: on &amp;bull; Current: on&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1356" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s4_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="☑ ON" vertex="1">
+          <mxGeometry height="32" width="90" x="1445" y="1368" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s5_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Video &amp;amp; Background Shading (Dim)&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Darkens video backdrop so lyric text remains high-contrast and legible at distance&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: 40% &amp;bull; Current: 40%&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1422" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s5_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="40 %  ↺" vertex="1">
+          <mxGeometry height="32" width="100" x="1435" y="1434" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s6_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Show QR Code on Stage Projector&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Displays join QR code in top-right corner of projector during songs and idle&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: on &amp;bull; Current: on&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1488" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s6_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ffe8cc;strokeColor=#d9480f;strokeWidth=1.5;fontColor=#d9480f;" value="☑ ON" vertex="1">
+          <mxGeometry height="32" width="90" x="1445" y="1500" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s7_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Lyrics Position on Screen&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Vertical alignment of lyrics overlay on projector and live monitor (Bottom / Middle / Top)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: bottom &amp;bull; Current: bottom&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1554" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s7_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="Bottom ▼" vertex="1">
+          <mxGeometry height="32" width="115" x="1420" y="1566" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s8_row" parent="1" style="rounded=1;arcSize=6;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;align=left;verticalAlign=middle;spacingLeft=10;spacingRight=10;fillColor=#ffffff;strokeColor=#dee2e6;strokeWidth=1;fontColor=#212529;" value="&lt;b&gt;Side Panel Width (Control Panel)&lt;/b&gt; &lt;span style=&quot;background:#d3f9d8;color:#2b8a3e;font-size:10px;padding:2px 6px;border-radius:4px;&quot;&gt;applies: now&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Width of the queue, controls, and history sidebar on the control panel (/tv)&lt;/span&gt;&lt;br&gt;&lt;span style=&quot;font-size:9px;color:#868e96;&quot;&gt;Default: 28 rem &amp;bull; Current: 28 rem&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="670" x="875" y="1620" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_s8_ctrl" parent="1" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=12;align=center;verticalAlign=middle;fillColor=#f1f3f5;strokeColor=#ced4da;strokeWidth=1;fontColor=#212529;" value="28 rem  ↺" vertex="1">
+          <mxGeometry height="32" width="100" x="1435" y="1632" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_live_notice" parent="1" style="rounded=1;arcSize=16;whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;fillColor=#ebfbee;strokeColor=#40c057;strokeWidth=1;fontColor=#2b8a3e;" value="⚡ &lt;b&gt;Zero-Reload Live Updates:&lt;/b&gt; Every change saves immediately to settings.json and pushes over WebSocket to all screens.&lt;br&gt;&lt;span style=&quot;font-size:10px;color:#495057;&quot;&gt;Live audio playback, vocal stem separation, and projector sync are uninterrupted.&lt;/span&gt;" vertex="1">
+          <mxGeometry height="55" width="670" x="875" y="1690" as="geometry" />
+        </mxCell>
+        <mxCell id="f2_foot_hint" parent="1" style="whiteSpace=wrap;html=1;hachureGap=4;fontFamily=Architects Daughter;fontSource=https%3A%2F%2Ffonts.googleapis.com%2Fcss%3Ffamily%3DArchitects%2BDaughter;fontSize=10;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#868e96;" value="&lt;span style=&quot;font-size:9.5px;color:#868e96;&quot;&gt;💡 Click any parameter&#39;s ↺ icon to snap back to default value &amp;bull; Changes take effect instantly without restarting server&lt;/span&gt;" vertex="1">
+          <mxGeometry height="30" width="670" x="875" y="1755" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

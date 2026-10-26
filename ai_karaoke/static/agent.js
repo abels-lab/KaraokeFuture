@@ -1,4 +1,4 @@
-// DJ Co-Pilot Host Assistant drawer & Voice Input for /tv
+// DJ Co-Pilot Host Assistant docked in Left Column & Voice Input for /tv
 (() => {
   const toggleBtn = $("agent-toggle");
   const drawer = $("agent-drawer");
@@ -13,134 +13,70 @@
   const micBtn = $("agent-mic");
   const tvLayout = $("tv-layout");
 
-  if (!toggleBtn || !drawer) return;
+  if (!drawer || !input) return;
 
   let history = [];
   let isListening = false;
   let recognition = null;
-  let currentSide = "right";
-  let layoutMode = "split";
-  let isOpen = false;
 
   function isDrawerOpen() {
-    return isOpen;
+    return true;
   }
 
   function updateLayout() {
-    const isSplit = layoutMode === "split";
-    const isLeft = currentSide === "left";
-
-    // Toggle button side & position (kept safely at bottom-20 above footer actions)
-    toggleBtn.classList.remove("left-6", "right-6");
-    toggleBtn.classList.add(isLeft ? "left-6" : "right-6");
-
-    // Container layout
-    if (tvLayout) {
-      tvLayout.classList.toggle("agent-split", isSplit);
-      tvLayout.classList.toggle("agent-on-left", isSplit && isLeft);
-      tvLayout.classList.toggle("agent-open", isOpen);
-    }
-
-    // Drawer classes
-    drawer.classList.toggle("mode-split", isSplit);
-    drawer.classList.toggle("mode-drawer", !isSplit);
-    drawer.classList.toggle("drawer-left", isLeft);
-    drawer.classList.toggle("drawer-right", !isLeft);
-    drawer.classList.toggle("drawer-closed", !isOpen);
-
-    // Clean up legacy Tailwind translate classes
-    drawer.classList.remove("translate-x-full", "-translate-x-full");
-
-    // Mode toggle button title / icon
-    if (modeToggleBtn) {
-      modeToggleBtn.textContent = isSplit ? "◫" : "❐";
-      modeToggleBtn.title = isSplit ? "Switch to Floating Drawer (Overlay)" : "Switch to Docked Split Screen (3-Column)";
-    }
-    if (sideToggleBtn) {
-      sideToggleBtn.title = isLeft ? "Switch side (Dock to Right)" : "Switch side (Dock to Left)";
+    // Docked permanently in 3-column workstation layout
+    if (drawer) {
+      drawer.classList.remove("translate-x-full", "-translate-x-full", "drawer-closed");
     }
   }
 
-  function applyDrawerPosition(side) {
-    currentSide = side === "left" ? "left" : "right";
-    updateLayout();
-  }
-
-  function applyLayoutMode(mode) {
-    layoutMode = mode === "drawer" ? "drawer" : "split";
-    updateLayout();
-  }
-
-  // ── Open / Close Drawer ────────────────────────────────────────────────────
   function openDrawer() {
-    isOpen = true;
     updateLayout();
-    input.focus();
+    input?.focus();
   }
 
   function closeDrawer() {
-    isOpen = false;
-    updateLayout();
+    // Docked permanently; no-op
   }
 
-  toggleBtn.onclick = () => {
-    if (isDrawerOpen()) closeDrawer();
-    else openDrawer();
-  };
-  closeBtn.onclick = closeDrawer;
+  if (toggleBtn) {
+    toggleBtn.onclick = () => {
+      input?.focus();
+    };
+  }
+  if (closeBtn) closeBtn.onclick = closeDrawer;
 
   if (sideToggleBtn) {
-    sideToggleBtn.onclick = async () => {
-      const nextSide = currentSide === "left" ? "right" : "left";
-      applyDrawerPosition(nextSide);
-      await api("/api/settings", { method: "PUT", body: { values: { agent_drawer_position: nextSide } } }).catch(() => {});
-    };
+    sideToggleBtn.onclick = async () => {};
   }
 
   if (modeToggleBtn) {
-    modeToggleBtn.onclick = async () => {
-      const nextMode = layoutMode === "split" ? "drawer" : "split";
-      applyLayoutMode(nextMode);
-      await api("/api/settings", { method: "PUT", body: { values: { agent_layout_mode: nextMode } } }).catch(() => {});
-    };
-  }
-
-  if (typeof Settings !== "undefined") {
-    Settings.onChange(() => {
-      const s = Settings.get("agent_drawer_position", "right");
-      const m = Settings.get("agent_layout_mode", "split");
-      if (s !== currentSide || m !== layoutMode) {
-        currentSide = s;
-        layoutMode = m;
-        updateLayout();
-      }
-    });
-    currentSide = Settings.get("agent_drawer_position", "right");
-    layoutMode = Settings.get("agent_layout_mode", "split");
-    updateLayout();
+    modeToggleBtn.onclick = async () => {};
   }
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isDrawerOpen()) closeDrawer();
     if ((e.ctrlKey || e.metaKey) && (e.key === "j" || e.key === "J")) {
       e.preventDefault();
-      if (isDrawerOpen()) closeDrawer();
-      else openDrawer();
+      input?.focus();
     }
   });
 
-  clearBtn.onclick = () => {
-    history = [];
-    messagesEl.innerHTML = `
-      <div class="rounded-2xl bg-white/5 p-4 border border-white/10 text-stone-300 space-y-2">
-        <p class="font-semibold text-gold">👋 Chat cleared. Ready for your next command!</p>
-      </div>
-    `;
-  };
+  if (clearBtn) {
+    clearBtn.onclick = () => {
+      history = [];
+      messagesEl.innerHTML = `
+        <div class="rounded-2xl bg-white/5 p-4 border border-white/10 text-stone-300 space-y-2">
+          <p class="font-semibold text-gold">👋 Chat cleared. Ready for your next command!</p>
+        </div>
+      `;
+    };
+  }
+
+  updateLayout();
 
   // ── Speech Recognition (Voice DJ) ──────────────────────────────────────────
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (SpeechRec) {
+  if (SpeechRec && micBtn) {
     recognition = new SpeechRec();
     recognition.continuous = false;
     recognition.interimResults = true;
@@ -182,7 +118,7 @@
         recognition.start();
       }
     };
-  } else {
+  } else if (micBtn) {
     micBtn.classList.add("opacity-30", "cursor-not-allowed");
     micBtn.title = "Voice recognition not supported by this browser";
   }
@@ -310,6 +246,15 @@
     if (name === "queue_action") {
       return `<div class="inline-flex items-center gap-1.5 rounded-full bg-blue-950/60 border border-blue-500/30 px-3 py-1 text-xs text-blue-200">
         <span>⏯️</span> <span>Playback action: <b>${res.status}</b></span>
+      </div>`;
+    }
+    if (name === "customize_control_panel") {
+      let desc = "Control Panel updated";
+      if (res.action === "add_button") desc = "Added button to Control Panel";
+      else if (res.action === "remove_button") desc = "Removed button from Control Panel";
+      else if (res.action === "reset") desc = "Reset Control Panel layout";
+      return `<div class="inline-flex items-center gap-1.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 px-3 py-1 text-xs text-indigo-200">
+        <span>🎛️</span> <span>${desc}</span>
       </div>`;
     }
     if (name === "edit_frontend_file") {

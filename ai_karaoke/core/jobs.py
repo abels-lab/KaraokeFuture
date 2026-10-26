@@ -41,3 +41,6 @@ class JobQueue:
 
     def __len__(self) -> int:
         return len(self._heap)
+
+    def __bool__(self) -> bool:
+        return True

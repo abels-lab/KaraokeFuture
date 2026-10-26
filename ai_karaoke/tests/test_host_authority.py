@@ -11,7 +11,11 @@ import routers.ws as ws_router
 
 class TestHostAuthority(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.queue_patcher = patch("config.QUEUE_FILE", Path(self.tmp_dir.name) / "queue.json")
+        self.queue_patcher.start()
         self.qm = QueueManager()
+
         self.qm.current = {
             "uid": "test12345678",
             "song_id": "song_test_id",
@@ -21,6 +25,10 @@ class TestHostAuthority(unittest.IsolatedAsyncioTestCase):
             "duration": 180,
             "status": "ready",
         }
+
+    def tearDown(self):
+        self.queue_patcher.stop()
+        self.tmp_dir.cleanup()
 
     def test_initial_playback_state(self):
         qm = QueueManager()

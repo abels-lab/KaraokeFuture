@@ -61,6 +61,10 @@ function connectWS(role, onMessage, onOpen) {
       if (msg.type === "settings") Settings.load();   // changed on the Settings page
       if (msg.type === "auth" && typeof Auth !== "undefined") Auth.load();   // party wiped / PIN changed
       if (msg.type === "denied") toast(msg.message, false);
+      if (msg.type === "ui_config") {
+        window.TvUi?.applyConfig?.(msg.config);
+        return;
+      }
       if (msg.type === "hot_css") {
         document.querySelectorAll('link[rel="stylesheet"]').forEach((link) => {
           const url = new URL(link.href);

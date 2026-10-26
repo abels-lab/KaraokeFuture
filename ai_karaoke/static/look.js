@@ -38,6 +38,12 @@ const Look = (() => {
     const sideUnit = sideWidthNum > 100 ? "px" : "rem";
     document.documentElement.style.setProperty("--side-panel-width", `${sideWidthNum}${sideUnit}`);
 
+    // DJ Co-Pilot chat panel width on the control panel (/tv)
+    const rawAgentWidth = Settings.get("chat_panel_width", 27);
+    const agentWidthNum = Number(rawAgentWidth) || 27;
+    const agentUnit = agentWidthNum > 100 ? "px" : "rem";
+    document.documentElement.style.setProperty("--agent-panel-width", `${agentWidthNum}${agentUnit}`);
+
     const title = Settings.get("title_text", "Karaoke Night");
     document.querySelectorAll("[data-title]").forEach((e) => { e.textContent = title; });
     const pos = Settings.get("lyrics_position", "bottom");

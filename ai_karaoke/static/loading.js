@@ -83,7 +83,7 @@ function createLoading(section, compact = false) {
         if (!nextEl) {
           nextEl = el("div", "mt-2 pt-2 border-t border-white/10 flex items-center justify-between text-xs text-stone-400 truncate");
           nextEl.setAttribute("data-l", "compact-next");
-          section.querySelector(".panel")?.append(nextEl);
+          section.querySelector(".min-w-0")?.append(nextEl);
         }
         const names = laterCompact.slice(0, 2).map((e) => `${e.title} (${singers(e)})`).join(", ") + (laterCompact.length > 2 ? ` +${laterCompact.length - 2} more` : "");
         nextEl.textContent = `⏳ Also waiting: ${names}`;

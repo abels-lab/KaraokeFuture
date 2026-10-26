@@ -13,7 +13,7 @@ import asyncio
 import contextlib
 import logging
 
-from core import cache_manager, worker_jobs
+from core import cache_manager, warm_budget, worker_jobs
 from core.hub import hub
 from core.jobs import HIGH, LOW, JobQueue
 from core.queue_manager import queue
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class Worker:
     def __init__(self) -> None:
-        self._jobs: JobQueue | None = None
+        self._jobs: JobQueue | None = JobQueue()
         self._pending: set[tuple[str, str]] = set()   # (kind, song_id), queued or running
         self._task: asyncio.Task | None = None
         self.current_song: str | None = None   # guest song being processed (the TV shows it)
@@ -33,7 +33,8 @@ class Worker:
 
     def start(self) -> None:
         """Call from inside the running event loop (FastAPI lifespan)."""
-        self._jobs = JobQueue()
+        if self._jobs is None:
+            self._jobs = JobQueue()
         self._task = asyncio.create_task(self._run(), name="karaoke-worker")
         log.info("Background worker started")
 
@@ -64,6 +65,9 @@ class Worker:
 
     async def submit_warm(self, song_id: str, rotation: str) -> None:
         """LOW: prepare a popular song in the background, only while no guest is waiting."""
+        if cache_manager.is_ready(song_id):
+            warm_budget.keep_for(song_id, rotation)
+            return
         self.warm_rotation[song_id] = rotation
         await self._put(("warm", song_id), LOW)
 
@@ -73,11 +77,11 @@ class Worker:
         return set(self.stages)
 
     def high_waiting(self) -> bool:
-        return bool(self._jobs and self._jobs.high_waiting())
+        return bool(self._jobs is not None and self._jobs.high_waiting())
 
     def backlog(self) -> dict:
         jobs = self._jobs
-        return {"high": jobs.count(HIGH) if jobs else 0, "low": jobs.count(LOW) if jobs else 0}
+        return {"high": jobs.count(HIGH) if jobs is not None else 0, "low": jobs.count(LOW) if jobs is not None else 0}
 
     async def report(self, song_id: str, stage: str) -> None:
         """Stage shown in the library and on queue entries of this song."""
@@ -89,7 +93,8 @@ class Worker:
         if job not in self._pending:
             self._pending.add(job)
             self.stages.setdefault(job[1], "waiting")
-            self._jobs.put(job, priority)
+            if self._jobs is not None:
+                self._jobs.put(job, priority)
             await hub.broadcast({"type": "library"})
 
     # ── Running ──────────────────────────────────────────────────────────────

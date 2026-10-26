@@ -10,7 +10,7 @@ from typing import Any
 
 import httpx
 
-from config import BASE_DIR, MELODY_FILE
+from config import BASE_DIR, DATA_DIR, MELODY_FILE
 from core import cache_manager, settings
 from core.worker import worker
 from core.hub import hub
@@ -24,20 +24,117 @@ log = logging.getLogger(__name__)
 # Pending backend diffs awaiting host confirmation
 PENDING_PROPOSALS: dict[str, dict] = {}
 
+IMPROVEMENTS_FILE = DATA_DIR / "agent_improvements.jsonl"
+UI_CONFIG_FILE = DATA_DIR / "ui_config.json"
+
+DEFAULT_UI_CONFIG: dict[str, Any] = {
+    "column_order": ["left", "center", "right"],
+    "hidden_elements": [],
+    "custom_buttons": [],
+    "guide_width": "25%",
+    "guide_thumb": "default",
+    "custom_css": "",
+}
+
+
+def get_ui_config() -> dict[str, Any]:
+    """Return the persisted Control Panel UI customization config, merged with defaults."""
+    if UI_CONFIG_FILE.is_file():
+        try:
+            data = json.loads(UI_CONFIG_FILE.read_text(encoding="utf-8"))
+            merged = dict(DEFAULT_UI_CONFIG)
+            merged.update(data)
+            return merged
+        except Exception as e:
+            log.warning("Failed to load ui_config: %s", e)
+    return dict(DEFAULT_UI_CONFIG)
+
+
+def save_ui_config(cfg: dict[str, Any]) -> dict[str, Any]:
+    """Persist the Control Panel UI customization config."""
+    try:
+        UI_CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        UI_CONFIG_FILE.write_text(json.dumps(cfg, indent=2, ensure_ascii=False), encoding="utf-8")
+    except Exception as e:
+        log.warning("Failed to save ui_config: %s", e)
+    return cfg
+
+
+
+def record_improvement(
+    category: str,
+    summary: str,
+    details: dict[str, Any] | None = None,
+    prompt: str = "",
+) -> dict[str, Any]:
+    """Log an agent capability gap, tool error, or feature request for future improvements."""
+    entry = {
+        "timestamp": time.time(),
+        "iso_time": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "category": category,
+        "summary": summary,
+        "prompt": prompt,
+        "details": details or {},
+    }
+    try:
+        IMPROVEMENTS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(IMPROVEMENTS_FILE, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        log.info("Recorded agent improvement [%s]: %s", category, summary)
+    except Exception as e:
+        log.warning("Failed to record agent improvement: %s", e)
+    return entry
+
+
+def list_improvements(limit: int = 50) -> list[dict[str, Any]]:
+    """Return recent agent improvement records."""
+    if not IMPROVEMENTS_FILE.is_file():
+        return []
+    try:
+        lines = IMPROVEMENTS_FILE.read_text(encoding="utf-8").strip().splitlines()
+        entries = [json.loads(line) for line in lines if line.strip()]
+        return entries[-limit:]
+    except Exception:
+        return []
+
 SYSTEM_PROMPT = """You are the AI Karaoke Host & DJ Co-Pilot for AI Karaoke.
 You assist the host with running the party:
-1. Finding and enqueuing songs for singers (use search_and_queue).
-2. Changing app settings and layout (themes, accents, panel dock position, durations, volume, guest permissions).
-   - When asked to move or dock the chat panel / DJ drawer to the left or right, immediately call change_setting(key="agent_drawer_position", value="left") or value="right".
-3. Queue management (skipping songs, moving, removing).
-4. Live frontend code editing (static/*.css, static/*.js, static/*.html): modify styles, lyric sizes, colors, animations directly via edit_frontend_file (supports full content OR old_snippet and new_snippet for quick surgical edits).
-5. Server backend code modifications (core/*.py, routers/*.py, services/*.py): propose changes via propose_backend_diff so the host can review the diff.
+1. Finding and enqueuing songs for singers (use search_and_queue). To inspect what tracks are already downloaded/cached in the local library, use get_library_songs. NEVER use read_code_file to search for songs, look for files, or check library status.
+2. Control Panel Layout & Customization:
+   - ALWAYS prefer the customize_control_panel tool (executes in 1 tool call!) when the host asks to:
+     * Change the Control Panel layout, reorder columns (e.g. column_order=["right", "center", "left"])
+     * Hide or show panels or buttons (e.g. hide_elements=["qr-card", "nav-panel", "btn-restart"])
+     * Add or remove custom buttons (SFX buttons like airhorn/applause/cheer/laser, settings toggles, transport buttons, or quick song buttons)
+     * Resize the Guide Vocal slider (e.g. guide_width="25%", "50%", "100%") or change its thumb (e.g. guide_thumb="smiley" or "😊" or "🎤")
+     * Apply live CSS tweaks (custom_css="...") without reloading or modifying disk files.
+   - When asked to move or dock the chat panel / DJ drawer to the left or right, call change_setting(key="agent_drawer_position", value="left"|"right").
+3. Changing app settings (themes, accents, durations, volume, guest permissions) via change_setting.
+4. Queue management (skipping songs, moving, removing) via queue_action.
+5. Live frontend code editing (static/*.css, static/*.js, static/*.html): modify permanent styles or templates directly via edit_frontend_file (supports full content OR old_snippet and new_snippet for quick surgical edits).
+6. Server backend code modifications (core/*.py, routers/*.py, services/*.py): propose changes via propose_backend_diff so the host can review the diff.
+7. Recording feature requests & capability gaps: call record_improvement_request when the host asks for something you lack tools for or that cannot safely be performed live.
+
+Frontend File & DOM ID Reference Map (NEVER guess static/index.html - it does NOT exist!):
+- static/tv.html: Host Control Panel (/tv). Key DOM IDs:
+  * #tv-layout: 3-column workstation grid
+  * Left Column (#col-left): #qr-card (QR code box), #agent-drawer (DJ Co-Pilot chat)
+  * Center Column (#col-center): #preview-card (#idle mic & qr, #stage video & monitor lyrics), #display-panel (#btn-video, #btn-lyrics, #open-screen, #open-mics, #custom-controls), #nav-panel (#custom-nav-controls)
+  * Right Column (#col-right): #now-playing-card (#np-singer, #np-title, #seek, #transport-bar [#btn-prev, #btn-restart, #btn-back, #btn-play, #btn-fwd, #btn-next, #custom-transport-controls], #guide-control [#guide, #guide-value]), #tv-sidebar (#side-lists, queue tabs)
+- static/screen.html: Projector Screen (/screen).
+- static/remote.html: Guest Phone Remote (/remote).
+- static/settings.html: Settings Page (/settings).
+- static/theme.css: Global styles, layout grid rules, themes (adaptive, rock, club).
 
 Guidelines:
-- Keep verbal responses concise, witty, and party-ready.
-- When the host asks to queue a song, change settings, or move the chat panel, immediately call the appropriate tool.
-- For moving this chat drawer to the left or right, ALWAYS call change_setting(key="agent_drawer_position", value="left"|"right").
-- For frontend visual tweaks, read the file first with read_code_file if needed, then apply with edit_frontend_file.
+- Keep verbal responses concise, witty, charismatic, and party-ready.
+- When the host asks to customize buttons, layout, or guide vocal slider width/thumb, IMMEDIATELY call customize_control_panel. Do NOT waste turns reading static/tv.html or inventing non-existent files.
+- For finding songs to queue: use your vast musical knowledge to pick great songs, and use search_and_queue. If the host asks about songs that are already cached or NOT already local/cached, use get_library_songs.
+- NEVER call read_code_file for general questions, music requests, or checking cached songs. Only use read_code_file when the host explicitly asks to modify frontend CSS/HTML styles or inspect frontend code.
+- If the host asks for an action or feature you lack tools for:
+  1. DO NOT invent file names or blindly call read_code_file/edit_frontend_file in a loop.
+  2. Call record_improvement_request(topic=..., description=..., safe_alternative=...) so the request is saved in the developer improvement backlog.
+  3. Respond warmly and playfully as a friendly party DJ.
+- If any tool returns an error, do NOT retry the exact same failing tool or guess random file names.
 - For Python code, always use propose_backend_diff. Never attempt to edit backend files directly.
 """
 
@@ -45,11 +142,95 @@ Guidelines:
 
 TOOLS_SCHEMA = [
     {
+        "name": "customize_control_panel",
+        "description": "Customize the Control Panel layout, reorder columns, hide/show panels, add/remove custom buttons (SFX, settings, transport, songs), resize the Guide Vocal slider (e.g. guide_width='25%'), change slider thumb ('smiley'), or apply live custom CSS. Executes live in 1 tool call without page reload.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "action": {
+                    "type": "STRING",
+                    "description": "Action type: 'update' (default), 'add_button', 'remove_button', or 'reset'",
+                },
+                "column_order": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"},
+                    "description": "Order of the 3 columns: list of 'left', 'center', 'right' (e.g. ['right', 'center', 'left'])",
+                },
+                "hide_elements": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"},
+                    "description": "List of panel or button DOM IDs to hide (e.g. ['qr-card', 'nav-panel', 'display-panel', 'btn-restart'])",
+                },
+                "show_elements": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"},
+                    "description": "List of panel or button DOM IDs to show/unhide",
+                },
+                "guide_width": {
+                    "type": "STRING",
+                    "description": "Width of the Guide Vocal slider, e.g. '25%', '50%', '100%'",
+                },
+                "guide_thumb": {
+                    "type": "STRING",
+                    "description": "Thumb style for Guide Vocal slider, e.g. 'smiley', '😊', '🎤', 'default'",
+                },
+                "button": {
+                    "type": "OBJECT",
+                    "description": "Custom button definition when action is 'add_button'. Fields: id (str), label (str), action ('sfx'|'control'|'setting'|'queue_search'|'toast'), value (str), target ('display'|'nav'|'transport', default 'display')",
+                    "properties": {
+                        "id": {"type": "STRING"},
+                        "label": {"type": "STRING"},
+                        "icon": {"type": "STRING"},
+                        "target": {"type": "STRING"},
+                        "action": {"type": "STRING"},
+                        "value": {"type": "STRING"},
+                        "style": {"type": "STRING"},
+                    },
+                    "required": ["id", "label", "action"],
+                },
+                "button_id": {
+                    "type": "STRING",
+                    "description": "ID of button to remove when action is 'remove_button'",
+                },
+                "custom_css": {
+                    "type": "STRING",
+                    "description": "Live custom CSS to inject into the page head",
+                },
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "record_improvement_request",
+        "description": "Log a capability gap, missing tool, or host feature request into the development wishlist when you lack tools or cannot safely perform an action live (e.g. creating custom playlists, moving permanent structural HTML elements, deleting files, shell commands).",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "topic": {"type": "STRING", "description": "Short title of the feature or missing tool (e.g. 'custom_playlists', 'reorder_permanent_ui')"},
+                "description": {"type": "STRING", "description": "Details of what the host requested"},
+                "safe_alternative": {"type": "STRING", "description": "Closest safe workaround or alternative suggested to the host"},
+            },
+            "required": ["topic", "description"],
+        },
+    },
+    {
         "name": "get_party_status",
         "description": "Get current now playing song, queued songs, active theme, and party settings.",
         "parameters": {
             "type": "OBJECT",
             "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_library_songs",
+        "description": "List songs already cached / saved in the local karaoke library. Use this to check if a song is already local or to see what is downloaded.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "limit": {"type": "INTEGER", "description": "Max songs to return (default 30)"},
+                "search": {"type": "STRING", "description": "Optional search filter for title or artist"},
+            },
             "required": [],
         },
     },
@@ -93,7 +274,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "read_code_file",
-        "description": "Read the contents of a project file (e.g. static/theme.css, static/tv.js, core/worker.py).",
+        "description": "Read the contents of a project file (e.g. static/theme.css, static/look.js). Only use when modifying frontend UI styles or inspecting code. NEVER use to search for songs or check local media files.",
         "parameters": {
             "type": "OBJECT",
             "properties": {
@@ -162,6 +343,67 @@ def _safe_path(rel_path: str) -> Path | None:
 async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
     log.info("Agent executing tool '%s' with args %s", name, args)
 
+    if name == "customize_control_panel":
+        action = str(args.get("action", "update")).strip().lower()
+        cfg = get_ui_config()
+
+        if action == "reset":
+            cfg = dict(DEFAULT_UI_CONFIG)
+        elif action == "add_button":
+            btn = args.get("button")
+            if not isinstance(btn, dict) or not btn.get("id"):
+                return {"error": "Missing button object with 'id'"}
+            buttons = [b for b in cfg.get("custom_buttons", []) if b.get("id") != btn["id"]]
+            buttons.append(btn)
+            cfg["custom_buttons"] = buttons
+        elif action == "remove_button":
+            btn_id = args.get("button_id")
+            if not btn_id:
+                return {"error": "Missing button_id to remove"}
+            cfg["custom_buttons"] = [b for b in cfg.get("custom_buttons", []) if b.get("id") != btn_id]
+
+        if "column_order" in args and isinstance(args["column_order"], list):
+            cfg["column_order"] = args["column_order"]
+
+        if "hide_elements" in args and isinstance(args["hide_elements"], list):
+            hidden = list(cfg.get("hidden_elements", []))
+            for el_id in args["hide_elements"]:
+                if el_id and el_id not in hidden:
+                    hidden.append(el_id)
+            cfg["hidden_elements"] = hidden
+
+        if "show_elements" in args and isinstance(args["show_elements"], list):
+            show_set = set(args["show_elements"])
+            cfg["hidden_elements"] = [el_id for el_id in cfg.get("hidden_elements", []) if el_id not in show_set]
+
+        if "guide_width" in args and args["guide_width"]:
+            cfg["guide_width"] = str(args["guide_width"]).strip()
+
+        if "guide_thumb" in args and args["guide_thumb"]:
+            cfg["guide_thumb"] = str(args["guide_thumb"]).strip()
+
+        if "custom_css" in args and args["custom_css"] is not None:
+            cfg["custom_css"] = str(args["custom_css"])
+
+        save_ui_config(cfg)
+        await hub.broadcast({"type": "ui_config", "config": cfg})
+        return {"status": "ok", "action": action, "config": cfg}
+
+    elif name == "record_improvement_request":
+        topic = str(args.get("topic", "unspecified")).strip()
+        desc = str(args.get("description", "")).strip()
+        alt = str(args.get("safe_alternative", "")).strip()
+        record_improvement(
+            category="feature_request",
+            summary=f"{topic}: {desc[:100]}",
+            details={"topic": topic, "description": desc, "safe_alternative": alt},
+        )
+        return {
+            "status": "recorded",
+            "topic": topic,
+            "note": "Request recorded in development wishlist for future updates.",
+        }
+
     if name == "get_party_status":
         snap = queue.snapshot()
         current = snap.get("now_playing")
@@ -176,6 +418,31 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
             "upcoming": [{"title": i.get("title"), "singer": i.get("singer")} for i in items[:5]],
             "theme": settings.get("theme"),
             "accent": settings.get("accent"),
+        }
+
+    elif name == "get_library_songs":
+        limit = int(args.get("limit", 30))
+        query = str(args.get("search", "")).lower().strip()
+        all_songs = await asyncio.to_thread(cache_manager.list_songs)
+        if query:
+            filtered = [
+                s for s in all_songs
+                if query in str(s.get("title", "")).lower() or query in str(s.get("channel", "")).lower()
+            ]
+        else:
+            filtered = all_songs
+        return {
+            "total_cached": len(all_songs),
+            "matched_count": len(filtered),
+            "songs": [
+                {
+                    "id": s.get("id"),
+                    "title": s.get("title", "Unknown"),
+                    "channel": s.get("channel", ""),
+                    "ready": bool(s.get("ready")),
+                }
+                for s in filtered[:limit]
+            ],
         }
 
     elif name == "change_setting":
@@ -304,6 +571,10 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
                 final_content = content
 
             target.write_text(final_content, encoding="utf-8")
+            if rel.endswith(".css"):
+                await hub.broadcast({"type": "hot_css"})
+            elif rel.endswith((".html", ".js")):
+                await hub.broadcast({"type": "reload"})
             return {"status": "applied", "path": rel, "summary": summary, "backed_up": True}
         except Exception as e:
             return {"error": str(e)}
@@ -358,6 +629,10 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         try:
             target.write_bytes(bak.read_bytes())
             bak.unlink()
+            if rel.endswith(".css"):
+                await hub.broadcast({"type": "hot_css"})
+            elif rel.endswith((".html", ".js")):
+                await hub.broadcast({"type": "reload"})
             return {"status": "undone", "path": rel}
         except Exception as e:
             return {"error": str(e)}
@@ -503,6 +778,13 @@ async def _chat_gemini(message: str, history: list[dict], model: str, api_key: s
                 fn_args = fn.get("args", {})
                 result = await execute_tool(fn_name, fn_args)
                 executed_tools.append({"name": fn_name, "args": fn_args, "result": result})
+                if "error" in result:
+                    record_improvement(
+                        category="tool_error",
+                        summary=f"Tool '{fn_name}' error: {result['error']}",
+                        details={"tool": fn_name, "args": fn_args, "error": result["error"]},
+                        prompt=message,
+                    )
                 if fn_name == "propose_backend_diff" and result.get("status") == "proposed":
                     proposals.append(result)
                 resp_parts.append({
@@ -514,7 +796,20 @@ async def _chat_gemini(message: str, history: list[dict], model: str, api_key: s
 
             contents.append({"role": "user", "parts": resp_parts})
 
-    return {"reply": "Tool execution completed.", "tool_calls": executed_tools, "proposals": proposals}
+    record_improvement(
+        category="turn_limit_exhausted",
+        summary=f"Hit 8-turn limit on prompt: {message[:100]}",
+        details={"tools_called": [t.get("name") for t in executed_tools]},
+        prompt=message,
+    )
+    tool_names = ", ".join(dict.fromkeys(t.get("name", "") for t in executed_tools if t.get("name")))
+    friendly_reply = (
+        "🎤 Whoa, I went down a bit of a rabbit hole working through all the steps on that request and hit my DJ turn limit! "
+        f"I tried steps with {tool_names or 'various tools'} but paused before wrapping it up to keep the party running safely. "
+        "I've logged this in my improvement backlog so our developers can make this capability seamless. "
+        "Would you like me to try a simpler approach or pick a specific action?"
+    )
+    return {"reply": friendly_reply, "tool_calls": executed_tools, "proposals": proposals}
 
 
 def _normalize_openai_schema(params: dict[str, Any]) -> dict[str, Any]:
@@ -589,6 +884,13 @@ async def _chat_openai(message: str, history: list[dict], model: str, api_key: s
                 fn_args = json.loads(fn.get("arguments", "{}"))
                 result = await execute_tool(fn_name, fn_args)
                 executed_tools.append({"name": fn_name, "args": fn_args, "result": result})
+                if "error" in result:
+                    record_improvement(
+                        category="tool_error",
+                        summary=f"Tool '{fn_name}' error: {result['error']}",
+                        details={"tool": fn_name, "args": fn_args, "error": result["error"]},
+                        prompt=message,
+                    )
                 if fn_name == "propose_backend_diff" and result.get("status") == "proposed":
                     proposals.append(result)
                 messages.append({
@@ -597,4 +899,17 @@ async def _chat_openai(message: str, history: list[dict], model: str, api_key: s
                     "content": json.dumps(result),
                 })
 
-    return {"reply": "Completed.", "tool_calls": executed_tools, "proposals": proposals}
+    record_improvement(
+        category="turn_limit_exhausted",
+        summary=f"Hit 8-turn limit on prompt: {message[:100]}",
+        details={"tools_called": [t.get("name") for t in executed_tools]},
+        prompt=message,
+    )
+    tool_names = ", ".join(dict.fromkeys(t.get("name", "") for t in executed_tools if t.get("name")))
+    friendly_reply = (
+        "🎤 Whoa, I went down a bit of a rabbit hole working through all the steps on that request and hit my DJ turn limit! "
+        f"I tried steps with {tool_names or 'various tools'} but paused before wrapping it up to keep the party running safely. "
+        "I've logged this in my improvement backlog so our developers can make this capability seamless. "
+        "Would you like me to try a simpler approach or pick a specific action?"
+    )
+    return {"reply": friendly_reply, "tool_calls": executed_tools, "proposals": proposals}

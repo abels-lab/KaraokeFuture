@@ -16,6 +16,7 @@ const send = connectWS("tv", (msg) => {
   else if (msg.type === "control") onControl(msg.action, msg.value);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
   else if (msg.type === "library") loading.poke();   // a pipeline stage moved on
+  else if (msg.type === "ui_config") window.TvUi?.applyConfig(msg.config);
 }, () => {
   if (current && !inst.paused) {
     send({
@@ -45,6 +46,7 @@ function onState({ now_playing: np, queue = [], played = [], screens = 0 }) {
   if (!np) {
     try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
     if (current) stopSong();
+    resetNowPlaying();
     showStage(false, queue);
     if (window.__pendingReload) { location.reload(); return; }
     return;
@@ -61,8 +63,12 @@ function onState({ now_playing: np, queue = [], played = [], screens = 0 }) {
   }
   if (current.guide !== np.guide || current.mode !== np.mode) { // the singer changed their choice mid-song
     const modeChanged = current.mode !== np.mode;
-    Object.assign(current, { guide: np.guide, mode: np.mode });
-    Guide.forEntry(current);
+    const guideChanged = current.guide !== np.guide;
+    current.mode = np.mode;
+    if (!Guide.isHostLocked?.(current.uid)) {
+      current.guide = np.guide;
+      if (guideChanged) Guide.forEntry(current);
+    }
     if (modeChanged) GamePanel.load(current);
   }
 }
@@ -84,6 +90,15 @@ function showStage(on, queue = []) {
   $("idle-mic").classList.remove("hidden");
 }
 const showSinger = (entry) => { $("np-singer").textContent = singers(entry); $("np-title").textContent = entry.title; };
+const resetNowPlaying = () => {
+  if ($("np-singer")) $("np-singer").textContent = "Nobody yet";
+  if ($("np-title")) $("np-title").textContent = "Pick a song to get started";
+  if ($("time-cur")) $("time-cur").textContent = "0:00";
+  if ($("time-dur")) $("time-dur").textContent = "0:00";
+  if (seek) { seek.value = 0; seek.max = 0; }
+  if ($("btn-play")) setIcon($("btn-play"), "play");
+};
+resetNowPlaying();
 
 async function loadSong(entry) {
   IntroRun.stop();
@@ -154,6 +169,7 @@ function stopSong() {
   try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
   current = null; pause(); stage.clear(); pulse.clear(); GamePanel.clear(); Guide.forEntry(null);
   [inst, voc].forEach((a) => { a.removeAttribute("src"); a.load(); });
+  resetNowPlaying();
 }
 
 function play() {

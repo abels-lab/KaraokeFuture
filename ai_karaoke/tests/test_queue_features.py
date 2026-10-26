@@ -4,15 +4,28 @@
 - Already played songs tracking
 - Re-queueing played songs back into upcoming queue
 - Selecting and immediately playing any played song
+- Worker and JobQueue enqueuing & processing when empty
 """
 import unittest
 import asyncio
+import tempfile
+from pathlib import Path
+from unittest.mock import patch, AsyncMock
 from core.queue_manager import QueueManager
+from core.jobs import JobQueue, HIGH, LOW
+from core.worker import Worker
 
 
 class TestQueueFeatures(unittest.TestCase):
     def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.queue_patcher = patch("config.QUEUE_FILE", Path(self.tmp_dir.name) / "queue.json")
+        self.queue_patcher.start()
         self.q = QueueManager()
+
+    def tearDown(self):
+        self.queue_patcher.stop()
+        self.tmp_dir.cleanup()
 
     def test_drag_reorder_move_to(self):
         async def run():
@@ -96,6 +109,28 @@ class TestQueueFeatures(unittest.TestCase):
         self.assertIn("played", snap)
         self.assertIn("tv_connected", snap)
         self.assertIn("screens", snap)
+
+    def test_worker_enqueues_and_processes_when_jobqueue_starts_empty(self):
+        async def run():
+            jq = JobQueue()
+            self.assertEqual(len(jq), 0)
+            self.assertTrue(bool(jq))
+
+            w = Worker()
+            w.start()
+            try:
+                with patch("core.cache_manager.is_ready", return_value=False), \
+                     patch("core.worker_jobs.dispatch", new_callable=AsyncMock, return_value=True) as mock_dispatch:
+                    await w.submit("test_song_1")
+                    await w.submit("test_song_2")
+                    await asyncio.sleep(0.05)
+                    self.assertEqual(mock_dispatch.call_count, 2)
+                    self.assertEqual(w.backlog(), {"high": 0, "low": 0})
+                    self.assertEqual(w.stages, {})
+            finally:
+                await w.stop()
+
+        asyncio.run(run())
 
 
 if __name__ == "__main__":

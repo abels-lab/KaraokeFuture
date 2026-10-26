@@ -129,7 +129,7 @@ document.addEventListener("keydown", (e) => {
 });
 
 api("/api/info").then(({ qr, remote_url: url }) => {
-  $("qr").src = $("qr-big").src = qr; $("qr-url").textContent = $("qr-url-big").textContent = url;
+  if ($("qr")) $("qr").src = qr; if ($("qr-big")) $("qr-big").src = qr; if ($("qr-url")) $("qr-url").textContent = url; if ($("qr-url-big")) $("qr-url-big").textContent = url;
 });
 // First run: until a host PIN exists only this laptop can manage the party
 api("/api/auth/me").then(({ pin_set: pinSet }) => $("pin-hint").classList.toggle("hidden", pinSet)).catch(() => {});
