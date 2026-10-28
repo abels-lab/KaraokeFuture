@@ -24,41 +24,15 @@
       <a id="support-link" href="https://github.com/sponsors/abels-lab" target="_blank" rel="noopener" class="rounded-lg bg-amber-500/15 border border-amber-400/30 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-amber-500/25 transition" title="Support AI Karaoke / Buy the creator a coffee">☕ Support Project</a>
     </header>
 
-    <p id="readonly" class="panel hidden border-amber-500/40 p-3 text-sm text-amber-200">
-      🔒 View only — settings can be changed on the laptop running the karaoke, or on this device after
-      <button id="unlock" class="font-semibold underline">entering the host PIN</button>.</p>
-
-    <!-- Host PIN + party wipe (static/party-admin.js) -->
-    <section id="party" class="panel space-y-3 p-4">
-      <h2 class="font-display text-xl font-bold text-gold">Party &amp; host PIN</h2>
-      <p id="pin-status" class="text-sm text-stone-300"></p>
-      <form id="pin-form" class="hidden flex flex-wrap gap-2">
-        <input id="pin-new" type="password" inputmode="numeric" pattern="\d{4,12}" maxlength="12" required autocomplete="new-password"
-               placeholder="New PIN (4–12 digits)" class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-3 py-2 font-mono outline-none focus:border-amber-400">
-        <button class="btn-gold rounded-xl px-4 py-2 text-sm">Save PIN</button>
-      </form>
-      <div id="wipe-box" class="hidden flex flex-wrap items-center gap-3 border-t border-white/10 pt-3">
-        <p class="min-w-[14rem] flex-1 text-sm text-stone-400">New party? Forget every guest login and their waiting songs.
-          Cached songs, lyrics, settings and the host PIN stay.</p>
-        <button id="wipe" class="rounded-xl bg-red-900/70 px-4 py-2 text-sm font-semibold hover:bg-red-800">🧹 Wipe Party DB</button>
-      </div>
-    </section>
-
-    <section class="panel flex flex-wrap items-center gap-3 p-3">
-      <input id="filter" type="search" placeholder="Find a setting…"
-             class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400">
-      <span id="changed" class="text-sm text-stone-400"></span>
-      <button id="reset-all" class="rounded-xl bg-red-900/70 px-4 py-2 text-sm font-semibold hover:bg-red-800 disabled:opacity-30">
-        ↺ Reset all to defaults</button>
-    </section>
-
-    <div id="groups" class="space-y-5"></div>
+    <!-- View-only notice, Party & host PIN, filter, resets and every setting: static/ui/settings-panel.js -->
   </div>
 
   <script src="/static/common.js"></script>
   <script src="/static/look.js"></script>
   <script src="/static/auth.js"></script>
-  <script src="/static/party-admin.js"></script>
+  <script src="/static/ui/settings-rows.js"></script>
+  <script src="/static/ui/party-panel.js"></script>
+  <script src="/static/ui/settings-panel.js"></script>
   <script src="/static/settings.js"></script>
 </body>
 </html>
