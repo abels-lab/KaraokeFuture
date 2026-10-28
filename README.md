@@ -82,8 +82,6 @@ Other settings (`KARAOKE_HOST`, `KARAOKE_CACHE_DIR`, `KARAOKE_MODELS_DIR`, `KARA
 
 If AI Karaoke brought music and joy to your party, consider supporting ongoing development:
 
-- **GitHub Sponsors**: [github.com/sponsors/abels-lab](https://github.com/sponsors/abels-lab)
-- **Buy Me a Coffee**: [buymeacoffee.com/abelslab](https://buymeacoffee.com/abelslab)
-- **Ko-fi**: [ko-fi.com/abelslab](https://ko-fi.com/abelslab)
+- **💖 GitHub Sponsors**: [github.com/sponsors/abels-lab](https://github.com/sponsors/abels-lab)
 
 Party hosts can customize the support / tip link under **Settings → Guest access → Sponsor / Buy Me a Coffee URL**, which updates the ☕ button displayed on the Control Panel, Settings page, and guest phones.
