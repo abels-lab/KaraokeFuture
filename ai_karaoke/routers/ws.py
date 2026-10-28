@@ -143,5 +143,7 @@ async def websocket_endpoint(ws: WebSocket, role: str = "remote"):
         pass
     finally:
         hub.disconnect(ws)
-        if role == "screen":
+        # Projector count, and whether a player is left: a host app in controller mode offers to
+        # play the audio itself when the laptop's control panel closes (state "tv_connected")
+        if role in ("screen", "tv"):
             await queue.broadcast_state()

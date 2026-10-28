@@ -3,7 +3,7 @@
 // Battle: both mic slots score at once (slot 0 = the owner, slot 1 = the partner who joined on
 // their phone, else "Player 2"). Without a partner, Player 2 joins by singing into mic 2
 // (p2-detect.js) — in Score mode too, when a second mic is set up.
-// Load after common, stage, mics, game, fx, notes, battle-fx, results, game-view, p2-detect; before tv.js.
+// Load after common, stage, mics, game, fx, notes, battle-fx, results, game-view, p2-detect, tv-now; before tv.js.
 const GamePanel = (() => {
   let mode = store("gameMode") || "off", roast = store("gameRoast") === "1";
   let entry = null, view = null, send = () => {}, active = mode; // active: the mode of the song playing
@@ -12,7 +12,7 @@ const GamePanel = (() => {
   const modeFor = (e) => ENTRY_MODE[e?.mode] || mode;
   const scored = () => active === "hard" || active === "battle";
   const channel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-game") : null;
-  const ensureView = () => (view ||= createGameView($("monitor"), stage)); // stage comes from tv.js
+  const ensureView = () => (view ||= createGameView($("monitor"), stage)); // stage comes from tv-now.js
   const detect = createP2Detect();
   let waitingP2 = false;   // slot 1 exists but hasn't joined yet (no partner, nobody sang)
 
