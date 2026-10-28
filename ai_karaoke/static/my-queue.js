@@ -1,6 +1,8 @@
 // Guest phone: the queue with your own songs highlighted and their controls — swap among your
 // own songs (never ahead of anyone else), remove them, and per song the singing mode and the
-// guide-vocal volume the control panel uses when it plays. Needs common.js, auth.js, lyrics.js.
+// guide-vocal volume the control panel uses when it plays. The ＋ in the empty-queue card opens
+// the search popup (guest/app.js). Needs common.js, auth.js, lyrics.js, remote-battle.js and
+// guest/overlay-back.js. renderQueue(queue, played) with every "state" message; songPrefs(entry).
 const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle / Duet (2 mics)"]];
 let lastQueue = [], lastPlayed = [], dragging = false;
 let queueFilter = "all"; // "all" | "mine" | "played"
@@ -45,35 +47,30 @@ function lyricsActionBtn(e) {
   const isAdmin = Boolean(Auth.me?.admin);
   const label = isAdmin ? (isTranscribed ? "📝 Fix" : "📝 Lyrics") : "📖 Lyrics";
   const title = isAdmin ? (isTranscribed ? "Fix AI-transcribed lyrics" : "Edit lyrics") : "View lyrics";
-  const cls = isTranscribed
-    ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50"
-    : "bg-white/10 text-stone-200";
-  return iconButton(label, title, () => openLyrics(e), cls);
+  const cls = isTranscribed ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50" : "bg-white/10 text-stone-200";
+  return iconButton(label, title, () => GuestOverlay.open(() => openLyrics(e)), cls);   // Back closes it
 }
 
+// Filter pills: All in line / My songs / Already played
+const FILTER_ON = ["bg-amber-400", "text-stone-950"], FILTER_OFF = ["bg-white/10", "text-stone-300"];
 function setQueueFilter(f) {
   queueFilter = f;
-  const isAll = f === "all", isMine = f === "mine", isPlayed = f === "played";
-  $("qfilter-all")?.classList.toggle("bg-amber-400", isAll);
-  $("qfilter-all")?.classList.toggle("text-stone-950", isAll);
-  $("qfilter-all")?.classList.toggle("bg-white/10", !isAll);
-  $("qfilter-all")?.classList.toggle("text-stone-300", !isAll);
-
-  $("qfilter-mine")?.classList.toggle("bg-amber-400", isMine);
-  $("qfilter-mine")?.classList.toggle("text-stone-950", isMine);
-  $("qfilter-mine")?.classList.toggle("bg-white/10", !isMine);
-  $("qfilter-mine")?.classList.toggle("text-stone-300", !isMine);
-
-  $("qfilter-played")?.classList.toggle("bg-amber-400", isPlayed);
-  $("qfilter-played")?.classList.toggle("text-stone-950", isPlayed);
-  $("qfilter-played")?.classList.toggle("bg-white/10", !isPlayed);
-  $("qfilter-played")?.classList.toggle("text-stone-300", !isPlayed);
+  for (const name of ["all", "mine", "played"]) {
+    const b = $(`qfilter-${name}`);
+    b?.classList.remove(...FILTER_ON, ...FILTER_OFF);
+    b?.classList.add(...(name === f ? FILTER_ON : FILTER_OFF));
+    b?.setAttribute("aria-pressed", String(name === f));
+  }
   renderQueue();
 }
+for (const name of ["all", "mine", "played"]) $(`qfilter-${name}`)?.addEventListener("click", () => setQueueFilter(name));
 
-$("qfilter-all")?.addEventListener("click", () => setQueueFilter("all"));
-$("qfilter-mine")?.addEventListener("click", () => setQueueFilter("mine"));
-$("qfilter-played")?.addEventListener("click", () => setQueueFilter("played"));
+function setEmpty(show, title, sub) {
+  $("queue-empty")?.classList.toggle("hidden", !show);
+  if (!show) return;
+  $("empty-title").textContent = title;
+  $("empty-sub").textContent = sub;
+}
 
 function renderQueue(queue = lastQueue, played = lastPlayed) {
   lastQueue = queue;
@@ -85,43 +82,22 @@ function renderQueue(queue = lastQueue, played = lastPlayed) {
   if ($("queue-count")) $("queue-count").textContent = queue.length;
   if ($("queue-mine-count")) $("queue-mine-count").textContent = mine.length;
   if ($("queue-played-count")) $("queue-played-count").textContent = played.length;
-  const badge = $("tab-queue-badge");
+  const badge = $("tab-queue-badge");   // phone tab bar
   if (badge) {
     badge.textContent = queue.length;
-    badge.className = `ml-1 rounded-full px-2 py-0.5 text-xs font-mono font-bold ${
-      queue.length > 0 ? "bg-amber-400 text-stone-950" : "bg-white/10 text-stone-300"
-    }`;
+    badge.className = `tab-badge ${queue.length ? "" : "hidden"} ${mine.length ? "bg-amber-400 text-stone-950" : "bg-white/20 text-stone-100"}`;
   }
 
-  const empty = $("queue-empty");
-
-  // If viewing already played songs
   if (queueFilter === "played") {
     const revPlayed = [...played].reverse();
-    if (empty) {
-      empty.classList.toggle("hidden", revPlayed.length > 0);
-      if (revPlayed.length === 0) {
-        if ($("empty-title")) $("empty-title").textContent = "No songs played yet";
-        if ($("empty-sub")) $("empty-sub").textContent = "Songs that finished singing will appear here.";
-      }
-    }
+    setEmpty(!revPlayed.length, "No songs played yet", "Songs that finished singing will appear here.");
     $("queue")?.replaceChildren(...revPlayed.map((e, i) => playedRow(e, i)));
     return;
   }
 
   const items = queueFilter === "mine" ? mine : queue;
-  if (empty) {
-    empty.classList.toggle("hidden", items.length > 0);
-    if (items.length === 0) {
-      if (queue.length === 0) {
-        if ($("empty-title")) $("empty-title").textContent = "Nobody in line";
-        if ($("empty-sub")) $("empty-sub").textContent = "Be the first to queue a song!";
-      } else {
-        if ($("empty-title")) $("empty-title").textContent = "No songs queued by you";
-        if ($("empty-sub")) $("empty-sub").textContent = `There are ${queue.length} other songs waiting in line.`;
-      }
-    }
-  }
+  setEmpty(!items.length, queue.length ? "No songs queued by you" : "Nobody in line",
+    queue.length ? `There are ${queue.length} other songs waiting in line.` : "Be the first to queue a song!");
 
   $("queue")?.replaceChildren(...items.map((e) => {
     const own = Auth.owns(e);
@@ -135,12 +111,9 @@ function renderQueue(queue = lastQueue, played = lastPlayed) {
       first: admin ? idx === 0 : pos === 0,
       last: admin ? idx === queue.length - 1 : pos === mine.length - 1,
     });
-    if (own) {
-      row.classList.replace("ring-white/5", "ring-amber-400/60"); // yours stand out
-    }
-    if (canManage) {
-      row.lastChild.append(songPrefs(e));
-    }
+    if (own) row.classList.replace("ring-white/5", "ring-amber-400/60"); // yours stand out
+    if (canManage) row.lastChild.append(songPrefs(e));
     return row;
   }));
 }
+setQueueFilter("all");
