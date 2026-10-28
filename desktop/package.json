@@ -1,0 +1,43 @@
+{
+  "name": "ai-karaoke-desktop",
+  "version": "1.0.0",
+  "description": "Desktop multi-monitor wrapper for AI Karaoke",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.abelslab.aikaraoke",
+    "productName": "AI Karaoke",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "extraResources": [
+      {
+        "from": "../ai_karaoke",
+        "to": "ai_karaoke",
+        "filter": [
+          "**/*",
+          "!**/__pycache__/**",
+          "!**/.venv/**",
+          "!**/cache/**",
+          "!**/models/**",
+          "!**/lyrics_store/**",
+          "!**/party/**",
+          "!**/data/**"
+        ]
+      }
+    ]
+  }
+}

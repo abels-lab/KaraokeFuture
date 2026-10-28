@@ -42,6 +42,25 @@ Install the PyTorch CUDA trio **first**, otherwise pip may swap in a CPU-only to
 
 ## Run
 
+### Desktop App (Multi-Monitor & Seamless Audio)
+
+Double-click **`start-desktop.bat`** (or run `.\start-desktop.ps1`). This launches the Electron desktop wrapper (`desktop/`), which:
+- Automatically boots the Python backend if not already running.
+- Opens the **Control Panel (`/tv`)** without browser gesture or WebAudio autoplay blocks.
+- Automatically detects a connected external display or projector and routes **`📺 Screen` (`/screen`)** directly to that display in fullscreen.
+- Auto-grants microphone permissions for instant pitch scoring without browser popups.
+- Optionally switches Tailscale Funnel on so mobile guests can join over HTTPS.
+
+You can also run or package it from the `desktop/` directory:
+```powershell
+cd desktop
+npm install
+npm start          # Run desktop wrapper
+npm run dist       # Package Windows installer (NSIS & portable)
+```
+
+### Web Server & Browser Mode
+
 Double-click **`start-karaoke.bat`** (or run `.\start-karaoke.ps1`). It switches [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) on for port 8010, starts the server and opens the control panel. The QR code then links to the public `https://<laptop>.<tailnet>.ts.net/remote` address, so guests can join from mobile data too, over HTTPS. Funnel is switched off again when the server stops (`-KeepFunnel` keeps it on); `-NoFunnel` keeps everything on the home Wi-Fi, and `-Port 8000` picks another port. While Funnel is on, anybody with the link can open the guest page, so set a host PIN on the Settings page. Visitors coming through Funnel are never treated as the laptop. Settings → Guest access → "QR code opens" can force the Wi-Fi address.
 
 Or start it by hand:
@@ -57,3 +76,14 @@ Other settings (`KARAOKE_HOST`, `KARAOKE_CACHE_DIR`, `KARAOKE_MODELS_DIR`, `KARA
 ## Not in the repo
 
 `ai_karaoke/cache/`, `ai_karaoke/models/` and `ai_karaoke/lyrics_store/` are created at runtime and git-ignored (downloaded media, model weights, guest-pasted lyrics).
+
+
+## ☕ Support / Sponsor
+
+If AI Karaoke brought music and joy to your party, consider supporting ongoing development:
+
+- **GitHub Sponsors**: [github.com/sponsors/abels-lab](https://github.com/sponsors/abels-lab)
+- **Buy Me a Coffee**: [buymeacoffee.com/abelslab](https://buymeacoffee.com/abelslab)
+- **Ko-fi**: [ko-fi.com/abelslab](https://ko-fi.com/abelslab)
+
+Party hosts can customize the support / tip link under **Settings → Guest access → Sponsor / Buy Me a Coffee URL**, which updates the ☕ button displayed on the Control Panel, Settings page, and guest phones.

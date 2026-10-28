@@ -18,7 +18,8 @@ param(
     [int]$Port = 8010,
     [switch]$NoFunnel,
     [switch]$KeepFunnel,
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$Dev
 )
 $ErrorActionPreference = "Stop"
 $app = Join-Path $PSScriptRoot "ai_karaoke"
@@ -49,6 +50,10 @@ if ($NoFunnel) {
 
 $env:KARAOKE_PORT = "$Port"
 $env:PYTHONUNBUFFERED = "1"
+if ($Dev) {
+    $env:KARAOKE_DEV = "1"
+    Write-Host "Development mode: auto-reload enabled on Python code changes." -ForegroundColor Cyan
+}
 if (-not $NoBrowser -and $env:KARAOKE_NO_BROWSER -ne "1") {
     # Opens once the server answers, without holding up the server's own output.
     # If a /tv tab is already open and connected from a previous session, skips opening a duplicate tab.

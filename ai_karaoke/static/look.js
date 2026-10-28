@@ -53,6 +53,22 @@ const Look = (() => {
     const lyrics = Settings.get("lyrics_mode", "full");
     document.body.classList.toggle("lyrics-plain", lyrics === "plain");
     document.body.classList.toggle("lyrics-off", lyrics === "off");
+
+    // Support / Buy Me a Coffee link
+    const supportUrl = Settings.get("support_url", "https://github.com/sponsors/abels-lab");
+    const showSupportOnRemote = Settings.get("show_support_on_remote", true);
+    document.querySelectorAll("#support-link, [data-support-link]").forEach((el) => {
+      if (supportUrl) {
+        el.href = supportUrl;
+        el.classList.remove("hidden");
+      } else {
+        el.classList.add("hidden");
+      }
+    });
+    const supportFooter = document.getElementById("support-footer");
+    if (supportFooter) {
+      supportFooter.classList.toggle("hidden", !showSupportOnRemote || !supportUrl);
+    }
   }
   Settings.onChange(apply);
 

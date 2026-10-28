@@ -223,6 +223,10 @@ function queueRow(e, i, total, { thumb = true, extras = [], manage = "all", firs
     const del = iconButton("✕", "Remove from queue", () => api(`/api/queue/${e.uid}`, { method: "DELETE" }).catch(fail), "hover:bg-red-800");
     top.disabled = up.disabled = first;
     down.disabled = last;
+    if (typeof openLyrics === "function") {
+      const lyr = iconButton("📝", "View or edit lyrics", () => openLyrics(e));
+      meta.append(lyr);
+    }
     meta.append(top, up, down, del);
   }
   li.append(info);

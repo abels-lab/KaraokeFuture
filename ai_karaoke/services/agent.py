@@ -18,6 +18,7 @@ from core.queue_manager import queue
 import asyncio
 from services import search as smart_search
 from services import sources
+from services import lyrics_source, ultrastar_source
 
 log = logging.getLogger(__name__)
 
@@ -113,6 +114,7 @@ You assist the host with running the party:
 5. Live frontend code editing (static/*.css, static/*.js, static/*.html): modify permanent styles or templates directly via edit_frontend_file (supports full content OR old_snippet and new_snippet for quick surgical edits).
 6. Server backend code modifications (core/*.py, routers/*.py, services/*.py): propose changes via propose_backend_diff so the host can review the diff.
 7. Recording feature requests & capability gaps: call record_improvement_request when the host asks for something you lack tools for or that cannot safely be performed live.
+8. Inspecting & editing song lyrics: use get_song_lyrics to inspect current lyrics, and edit_song_lyrics to fix typos, replace words/lines (using old_snippet and new_snippet), provide full lyrics, or reset to original lyrics (using reset=True). If song_id or query is omitted, it automatically targets the now-playing song (or next in queue).
 
 Frontend File & DOM ID Reference Map (NEVER guess static/index.html - it does NOT exist!):
 - static/tv.html: Host Control Panel (/tv). Key DOM IDs:
@@ -128,6 +130,7 @@ Frontend File & DOM ID Reference Map (NEVER guess static/index.html - it does NO
 Guidelines:
 - Keep verbal responses concise, witty, charismatic, and party-ready.
 - When the host asks to customize buttons, layout, or guide vocal slider width/thumb, IMMEDIATELY call customize_control_panel. Do NOT waste turns reading static/tv.html or inventing non-existent files.
+- For lyric requests ("fix lyrics", "change the words in this song", "show me the lyrics"): use get_song_lyrics to inspect existing lines, and edit_song_lyrics with old_snippet and new_snippet for fast surgical word/phrase corrections without rewriting the whole song. To revert to original lyrics, call edit_song_lyrics(reset=True).
 - For finding songs to queue: use your vast musical knowledge to pick great songs, and use search_and_queue. If the host asks about songs that are already cached or NOT already local/cached, use get_library_songs.
 - NEVER call read_code_file for general questions, music requests, or checking cached songs. Only use read_code_file when the host explicitly asks to modify frontend CSS/HTML styles or inspect frontend code.
 - If the host asks for an action or feature you lack tools for:
@@ -323,6 +326,34 @@ TOOLS_SCHEMA = [
             "required": ["path"],
         },
     },
+    {
+        "name": "get_song_lyrics",
+        "description": "Get current lyrics text for a song. Defaults to the now-playing song or top queued song if song_id/query is omitted.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "song_id": {"type": "STRING", "description": "Specific song ID in cache (optional)"},
+                "query": {"type": "STRING", "description": "Song title or artist to search in queue or library (optional)"},
+            },
+            "required": [],
+        },
+    },
+    {
+        "name": "edit_song_lyrics",
+        "description": "Edit or fix lyrics for a song (supports surgical text replacement via old_snippet/new_snippet, full replacement via text, or resetting to automatic via reset=True). Defaults to now-playing song if song_id/query is omitted.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "song_id": {"type": "STRING", "description": "Specific song ID in cache (optional)"},
+                "query": {"type": "STRING", "description": "Song title or artist to locate in queue or library (optional)"},
+                "old_snippet": {"type": "STRING", "description": "Exact text or line in the lyrics to replace"},
+                "new_snippet": {"type": "STRING", "description": "Replacement text or line"},
+                "text": {"type": "STRING", "description": "Full new lyric text (optional if using old_snippet/new_snippet)"},
+                "reset": {"type": "BOOLEAN", "description": "Set to true to discard custom lyrics and reset to automatic online detection"},
+            },
+            "required": [],
+        },
+    },
 ]
 
 
@@ -336,6 +367,40 @@ def _safe_path(rel_path: str) -> Path | None:
     except Exception:
         pass
     return None
+
+
+def _resolve_song(song_id: str | None = None, query: str | None = None) -> tuple[str | None, str | None, dict | None]:
+    """Resolve song_id, title, and metadata from song_id, query, or active queue."""
+    if song_id and cache_manager.song_dir(song_id).is_dir():
+        meta = cache_manager.read_meta(song_id)
+        return song_id, meta.get("title", song_id), meta
+
+    if query:
+        q_lower = query.lower().strip()
+        snap = queue.snapshot()
+        np = snap.get("now_playing")
+        if np and (q_lower in str(np.get("title", "")).lower() or q_lower in str(np.get("id", "")).lower() or q_lower in str(np.get("song_id", "")).lower()):
+            sid = np.get("id") or np.get("song_id")
+            return sid, np.get("title"), cache_manager.read_meta(sid)
+        for item in snap.get("queue", []):
+            if q_lower in str(item.get("title", "")).lower() or q_lower in str(item.get("id", "")).lower() or q_lower in str(item.get("song_id", "")).lower():
+                sid = item.get("id") or item.get("song_id")
+                return sid, item.get("title"), cache_manager.read_meta(sid)
+        for s in cache_manager.list_songs():
+            if q_lower in str(s.get("title", "")).lower() or q_lower in str(s.get("channel", "")).lower() or q_lower in str(s.get("id", "")).lower():
+                return s["id"], s.get("title", s["id"]), s
+
+    snap = queue.snapshot()
+    if snap.get("now_playing"):
+        np = snap["now_playing"]
+        sid = np.get("id") or np.get("song_id")
+        return sid, np.get("title"), cache_manager.read_meta(sid)
+    if snap.get("queue"):
+        first = snap["queue"][0]
+        sid = first.get("id") or first.get("song_id")
+        return sid, first.get("title"), cache_manager.read_meta(sid)
+
+    return None, None, None
 
 
 # ── Tool Execution ────────────────────────────────────────────────────────────
@@ -636,6 +701,89 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
             return {"status": "undone", "path": rel}
         except Exception as e:
             return {"error": str(e)}
+
+    elif name == "get_song_lyrics":
+        song_id, title, meta = _resolve_song(args.get("song_id"), args.get("query"))
+        if not song_id:
+            return {
+                "error": "Could not identify which song's lyrics to inspect. Please specify a song title or ID, or have a song playing or queued."
+            }
+        lyrics_text = lyrics_source.current_text(song_id)
+        if not lyrics_text:
+            return {
+                "song_id": song_id,
+                "title": title,
+                "text": "",
+                "line_count": 0,
+                "has_user_lyrics": False,
+                "status": "no_lyrics_found",
+            }
+        lines = lyrics_text.splitlines()
+        return {
+            "song_id": song_id,
+            "title": title,
+            "has_user_lyrics": lyrics_source.load_user(song_id) is not None,
+            "source": meta.get("lyrics_source") if meta else None,
+            "line_count": len(lines),
+            "text": lyrics_text,
+        }
+
+    elif name == "edit_song_lyrics":
+        song_id, title, meta = _resolve_song(args.get("song_id"), args.get("query"))
+        if not song_id:
+            return {
+                "error": "Could not identify which song's lyrics to edit. Please specify a song title or ID, or have a song playing or queued."
+            }
+
+        reset = bool(args.get("reset", False))
+        if reset:
+            lyrics_source.delete_user(song_id)
+            lyrics_source.forget_online(song_id)
+            ultrastar_source.forget(song_id)
+            await worker.submit_lyrics(song_id)
+            return {
+                "status": "reset",
+                "song_id": song_id,
+                "title": title,
+                "summary": f"Reset lyrics for '{title}' to automatic online detection and triggered re-alignment.",
+            }
+
+        old_snippet = args.get("old_snippet")
+        new_snippet = args.get("new_snippet")
+        full_text = args.get("text")
+
+        if not full_text and (old_snippet is None or new_snippet is None):
+            return {
+                "error": "Please provide either 'text' for full lyrics replacement OR 'old_snippet' and 'new_snippet' for surgical editing."
+            }
+
+        current = lyrics_source.current_text(song_id)
+        if old_snippet is not None and new_snippet is not None:
+            norm_old = str(old_snippet).replace("\r\n", "\n")
+            norm_curr = current.replace("\r\n", "\n")
+            if norm_old not in norm_curr:
+                lines_preview = "\n".join(current.splitlines()[:8])
+                return {
+                    "error": f"Could not find snippet '{old_snippet}' in current lyrics for '{title}'.",
+                    "current_lyrics_preview": lines_preview,
+                }
+            final_text = norm_curr.replace(norm_old, str(new_snippet).replace("\r\n", "\n"))
+        else:
+            final_text = full_text
+
+        try:
+            line_count = lyrics_source.save_user(song_id, final_text)
+        except ValueError as exc:
+            return {"error": str(exc)}
+
+        await worker.submit_lyrics(song_id)
+        return {
+            "status": "updated",
+            "song_id": song_id,
+            "title": title,
+            "line_count": line_count,
+            "summary": f"Successfully updated lyrics for '{title}' ({line_count} lines) and scheduled re-alignment.",
+        }
 
     return {"error": f"Unknown tool: {name}"}
 

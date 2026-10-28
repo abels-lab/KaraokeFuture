@@ -89,10 +89,20 @@ function showStage(on, queue = []) {
   $("idle").classList.toggle("has-loading", waiting);
   $("idle-mic").classList.remove("hidden");
 }
-const showSinger = (entry) => { $("np-singer").textContent = singers(entry); $("np-title").textContent = entry.title; };
+const showSinger = (entry) => {
+  $("np-singer").textContent = singers(entry);
+  $("np-title").textContent = entry.title;
+  const lbtn = $("np-lyrics-btn");
+  if (lbtn) {
+    lbtn.classList.remove("hidden");
+    lbtn.onclick = () => typeof openLyrics === "function" && openLyrics(entry);
+  }
+};
 const resetNowPlaying = () => {
   if ($("np-singer")) $("np-singer").textContent = "Nobody yet";
   if ($("np-title")) $("np-title").textContent = "Pick a song to get started";
+  const lbtn = $("np-lyrics-btn");
+  if (lbtn) lbtn.classList.add("hidden");
   if ($("time-cur")) $("time-cur").textContent = "0:00";
   if ($("time-dur")) $("time-dur").textContent = "0:00";
   if (seek) { seek.value = 0; seek.max = 0; }

@@ -9,6 +9,12 @@ LOOK_SPECS = [
        "Automatic: the Tailscale Funnel address when Funnel points at this app (phones join from mobile "
        "data, over HTTPS), else the home Wi-Fi address. Start with start-karaoke.bat to switch Funnel on.",
        NOW, choices=[["auto", "Automatic (Funnel if on)"], ["lan", "Home Wi-Fi address only"]]),
+    _s("support_url", "access", "Sponsor / Buy Me a Coffee URL", "https://github.com/sponsors/abels-lab", "text",
+       "Link opened by the ☕ Support button on the Control Panel, Settings, and (optionally) guest phones.",
+       NOW, client=True, max_len=200, allow_empty=True),
+    _s("show_support_on_remote", "access", "Show ☕ Support link on guest phones", True, "bool",
+       "Shows a subtle 'Buy the host/creator a coffee' pill at the bottom of the mobile remote page.",
+       NOW, client=True),
     # ── Layout ──────────────────────────────────────────────────────────────
     _n("side_panel_width", "layout", "Side panel width", 28, 20, 50, 1, "rem",
        "Width of the queue, controls and history sidebar on the control panel (/tv). Default is 28 rem (increased from 25 rem).",

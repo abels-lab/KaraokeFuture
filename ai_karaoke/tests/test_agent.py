@@ -238,6 +238,56 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(res_reset["config"]["hidden_elements"], [])
             self.assertEqual(res_reset["config"]["custom_buttons"], [])
 
+    @patch("services.agent.lyrics_source.load_user", return_value="Line one\nLine two\nLine three")
+    @patch("services.agent.lyrics_source.current_text", return_value="Line one\nLine two\nLine three")
+    @patch("services.agent._resolve_song", return_value=("song_123", "Sweet Caroline", {"lyrics_source": "lrc"}))
+    async def test_get_song_lyrics(self, mock_resolve, mock_text, mock_load):
+        res = await agent.execute_tool("get_song_lyrics", {"query": "Sweet Caroline"})
+        self.assertEqual(res.get("song_id"), "song_123")
+        self.assertEqual(res.get("title"), "Sweet Caroline")
+        self.assertEqual(res.get("line_count"), 3)
+        self.assertTrue(res.get("has_user_lyrics"))
+        self.assertIn("Line one", res.get("text"))
+
+    @patch("core.worker.worker.submit_lyrics", new_callable=AsyncMock)
+    @patch("services.agent.lyrics_source.save_user", return_value=4)
+    @patch("services.agent.lyrics_source.current_text", return_value="Line one\nThis is wrong\nLine three\nLine four")
+    @patch("services.agent._resolve_song", return_value=("song_123", "Sweet Caroline", {}))
+    async def test_edit_song_lyrics_surgical(self, mock_resolve, mock_text, mock_save, mock_submit):
+        res = await agent.execute_tool("edit_song_lyrics", {
+            "query": "Sweet Caroline",
+            "old_snippet": "This is wrong",
+            "new_snippet": "This is right",
+        })
+        self.assertEqual(res.get("status"), "updated")
+        self.assertEqual(res.get("song_id"), "song_123")
+        mock_save.assert_called_once_with("song_123", "Line one\nThis is right\nLine three\nLine four")
+        mock_submit.assert_called_once_with("song_123")
+
+    @patch("core.worker.worker.submit_lyrics", new_callable=AsyncMock)
+    @patch("services.agent.ultrastar_source.forget")
+    @patch("services.agent.lyrics_source.forget_online")
+    @patch("services.agent.lyrics_source.delete_user")
+    @patch("services.agent._resolve_song", return_value=("song_123", "Sweet Caroline", {}))
+    async def test_edit_song_lyrics_reset(self, mock_resolve, mock_del, mock_forget_online, mock_forget_ultra, mock_submit):
+        res = await agent.execute_tool("edit_song_lyrics", {"query": "Sweet Caroline", "reset": True})
+        self.assertEqual(res.get("status"), "reset")
+        mock_del.assert_called_once_with("song_123")
+        mock_forget_online.assert_called_once_with("song_123")
+        mock_forget_ultra.assert_called_once_with("song_123")
+        mock_submit.assert_called_once_with("song_123")
+
+    @patch("services.agent.lyrics_source.current_text", return_value="Line one\nLine two\nLine three\nLine four")
+    @patch("services.agent._resolve_song", return_value=("song_123", "Sweet Caroline", {}))
+    async def test_edit_song_lyrics_snippet_not_found(self, mock_resolve, mock_text):
+        res = await agent.execute_tool("edit_song_lyrics", {
+            "query": "Sweet Caroline",
+            "old_snippet": "Nonexistent snippet",
+            "new_snippet": "New line",
+        })
+        self.assertIn("error", res)
+        self.assertIn("Could not find snippet", res["error"])
+
     async def test_edit_frontend_file_broadcasts_hot_css_and_reload(self):
         static_dir = self.base_path / "static"
         static_dir.mkdir(parents=True, exist_ok=True)

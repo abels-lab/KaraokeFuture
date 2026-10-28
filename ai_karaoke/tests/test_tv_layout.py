@@ -140,5 +140,66 @@ class TestTvLayout(unittest.TestCase):
         self.assertIn("body.smiley-guide", self.css)
 
 
+    def test_funding_and_support_links(self):
+        repo_root = self.root.parent
+        # 1. .github/FUNDING.yml exists
+        funding_file = repo_root / ".github" / "FUNDING.yml"
+        self.assertTrue(funding_file.exists(), "FUNDING.yml must exist at repo root .github/")
+        funding_text = funding_file.read_text(encoding="utf-8")
+        self.assertIn("github:", funding_text)
+        self.assertIn("abels-lab", funding_text)
+
+        # 2. support_url and show_support_on_remote exist in core/settings.py client_values()
+        from core import settings
+        client_vals = settings.client_values()
+        self.assertIn("support_url", client_vals)
+        self.assertIn("show_support_on_remote", client_vals)
+        self.assertEqual(client_vals["support_url"], "https://github.com/sponsors/abels-lab")
+        self.assertTrue(client_vals["show_support_on_remote"])
+
+        # 3. #support-link is present in static/tv.html, static/settings.html, and static/remote.html
+        tv_html = (self.root / "static" / "tv.html").read_text(encoding="utf-8")
+        settings_html = (self.root / "static" / "settings.html").read_text(encoding="utf-8")
+        remote_html = (self.root / "static" / "remote.html").read_text(encoding="utf-8")
+
+        self.assertIn('id="support-link"', tv_html)
+        self.assertIn('id="support-link"', settings_html)
+        self.assertIn('id="support-link"', remote_html)
+        self.assertIn('id="support-footer"', remote_html)
+
+    def test_desktop_wrapper_files(self):
+        import json
+        repo_root = self.root.parent
+        # 4. desktop/package.json, desktop/main.js, desktop/preload.js, start-desktop.bat, and start-desktop.ps1 exist and are valid
+        pkg_json_file = repo_root / "desktop" / "package.json"
+        self.assertTrue(pkg_json_file.exists(), "desktop/package.json must exist")
+        with open(pkg_json_file, "r", encoding="utf-8") as f:
+            pkg_data = json.load(f)
+        self.assertEqual(pkg_data["name"], "ai-karaoke-desktop")
+        self.assertIn("electron", pkg_data.get("devDependencies", {}))
+
+        main_js_file = repo_root / "desktop" / "main.js"
+        self.assertTrue(main_js_file.exists(), "desktop/main.js must exist")
+        main_js = main_js_file.read_text(encoding="utf-8")
+        self.assertIn("autoplay-policy", main_js)
+        self.assertIn("no-user-gesture-required", main_js)
+        self.assertIn("getAllDisplays", main_js)
+        self.assertIn("setPermissionRequestHandler", main_js)
+
+        preload_js_file = repo_root / "desktop" / "preload.js"
+        self.assertTrue(preload_js_file.exists(), "desktop/preload.js must exist")
+        preload_js = preload_js_file.read_text(encoding="utf-8")
+        self.assertIn("contextBridge", preload_js)
+        self.assertIn("karaokeDesktop", preload_js)
+
+        start_bat_file = repo_root / "start-desktop.bat"
+        self.assertTrue(start_bat_file.exists(), "start-desktop.bat must exist")
+
+        start_ps1_file = repo_root / "start-desktop.ps1"
+        self.assertTrue(start_ps1_file.exists(), "start-desktop.ps1 must exist")
+        ps1_text = start_ps1_file.read_text(encoding="utf-8")
+        self.assertIn("electron", ps1_text)
+
+
 if __name__ == "__main__":
     unittest.main()

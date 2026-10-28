@@ -93,11 +93,45 @@ def unmatched(loud, segments) -> list[list[float]]:
     return [[round(s, 1), round(e, 1)] for s, e in merged if e - s >= settings.get("min_unmatched")]
 
 
-def timing_quality(segments: list[dict], regions) -> dict:
+def first_vocal_onset(vocal_map: dict, start_time: float = 0.0, min_duration: float = 1.0) -> float:
+    """First sustained vocal phrase onset from loud activity, stepped back slightly.
+
+    Finds the first phrase in loud with duration >= min_duration, checks for a covering
+    lenient region (or steps back ~1.5s) to include any quiet breath or pickup word
+    preceding the loud singing, and clamps to at least start_time.
+    """
+    loud = vocal_map.get("loud", [])
+    sustained = [p for p in loud if p[1] - p[0] >= min_duration and p[1] > start_time]
+    if not sustained:
+        return start_time
+    loud_start = sustained[0][0]
+    regions = vocal_map.get("regions", [])
+    covering = next((r for r in regions if r[0] <= loud_start <= r[1]), None)
+    if covering:
+        onset = max(loud_start - 2.0, min(covering[0], loud_start - 1.0))
+    else:
+        onset = loud_start - 1.5
+    return max(start_time, round(onset, 2))
+
+
+def timing_quality(segments: list[dict], regions, loud=()) -> dict:
     """Share of words with no duration / not on the vocals. High values = alignment got lost."""
     words = [w for s in segments for w in s["words"]]
     n = max(len(words), 1)
     zero = float(sum(w["end"] - w["start"] < 0.02 for w in words) / n)
-    off = float(sum(vocal_fraction(w["start"], max(w["end"], w["start"] + 0.05), regions) < 0.2
-                    for w in words) / n) if regions else 0.0
-    return {"zero_words": round(zero, 3), "off_vocals": round(off, 3), "poor": bool(zero > 0.2 or off > 0.25)}
+    vocal_regions = regions
+    sustained = [p for p in loud if p[1] - p[0] >= 1.0] if loud else []
+    if sustained:
+        first_loud = sustained[0][0]
+        # Ignore pre-intro lenient regions that have no loud singing
+        vocal_regions = [r for r in regions if r[1] > first_loud or any(max(r[0], l[0]) < min(r[1], l[1]) for l in loud)]
+    off = float(sum(vocal_fraction(w["start"], max(w["end"], w["start"] + 0.05), vocal_regions) < 0.2
+                    for w in words) / n) if vocal_regions else 0.0
+    poor = bool(zero > 0.2 or off > 0.25)
+    if not poor and sustained and segments:
+        first_loud = sustained[0][0]
+        # Multiple lines placed before sustained singing without loud vocals indicates pre-intro bleed
+        pre_bleed_lines = [s for s in segments if s["end"] <= first_loud and vocal_fraction(s["start"], s["end"], loud) < 0.1]
+        if len(pre_bleed_lines) >= 2:
+            poor = True
+    return {"zero_words": round(zero, 3), "off_vocals": round(off, 3), "poor": poor}

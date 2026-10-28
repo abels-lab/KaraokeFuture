@@ -142,6 +142,7 @@
             <a href="/library" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20 transition">📚 Library</a>
             <a href="/settings" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20 transition" title="Settings">⚙️ Settings</a>
             <a href="/remote" target="_blank" class="rounded-lg bg-white/10 px-3 py-1.5 font-semibold text-stone-200 hover:bg-white/20 transition" title="Remote control">📱 Remote</a>
+            <a id="support-link" href="https://github.com/sponsors/abels-lab" target="_blank" rel="noopener" class="rounded-lg bg-amber-500/15 border border-amber-400/30 px-3 py-1.5 font-semibold text-gold hover:bg-amber-500/25 transition" title="Support AI Karaoke / Buy the creator a coffee">☕ Buy me a coffee</a>
           </div>
           <span class="font-mono text-stone-400 text-[11px]">Space · P / N · ← → · V · L · F</span>
         </div>
@@ -168,6 +169,7 @@
             <h2 id="np-singer" class="font-display truncate text-xl font-black">Nobody yet</h2>
             <p id="np-title" class="truncate text-xs text-stone-300">Pick a song to get started</p>
           </div>
+          <button id="np-lyrics-btn" class="hidden shrink-0 rounded-lg bg-white/10 px-2.5 py-1.5 text-xs font-semibold text-stone-200 hover:bg-white/20 transition flex items-center gap-1" title="View or edit lyrics for now playing song">📝 <span>Lyrics</span></button>
         </header>
 
         <!-- Scrubbing / Seek bar -->
@@ -301,6 +303,7 @@
   <script src="/static/loading.js"></script>
   <script src="/static/tv-side.js"></script>
   <script src="/static/tv-ui.js"></script>
+  <script src="/static/lyrics.js"></script>
   <script src="/static/tv.js"></script>
   <script src="/static/agent.js?v=2"></script>
 </body>

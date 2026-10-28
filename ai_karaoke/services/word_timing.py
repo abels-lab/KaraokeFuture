@@ -36,10 +36,26 @@ def _reattach_edges(words: list[dict], prev_end: float | None, next_start: float
     room around it may really be sung late. A stranded tail follows the rest of its line."""
     if len(words) < 2:
         return
+    # Guard against any single word excessively stretched across a non-vocal gap
+    if regions:
+        for word in words:
+            if word["end"] - word["start"] > STRAY_MAX:
+                held = _held_until(word["start"], regions)
+                if held is not None and word["end"] > held + PHRASE_PAD:
+                    word["end"] = max(held + PHRASE_PAD, word["start"] + _min_word())
+                elif held is None:
+                    next_s = next((s for s, e in regions if s > word["start"]), None)
+                    cap = word["start"] + STRAY_MAX
+                    if next_s is not None and next_s > word["start"]:
+                        cap = min(cap, max(word["start"] + _min_word(), next_s - 0.05))
+                    word["end"] = max(cap, word["start"] + _min_word())
     for k in range(1, len(words)):
         gap = words[k]["start"] - words[k - 1]["end"]
         crammed = next_start is not None and next_start - words[-1]["end"] < 0.3
         if gap > STRAY_GAP and (crammed or gap > 2 * STRAY_GAP):
+            # Don't pull real singing backwards into silence/bleed if words[k] is on vocals and in a different phrase
+            if regions and _held_until(words[k]["start"], regions) is not None and _held_until(words[k]["start"], regions) != _held_until(words[k - 1]["start"], regions):
+                continue
             # The word before the gap usually swallowed the tail's real time: share it out by length
             moved = words[k - 1:]
             start = moved[0]["start"]
@@ -62,8 +78,15 @@ def _cap_to_phrase(words: list[dict], regions) -> None:
     instrumental break (bleed in the vocal stem) to the last word before it."""
     for word in words:
         held = _held_until(word["start"], regions)
-        if held is not None and word["end"] > held + PHRASE_PAD:
-            word["end"] = max(held + PHRASE_PAD, word["start"] + _min_word())
+        if held is not None:
+            if word["end"] > held + PHRASE_PAD:
+                word["end"] = max(held + PHRASE_PAD, word["start"] + _min_word())
+        elif regions and word["end"] - word["start"] > STRAY_MAX:
+            next_start = next((s for s, e in regions if s > word["start"]), None)
+            limit = word["start"] + STRAY_MAX
+            if next_start is not None and next_start > word["start"]:
+                limit = min(limit, max(word["start"] + _min_word(), next_start - 0.05))
+            word["end"] = max(limit, word["start"] + _min_word())
 
 
 def _lengthen_short(words: list[dict]) -> None:

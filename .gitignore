@@ -29,3 +29,7 @@ ai_karaoke/settings.json
 ai_karaoke/settings.tmp
 
 *.bak
+
+# Desktop (Electron)
+desktop/node_modules/
+desktop/dist/

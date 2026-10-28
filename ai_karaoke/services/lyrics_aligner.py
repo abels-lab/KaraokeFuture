@@ -47,7 +47,7 @@ def _plain(result) -> list[dict]:
             for seg in (result.segments if result else [])]
 
 
-def _align(model, vocals: str, lines, regions):
+def _align(model, vocals: str, lines, regions, loud=()):
     text = "\n".join(t for _, t in lines)
     language = lyrics_source.detect_language(text)
     try:  # original_split keeps one segment per lyric line
@@ -60,21 +60,21 @@ def _align(model, vocals: str, lines, regions):
     if lyrics_source.timed(lines):  # LRC anchors: redo every line that strayed from its timestamp
         repaired = anchored_align.repair(model, vocals, segments, lines, regions, language)
         # Safety net: keep whichever version lines up better with the actual singing
-        badness = lambda segs: sum(list(vocal_activity.timing_quality(segs, regions).values())[:2])  # noqa: E731
+        badness = lambda segs: sum(list(vocal_activity.timing_quality(segs, regions, loud=loud).values())[:2])  # noqa: E731
         if not any(s["words"] for s in segments) or badness(repaired) < badness(segments):
             return repaired
         log.info("Kept the global alignment: it matches the vocals better than the repair")
     return segments if any(s["words"] for s in segments) else None
 
 
-def _align_known(vocals: str, lines, regions, start_time: float = 0.0):
+def _align_known(vocals: str, lines, regions, loud=(), start_time: float = 0.0):
     """MMS first (does not drift on repetitive or half-spoken songs), else stable-ts."""
     aligned = mms_align.align(vocals, lines, start_time=start_time) if settings.get("lyrics_aligner") == "mms" else None
-    if aligned and not vocal_activity.timing_quality(_to_segments(aligned, drop_dense=False), regions)["poor"]:
+    if aligned and not vocal_activity.timing_quality(_to_segments(aligned, drop_dense=False), regions, loud=loud)["poor"]:
         return aligned, "mms"
     if settings.get("lyrics_aligner") == "mms":
         log.info("MMS could not align these lyrics%s: using stable-ts", " well" if aligned else "")
-    return _run_with_model(_align, vocals, lines, regions), "stable-ts"
+    return _run_with_model(_align, vocals, lines, regions, loud), "stable-ts"
 
 
 def _transcribe(model, vocals: str):
@@ -141,15 +141,20 @@ def generate_lyrics(song_id: str, title: str, channel: str = "") -> dict:
     if lyrics_source.timed(lines) and not lrclib.fits(raw, duration):
         log.info("LRC of %s outlasts the audio (%.0f s): another version, timestamps ignored", song_id, duration)
         lines = [(None, text) for _, text in lines]
-    aligned, aligner = _align_known(str(vocals), lines, regions, start_time=start_time) if lines else (None, None)
+    if not lyrics_source.timed(lines):
+        vocal_onset = vocal_activity.first_vocal_onset(vocal_map, start_time)
+        if vocal_onset > start_time:
+            log.info("Auto-detected vocal onset at %.2fs for %s (start_time was %.2fs)", vocal_onset, song_id, start_time)
+            start_time = vocal_onset
+    aligned, aligner = _align_known(str(vocals), lines, regions, loud=vocal_map.get("loud", []), start_time=start_time) if lines else (None, None)
     segments = _to_segments(aligned, drop_dense=False) if aligned else []
-    timing = vocal_activity.timing_quality(segments, regions)
+    timing = vocal_activity.timing_quality(segments, regions, loud=vocal_map.get("loud", []))
     # Plain online text that would not line up: timing beats words for karaoke -> transcribe.
     # The guest's own text is kept (flagged in the library) — they chose it on purpose.
     if not segments or (timing["poor"] and origin == "synced" and not lyrics_source.timed(lines)):
         origin, aligner = "transcribed", "whisper"
         segments = _to_segments(_run_with_model(_transcribe, str(vocals)), drop_dense=True, regions=regions)
-        timing = vocal_activity.timing_quality(segments, regions)
+        timing = vocal_activity.timing_quality(segments, regions, loud=vocal_map.get("loud", []))
     segments = word_timing.polish(segments, duration, regions)  # after QA: timing reports the raw alignment
     missing = vocal_activity.unmatched(vocal_map["loud"], segments)
 
