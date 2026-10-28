@@ -53,7 +53,8 @@ async def play_previous():
 @router.post("/player/control")
 async def player_control(req: ControlRequest, request: Request):
     who = auth.identify(request)
-    if not auth.may_manage(who, queue.current) and req.action not in ("next", "skip", "previous"):
+    # Skipping counts as controlling the song: only the host or the singer (previous: host only, below)
+    if req.action != "previous" and not auth.may_manage(who, queue.current):
         raise HTTPException(403, "Only the host or the person singing can control this song")
     if req.action.startswith("seek") and not who.admin and not settings.get("guest_scrubbing"):
         raise HTTPException(403, "Timeline scrubbing is reserved for the host")

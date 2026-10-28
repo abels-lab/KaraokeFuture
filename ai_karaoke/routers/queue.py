@@ -101,7 +101,8 @@ async def add_to_queue(req: QueueRequest, request: Request):
 async def surprise_me(request: Request):
     """'I don't know what to sing': queue a random ready song for this guest, instantly."""
     singer, owner = _singer(auth.identify(request), "")
-    meta = await asyncio.to_thread(surprise.pick, queue.protected_ids())
+    # Only queued / playing songs are off limits: recently sung ones stay a last resort (surprise.py)
+    meta = await asyncio.to_thread(surprise.pick, queue.active_ids())
     if meta is None:
         raise HTTPException(404, "No ready song is free right now — search for one instead")
     return await _enqueue(meta["id"], meta.get("title") or meta["id"], meta.get("channel", ""),

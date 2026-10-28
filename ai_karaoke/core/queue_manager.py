@@ -114,11 +114,13 @@ class QueueManager(PersonalQueue):
     def is_playing(self, song_id: str) -> bool:
         return bool(self.current and self.current["song_id"] == song_id)
 
+    def active_ids(self) -> set[str]:
+        """Songs queued or playing now."""
+        return {e["song_id"] for e in self.entries + ([self.current] if self.current else []) if e.get("song_id")}
+
     def protected_ids(self) -> set[str]:
         """Songs the cache must not evict: now playing + everything queued + recent played."""
-        recent = [e["song_id"] for e in self.played[-10:] if e.get("song_id")]
-        active = [e["song_id"] for e in (self.entries + ([self.current] if self.current else [])) if e.get("song_id")]
-        return set(active + recent)
+        return self.active_ids() | {e["song_id"] for e in self.played[-10:] if e.get("song_id")}
 
     # ── Mutations ────────────────────────────────────────────────────────────
     async def add(self, song_id: str, title: str, channel: str, duration, singer: str,
