@@ -1,0 +1,80 @@
+/* Guest remote (/remote) as one page: how the Now and Queue views, the phone's bottom tab bar
+   and the compact now-playing bar sit on each screen size. Phone (up to 640px): one view at a
+   time (body.view-now / body.view-queue, set by guest/router.js) with the tab bar fixed at the
+   bottom; tablet: Now | Queue side by side under a header; laptop: centred, with a third column
+   of ready songs. Needs theme.css and ui/responsive.css (breakpoints are written out there too). */
+.guest-shell { max-width: 32rem; margin: 0 auto; }
+.guest-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); }
+.guest-side { display: none; }
+
+/* ── Phone ─────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  body.view-now [data-view="queue"], body.view-queue [data-view="now"] { display: none; }
+  .guest-shell { padding-bottom: calc(5.5rem + var(--safe-bottom)); }
+  /* Toasts sit above the tab bar instead of on it */
+  #toast { bottom: calc(5.25rem + var(--safe-bottom)) !important; }
+}
+
+/* Compact now-playing bar: phone, Queue view only (the full card is on the Now view) */
+.now-bar { display: none; }
+@media (max-width: 640px) {
+  body.view-queue .now-bar {
+    display: flex; position: sticky; top: 0; z-index: 20;
+    padding: max(.5rem, var(--safe-top)) max(var(--gutter), var(--safe-right)) .5rem max(var(--gutter), var(--safe-left));
+    background: rgba(14, 9, 6, .92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(244, 194, 91, .18);
+  }
+}
+
+/* Bottom tab bar: Now · Queue · ＋ · Lyrics · ⚙ (phone only, see .only-phone) */
+.tab-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: end;
+  padding: .25rem max(.5rem, var(--safe-right)) max(.4rem, var(--safe-bottom)) max(.5rem, var(--safe-left));
+  background: rgba(11, 7, 5, .94); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(244, 194, 91, .18);
+}
+.tab-bar button {
+  min-height: var(--tap); display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: .1rem; font-size: .7rem; font-weight: 700; color: #a8a29e; border-radius: .75rem;
+}
+.tab-bar button .tab-icon { font-size: 1.25rem; line-height: 1.2; position: relative; }
+.tab-bar button[aria-current="page"] { color: var(--gold); }
+.tab-bar .tab-add {
+  width: 3.5rem; height: 3.5rem; margin: -1.25rem auto 0; border-radius: 9999px; color: #1c1206;
+  font-size: 1.75rem; box-shadow: 0 6px 20px rgba(0, 0, 0, .55), 0 0 0 4px rgba(11, 7, 5, .94);
+}
+.tab-badge {
+  position: absolute; top: -.25rem; left: 100%; margin-left: -.35rem; min-width: 1.1rem; padding: 0 .3rem;
+  border-radius: 9999px; font: 700 .65rem/1.1rem ui-monospace, monospace; text-align: center;
+}
+
+/* ── Tablet: two columns under the header ──────────────────────────────── */
+@media (min-width: 641px) {
+  .guest-shell { max-width: 64rem; padding-bottom: 2rem; }
+  .guest-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  [data-view="now"] { position: sticky; top: 1rem; }
+}
+
+/* ── Laptop: centred, Now | Queue | Ready songs ────────────────────────── */
+@media (min-width: 1025px) {
+  .guest-shell { max-width: 84rem; }
+  .guest-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+  .guest-side { display: block; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+}
+
+/* Touch screens: finger-sized queue and now-card controls; a queue row's line of buttons
+   (common.js queueRow: singer, status, then the buttons) wraps instead of squeezing them */
+@media (pointer: coarse) {
+  #queue li :is(button, select), #np-battle button, #np-prefs :is(button, select) { min-height: var(--tap); }
+  #queue li button, #np-battle button, #np-prefs button { min-width: var(--tap); }
+  #queue li .flex.items-center.gap-1 { flex-wrap: wrap; row-gap: .375rem; }
+}
+
+/* Display niceties from the ⚙ popup (guest/display.js) */
+html.guest-big { font-size: 112.5%; }
+
+/* No sideways scrolling on narrow phones, whatever a long title does ("clip", unlike "hidden",
+   keeps the sticky bars working because it doesn't turn the body into a scroll box) */
+body { overflow-x: clip; }
+#np-title, #np-singer { overflow-wrap: anywhere; }

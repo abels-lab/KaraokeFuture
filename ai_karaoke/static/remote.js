@@ -1,97 +1,71 @@
-// Guest phone: tabs, the now-playing card with live transport + scrubbing (the transport only
-// for your own song, or the host), and joining a battle on stage. Search, ready songs and the
-// "Good luck" pick: remote-search.js, remote-library.js, remote-lucky.js; the queue: my-queue.js.
-let nowEntry = null, scrubbing = false;
-let activeTab = "songs"; // "songs" | "queue"
+// Guest remote, the Now view: the now-playing card with live transport + scrubbing (the
+// transport only for your own song, or the host; scrubbing for guests only when the host's
+// guest_scrubbing setting allows it), joining a battle on stage, and the lyrics button
+// (read-only for guests, the editor for the host). Also feeds the phone's compact now bar,
+// the Queue view (my-queue.js) and the keep-awake option. The WebSocket lives in guest/app.js.
+// Needs common.js, auth.js, lyrics.js, remote-battle.js, my-queue.js and the guest/ modules.
+// renderState(state) with every "state" message, renderPlayback(msg) with every "playback" one;
+// lastState is the latest state; openNowLyrics() opens the lyrics of the song on stage.
+let nowEntry = null, scrubbing = false, nowPaused = true;
+let lastState = { now_playing: null, queue: [], played: [] };
 
-// ── Tab switcher: Songs vs Queue ──────────────────────────────────────────
-function switchTab(tab) {
-  activeTab = tab;
-  const isSongs = tab === "songs";
-  $("panel-songs")?.classList.toggle("hidden", !isSongs);
-  $("panel-queue")?.classList.toggle("hidden", isSongs);
+const mayControlNow = () => Boolean(Auth.me.admin || Auth.owns(nowEntry));
+const isMine = (e) => Boolean(e && (Auth.owns(e) || (Auth.me.guest && e.partner?.id === Auth.me.guest.id)));
 
-  if ($("tab-btn-songs")) {
-    $("tab-btn-songs").className = `flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all font-bold ${
-      isSongs
-        ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-950 shadow-md"
-        : "text-stone-400 hover:text-stone-200"
-    }`;
-  }
-  if ($("tab-btn-queue")) {
-    $("tab-btn-queue").className = `flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 transition-all font-bold ${
-      !isSongs
-        ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-stone-950 shadow-md"
-        : "text-stone-400 hover:text-stone-200"
-    }`;
-  }
+function renderNavSongs(prev, next) {
+  $("remote-btn-prev").disabled = !prev || !Auth.me.admin;
+  $("remote-prev-label").textContent = prev ? prev.title : "None";
+  $("remote-btn-prev").title = prev ? `Previous: ${prev.title} (${singers(prev)})` : "No previous song";
+  $("remote-btn-next").disabled = !next || !mayControlNow();
+  $("remote-next-label").textContent = next ? next.title : "Queue empty";
+  $("remote-btn-next").title = next ? `Next: ${next.title} (${singers(next)})` : "No upcoming song";
 }
 
-$("tab-btn-songs")?.addEventListener("click", () => switchTab("songs"));
-$("tab-btn-queue")?.addEventListener("click", () => switchTab("queue"));
-$("btn-goto-songs")?.addEventListener("click", () => switchTab("songs"));
+function renderLyricsButton(np) {
+  const b = $("np-lyrics");
+  b.classList.toggle("hidden", !np);
+  $("tab-lyrics").disabled = !np;
+  $("tab-lyrics").classList.toggle("opacity-40", !np);
+  if (!np) return;
+  const fix = Auth.me.admin && needsLyrics(np);
+  b.textContent = Auth.me.admin ? (fix ? "📝 AI lyrics: fix" : "📝 Edit lyrics") : "📖 Read lyrics";
+  b.className = `tap rounded-lg px-2.5 py-1 text-xs font-semibold ${fix
+    ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50" : "bg-white/10 text-stone-200 hover:bg-white/20"}`;
+}
 
-// ── Live state ────────────────────────────────────────────────────────────
-let lastState = { now_playing: null, queue: [], played: [] };
 function renderState(state = lastState) {
   lastState = state;
   const { now_playing: np, queue = [], played = [] } = state;
-  const mayControl = Auth.me.admin || Auth.owns(np);
-  const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
   nowEntry = np;
+  const mayControl = mayControlNow();
+  const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
   $("np-singer").textContent = np ? singers(np) : "Nobody yet";
   $("np-title").textContent = np ? np.title : "Add a song to get started";
   $("np-seek").disabled = !np || !mayScrub;
   $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
   $("transport-note").classList.toggle("hidden", !np || mayControl);
-
-  // Update previous and next song buttons on remote
-  const prev = played.length > 0 ? played[played.length - 1] : null;
-  const next = queue.length > 0 ? queue[0] : null;
-  if ($("remote-btn-prev")) {
-    $("remote-btn-prev").disabled = !prev || !Auth.me.admin;
-    if ($("remote-prev-label")) $("remote-prev-label").textContent = prev ? prev.title : "None";
-    $("remote-btn-prev").title = prev ? `Previous: ${prev.title} (${singers(prev)})` : "No previous song";
-  }
-  if ($("remote-btn-next")) {
-    $("remote-btn-next").disabled = !next || !(Auth.me.admin || Auth.owns(np));
-    if ($("remote-next-label")) $("remote-next-label").textContent = next ? next.title : "Queue empty";
-    $("remote-btn-next").title = next ? `Next: ${next.title} (${singers(next)})` : "No upcoming song";
-  }
-
+  renderNavSongs(played.length ? played[played.length - 1] : null, queue[0] || null);
   document.querySelectorAll('#transport button[data-action="seek_by"]').forEach((b) => {
     b.disabled = !mayScrub;
     b.classList.toggle("opacity-40", !mayScrub);
     b.classList.toggle("pointer-events-none", !mayScrub);
   });
 
-  if (!np) {
-    renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
-  } else {
+  if (!np) renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
+  else {
     const pb = np.playback || (state.playback?.uid === np.uid ? state.playback : null);
     if (pb && Number.isFinite(pb.time)) renderPlayback(pb);
   }
-
-  const isAdmin = Boolean(Auth.me.admin);
-  $("np-lyrics").classList.toggle("hidden", !np);
-  if (np) {
-    if (isAdmin) {
-      $("np-lyrics").textContent = needsLyrics(np) ? "📝 AI lyrics: fix" : "📝 Edit lyrics";
-      $("np-lyrics").className = `rounded-lg px-2.5 py-1 text-xs font-semibold ${
-        needsLyrics(np) ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50" : "bg-white/10 text-stone-200 hover:bg-white/20"
-      }`;
-    } else {
-      $("np-lyrics").textContent = "📖 Read lyrics";
-      $("np-lyrics").className = "rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-stone-200 hover:bg-white/20";
-    }
-  }
-
+  renderLyricsButton(np);
   // Once a song starts playing, only the host can tweak guide vocals / mode mid-song
-  $("np-prefs").replaceChildren(...(isAdmin && np && !dragging ? [songPrefs(np)] : []));
+  $("np-prefs").replaceChildren(...(Auth.me.admin && np && !dragging ? [songPrefs(np)] : []));
   renderNowBattle();
   renderQueue(queue, played);
+  NowBar.paint(np, { mayControl, paused: nowPaused });
+  GuestDisplay.mySongUp(isMine(np) || isMine(queue[0]));
 }
 Auth.onChange(() => renderState());
+Settings.onChange(() => renderState());   // guest_scrubbing / guide_default changed
 
 // Battle on stage: "Join" while its intro counts down. Intro messages come 4x a second: redraw
 // only when the buttons change, so a tap never lands on a button being replaced
@@ -104,7 +78,6 @@ function renderNowBattle(force = true) {
   $("np-battle").replaceChildren(...items);
 }
 Battle.onChange(() => renderNowBattle(false));
-Battle.onChange(renderNowBattle);
 
 function renderPlayback({ uid, time, duration, paused }) {
   if (uid && uid !== nowEntry?.uid) return;
@@ -112,27 +85,26 @@ function renderPlayback({ uid, time, duration, paused }) {
   $("np-dur").textContent = fmt(duration);
   $("btn-toggle").dataset.action = paused ? "play" : "pause";
   setIcon($("btn-toggle"), paused ? "play" : "pause");
+  if (nowPaused !== Boolean(paused)) {
+    nowPaused = Boolean(paused);
+    NowBar.paint(nowEntry, { mayControl: mayControlNow(), paused: nowPaused });
+  }
 }
-
-connectWS("remote", (msg) => {
-  if (msg.type === "state") renderState(msg.data);
-  else if (msg.type === "playback") renderPlayback(msg);
-  else if (msg.type === "intro") Battle.onIntro(msg);
-});
 
 // ── Transport: buttons + timeline scrubbing (REST, so the login cookie is always current) ──
 const control = (action, value = 0) =>
   api("/api/player/control", { method: "POST", body: { action, value } }).catch(fail);
-document.querySelectorAll("[data-action]").forEach((btn) => {
+document.querySelectorAll("#transport [data-action]").forEach((btn) => {
   btn.onclick = () => control(btn.dataset.action, Number(btn.dataset.value || 0));
 });
-$("remote-btn-prev")?.addEventListener("click", () => control("previous"));
-$("remote-btn-next")?.addEventListener("click", () => control("skip"));
+NowBar.onToggle((action) => control(action));
+$("remote-btn-prev").onclick = () => control("previous");
+$("remote-btn-next").onclick = () => control("skip");
 
 $("np-seek").oninput = () => { scrubbing = true; $("np-cur").textContent = fmt(Number($("np-seek").value)); };
 $("np-seek").onchange = () => {
   control("seek", Number($("np-seek").value));
   setTimeout(() => { scrubbing = false; }, 1200); // let the TV report the new position first
 };
-$("np-lyrics").onclick = () => nowEntry && openLyrics(nowEntry);
-loadLibrary();
+const openNowLyrics = () => nowEntry && GuestOverlay.open(() => openLyrics(nowEntry));   // Back closes it
+$("np-lyrics").onclick = openNowLyrics;
