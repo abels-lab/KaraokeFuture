@@ -5,12 +5,15 @@ from pathlib import Path
 class TestTvLayout(unittest.TestCase):
     def setUp(self):
         self.root = Path(__file__).resolve().parent.parent
-        self.html_path = self.root / "static" / "tv.html"
+        # The control panel is part of the host app: host.html plus the column markup it writes
+        # in from static/host/markup-*.js before any other script runs
+        self.html_path = self.root / "static" / "host.html"
         self.css_path = self.root / "static" / "theme.css"
         self.assertTrue(self.html_path.exists())
         self.assertTrue(self.css_path.exists())
-        with open(self.html_path, "r", encoding="utf-8") as f:
-            self.html = f.read()
+        markup = sorted((self.root / "static" / "host").glob("markup-*.js"))
+        self.assertEqual(len(markup), 4)
+        self.html = "\n".join(p.read_text(encoding="utf-8") for p in [self.html_path, *markup])
         with open(self.css_path, "r", encoding="utf-8") as f:
             self.css = f.read()
         self.html_ids = set(re.findall(r'id=["\']([^"\']+)["\']', self.html))
@@ -18,8 +21,17 @@ class TestTvLayout(unittest.TestCase):
     def test_dom_ids_coverage(self):
         files_to_check = [
             "static/tv.js",
+            "static/tv-now.js",
+            "static/tv-audio.js",
             "static/tv-side.js",
+            "static/tv-ui-apply.js",
             "static/agent.js",
+            "static/agent-render.js",
+            "static/agent-voice.js",
+            "static/host/controller.js",
+            "static/host/views.js",
+            "static/host/keys.js",
+            "static/host/mini-bar.js",
             "static/game-panel.js",
             "static/guide.js",
             "static/intro-run.js",
@@ -157,13 +169,10 @@ class TestTvLayout(unittest.TestCase):
         self.assertEqual(client_vals["support_url"], "https://github.com/sponsors/abels-lab")
         self.assertTrue(client_vals["show_support_on_remote"])
 
-        # 3. #support-link is present in static/tv.html, static/settings.html, and static/remote.html
-        tv_html = (self.root / "static" / "tv.html").read_text(encoding="utf-8")
-        settings_html = (self.root / "static" / "settings.html").read_text(encoding="utf-8")
+        # 3. #support-link is present in the host app (control panel + settings) and static/remote.html
         remote_html = (self.root / "static" / "remote.html").read_text(encoding="utf-8")
 
-        self.assertIn('id="support-link"', tv_html)
-        self.assertIn('id="support-link"', settings_html)
+        self.assertIn('id="support-link"', self.html)
         self.assertIn('id="support-link"', remote_html)
         self.assertIn('id="support-footer"', remote_html)
 

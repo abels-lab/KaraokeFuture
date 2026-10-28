@@ -1,7 +1,8 @@
 // Control panel sidebar and controls: the queue with each singer's choices, projector count,
-// transport buttons, keyboard shortcuts and the QR code. Load just BEFORE tv.js: its handlers
-// use tv.js's player (play, seekTo, send…) only when clicked, while tv.js's first WebSocket
-// message already needs renderSide.
+// transport buttons, display buttons and the QR code. Same in player and controller mode: the
+// buttons talk to the Deck (tv.js or host/controller.js, set by host/boot.js) only when clicked.
+// Needs common.js, auth.js, guide.js, mics.js, mic-setup.js and the markup (host/markup-*.js).
+// Exposes renderSide(queue, played, screens, current) for both decks' "state" handling.
 
 let activeSideTab = "upcoming"; // "upcoming" | "played" | "all"
 function setSideTab(tab) {
@@ -87,23 +88,24 @@ const choiceBadge = (e) => (e.mode || Number.isFinite(e.guide)
   ? [el("span", "shrink-0 text-[11px] text-stone-300", [MODE_LABEL[e.mode], Number.isFinite(e.guide) ? `🗣${e.guide}%` : ""].filter(Boolean).join(" "))]
   : []);
 
-// ── Controls & startup (guide-vocal slider: guide.js) ─────────────────────
-$("btn-prev").onclick = () => send({ type: "control", action: "previous" });
-$("btn-play").onclick = () => (inst.paused ? play() : pause());
-$("btn-restart").onclick = () => onControl("restart");
-$("btn-back").onclick = () => seekTo(inst.currentTime - 10);
-$("btn-fwd").onclick = () => seekTo(inst.currentTime + 10);
-$("btn-next").onclick = () => send({ type: "control", action: "skip" });
+// ── Controls & startup (guide-vocal slider: guide.js, keyboard: host/keys.js) ──
+// Each button asks the Deck: the player acts at once, the controller asks the laptop (REST)
+$("btn-prev").onclick = () => Deck?.prev();
+$("btn-play").onclick = () => Deck?.toggle();
+$("btn-restart").onclick = () => Deck?.restart();
+$("btn-back").onclick = () => Deck?.seekBy(-10);
+$("btn-fwd").onclick = () => Deck?.seekBy(10);
+$("btn-next").onclick = () => Deck?.next();
 
 $("unlock").onclick = () => {
   $("unlock").classList.add("hidden");
-  play();
+  Deck?.play();
   // Audio input also needs this first click; restart the mics if they were on last time
   if (store("micsOn") === "1") Mics.start().then(() => micStrip?.render()).catch((err) => toast(`Microphones: ${err.message}`, false));
 };
 $("open-mics").onclick = () => openMicSetup();
 
-// Both are settings for every screen (this laptop is host): music video on / off, lyrics mode
+// Both are settings for every screen (only the host may change them): music video on / off, lyrics mode
 const setLook = (values) => api("/api/settings", { method: "PUT", body: { values } }).then(() => Settings.load()).catch(fail);
 const LYRICS_NEXT = { full: "plain", plain: "off", off: "full" }, LYRICS_LABEL = { full: "", plain: "plain", off: "off" };
 $("btn-video").onclick = () => setLook({ show_video: !Settings.get("show_video", true) });
@@ -115,22 +117,10 @@ Settings.onChange(() => {
 
 // A separate window: drag it onto the projector, then click it (or press F) for fullscreen
 $("open-screen").onclick = () => window.open("/screen", "karaoke-screen", "popup,width=1280,height=720");
-document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "INPUT" && e.target.type !== "range") return;
-  if (IntroRun.running && (e.key === "Enter" || e.key === "Escape")) { e.preventDefault(); IntroRun.skip(); }
-  else if (e.code === "Space") { e.preventDefault(); $("btn-play").click(); }   // during the intro: start now
-  else if (e.key === "ArrowLeft") { e.preventDefault(); seekTo(inst.currentTime - 5); }
-  else if (e.key === "ArrowRight") { e.preventDefault(); seekTo(inst.currentTime + 5); }
-  else if (e.key === "p" || e.key === "P") $("btn-prev").click();
-  else if (e.key === "n" || e.key === "N") $("btn-next").click();
-  else if (e.key === "v" || e.key === "V") $("btn-video").click();
-  else if (e.key === "l" || e.key === "L") $("btn-lyrics").click();
-  else if (e.key === "f" || e.key === "F") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
-});
 
 api("/api/info").then(({ qr, remote_url: url }) => {
-  if ($("qr")) $("qr").src = qr; if ($("qr-big")) $("qr-big").src = qr; if ($("qr-url")) $("qr-url").textContent = url; if ($("qr-url-big")) $("qr-url-big").textContent = url;
-});
+  $("qr").src = qr; $("qr-big").src = qr; $("qr-url").textContent = url; $("qr-url-big").textContent = url;
+}).catch(() => {});
 // First run: until a host PIN exists only this laptop can manage the party
-api("/api/auth/me").then(({ pin_set: pinSet }) => $("pin-hint").classList.toggle("hidden", pinSet)).catch(() => {});
+Auth.onChange(({ pin_set: pinSet, laptop }) => $("pin-hint").classList.toggle("hidden", pinSet || !laptop));
 Guide.refresh();

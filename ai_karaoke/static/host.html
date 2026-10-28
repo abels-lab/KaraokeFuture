@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0705">
+  <title>Karaoke Control Panel</title>
+  <link rel="icon" href="/static/img/microphone.png">
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Playfair+Display:wght@700;900&display=swap">
+  <link rel="stylesheet" href="/static/theme.css">
+  <link rel="stylesheet" href="/static/ui/responsive.css">
+  <link rel="stylesheet" href="/static/host/host.css">
+</head>
+<!-- The host app (/host, also /tv, /library, /settings): ONE page, so the music keeps playing while
+     the host browses the library or changes settings. Views: host/router.js; the columns' markup:
+     host/markup-*.js; layout per screen size: host/host.css; player or controller: host/mode.js. -->
+<body class="tv host h-full overflow-hidden antialiased" data-view="stage">
+  <div id="host-app" class="flex h-full flex-col">
+    <header id="host-header" class="hide-phone flex shrink-0 items-center gap-2 px-4 pt-3"></header>
+    <div id="mini-bar"></div>
+    <div id="host-views" class="relative min-h-0 flex-1">
+      <section id="view-stage" class="h-full">
+        <div id="tv-layout" class="grid h-full w-full gap-4 p-4 overflow-hidden">
+          <aside id="col-left" class="flex min-h-0 flex-col gap-4 overflow-hidden"></aside>
+          <main id="col-center" class="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden"></main>
+          <aside id="col-right" class="flex min-h-0 flex-col gap-4 overflow-hidden"></aside>
+        </div>
+      </section>
+      <section id="view-library" class="hidden h-full overflow-y-auto">
+        <div id="library-mount" class="mx-auto max-w-6xl space-y-4 safe-x pb-8 pt-4">
+          <h1 class="font-display text-3xl font-black text-gold">📚 Song Library</h1>
+        </div>
+      </section>
+    </div>
+    <nav id="host-tabs" class="only-phone safe-bottom" aria-label="Views"></nav>
+  </div>
+  <div id="drawer-shade" class="only-tablet"></div>
+
+  <!-- Browsers block audio until the page gets one click (player mode only) -->
+  <div id="unlock" class="fixed inset-0 z-50 hidden grid cursor-pointer place-items-center bg-black/75 p-4">
+    <div class="panel flex flex-col items-center px-8 py-10 text-center sm:px-16">
+      <img src="/static/img/microphone.png" alt="" class="mic-glow w-32 -rotate-6 sm:w-48">
+      <p class="font-display mt-4 text-4xl font-black text-gold sm:text-5xl">Start the show</p>
+      <p class="mt-3 text-lg text-stone-300">Click anywhere — the browser needs one click before it can play audio</p>
+    </div>
+  </div>
+
+  <!-- DJ Co-Pilot Host Toggle Button (kept hidden / dummy) -->
+  <button id="agent-toggle" class="hidden" type="button"></button>
+
+  <audio id="inst" preload="auto"></audio>
+  <audio id="voc" preload="auto"></audio>
+  <script src="/static/common.js"></script>
+  <script src="/static/look.js"></script>
+  <script src="/static/auth.js"></script>
+  <script src="/static/host/markup-shell.js"></script>
+  <script src="/static/host/markup-left.js"></script>
+  <script src="/static/host/markup-center.js"></script>
+  <script src="/static/host/markup-right.js"></script>
+  <script src="/static/pulse.js"></script>
+  <script src="/static/stage.js"></script>
+  <script src="/static/mics.js"></script>
+  <script src="/static/mic-setup.js"></script>
+  <script src="/static/game.js"></script>
+  <script src="/static/fx.js"></script>
+  <script src="/static/notes.js"></script>
+  <script src="/static/battle-fx.js"></script>
+  <script src="/static/results.js"></script>
+  <script src="/static/game-view.js"></script>
+  <script src="/static/p2-detect.js"></script>
+  <script src="/static/intro.js"></script>
+  <script src="/static/jokes.js"></script>
+  <script src="/static/loading.js"></script>
+  <script src="/static/lyrics.js"></script>
+  <script src="/static/ui/popup.js"></script>
+  <script src="/static/ui/ready-songs.js"></script>
+  <script src="/static/ui/song-rows.js"></script>
+  <script src="/static/ui/search-panel.js"></script>
+  <script src="/static/ui/settings-rows.js"></script>
+  <script src="/static/ui/party-panel.js"></script>
+  <script src="/static/ui/settings-panel.js"></script>
+  <script src="/static/ui/library-card.js"></script>
+  <script src="/static/ui/library-panel.js"></script>
+  <script src="/static/tv-now.js"></script>
+  <script src="/static/game-panel.js"></script>
+  <script src="/static/guide.js"></script>
+  <script src="/static/intro-run.js"></script>
+  <script src="/static/tv-side.js"></script>
+  <script src="/static/tv-sfx.js"></script>
+  <script src="/static/tv-ui-apply.js"></script>
+  <script src="/static/tv-ui.js"></script>
+  <script src="/static/tv-audio.js"></script>
+  <script src="/static/tv.js"></script>
+  <script src="/static/host/controller.js"></script>
+  <script src="/static/host/mode.js"></script>
+  <script src="/static/host/router.js"></script>
+  <script src="/static/host/mini-bar.js"></script>
+  <script src="/static/host/views.js"></script>
+  <script src="/static/host/keys.js"></script>
+  <script src="/static/agent-render.js"></script>
+  <script src="/static/agent-voice.js"></script>
+  <script src="/static/agent.js"></script>
+  <script src="/static/host/boot.js"></script>
+</body>
+</html>
