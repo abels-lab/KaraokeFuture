@@ -29,66 +29,71 @@ function switchTab(tab) {
 $("tab-btn-songs")?.addEventListener("click", () => switchTab("songs"));
 $("tab-btn-queue")?.addEventListener("click", () => switchTab("queue"));
 $("btn-goto-songs")?.addEventListener("click", () => switchTab("songs"));
+if (location.hash === "#queue" || new URLSearchParams(location.search).get("tab") === "queue") switchTab("queue");
 
 // ── Live state ────────────────────────────────────────────────────────────
 let lastState = { now_playing: null, queue: [], played: [] };
 function renderState(state = lastState) {
-  lastState = state;
-  const { now_playing: np, queue = [], played = [], active_playlist = null } = state;
-  const mayControl = Auth.me.admin || Auth.owns(np);
-  const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
-  nowEntry = np;
-  $("np-singer").textContent = np ? singers(np) : "Nobody yet";
-  $("np-title").textContent = np ? np.title : "Add a song to get started";
-  $("np-seek").disabled = !np || !mayScrub;
-  $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
-  $("transport-note").classList.toggle("hidden", !np || mayControl);
+  try {
+    lastState = state;
+    const { now_playing: np, queue = [], played = [], active_playlist = null } = state;
+    const mayControl = Auth.me.admin || Auth.owns(np);
+    const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
+    nowEntry = np;
+    $("np-singer").textContent = np ? singers(np) : "Nobody yet";
+    $("np-title").textContent = np ? np.title : "Add a song to get started";
+    $("np-seek").disabled = !np || !mayScrub;
+    $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
+    $("transport-note").classList.toggle("hidden", !np || mayControl);
 
-  // Update previous and next song buttons on remote
-  const prev = played.length > 0 ? played[played.length - 1] : null;
-  const next = queue.length > 0 ? queue[0] : (active_playlist?.queue?.[0] || null);
-  if ($("remote-btn-prev")) {
-    $("remote-btn-prev").disabled = !prev || !Auth.me.admin;
-    if ($("remote-prev-label")) $("remote-prev-label").textContent = prev ? prev.title : "None";
-    $("remote-btn-prev").title = prev ? `Previous: ${prev.title} (${singers(prev)})` : "No previous song";
-  }
-  if ($("remote-btn-next")) {
-    $("remote-btn-next").disabled = !next || !(Auth.me.admin || Auth.owns(np));
-    if ($("remote-next-label")) $("remote-next-label").textContent = next ? (next.title || next.query) : "Queue empty";
-    $("remote-btn-next").title = next ? `Next: ${next.title || next.query}` : "No upcoming song";
-  }
-
-  document.querySelectorAll('#transport button[data-action="seek_by"]').forEach((b) => {
-    b.disabled = !mayScrub;
-    b.classList.toggle("opacity-40", !mayScrub);
-    b.classList.toggle("pointer-events-none", !mayScrub);
-  });
-
-  if (!np) {
-    renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
-  } else {
-    const pb = np.playback || (state.playback?.uid === np.uid ? state.playback : null);
-    if (pb && Number.isFinite(pb.time)) renderPlayback(pb);
-  }
-
-  const isAdmin = Boolean(Auth.me.admin);
-  $("np-lyrics").classList.toggle("hidden", !np);
-  if (np) {
-    if (isAdmin) {
-      $("np-lyrics").textContent = needsLyrics(np) ? "📝 AI lyrics: fix" : "📝 Edit lyrics";
-      $("np-lyrics").className = `rounded-lg px-2.5 py-1 text-xs font-semibold ${
-        needsLyrics(np) ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50" : "bg-white/10 text-stone-200 hover:bg-white/20"
-      }`;
-    } else {
-      $("np-lyrics").textContent = "📖 Read lyrics";
-      $("np-lyrics").className = "rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-stone-200 hover:bg-white/20";
+    // Update previous and next song buttons on remote
+    const prev = played.length > 0 ? played[played.length - 1] : null;
+    const next = queue.length > 0 ? queue[0] : (active_playlist?.queue?.[0] || null);
+    if ($("remote-btn-prev")) {
+      $("remote-btn-prev").disabled = !prev || !Auth.me.admin;
+      if ($("remote-prev-label")) $("remote-prev-label").textContent = prev ? prev.title : "None";
+      $("remote-btn-prev").title = prev ? `Previous: ${prev.title} (${singers(prev)})` : "No previous song";
     }
-  }
+    if ($("remote-btn-next")) {
+      $("remote-btn-next").disabled = !next || !(Auth.me.admin || Auth.owns(np));
+      if ($("remote-next-label")) $("remote-next-label").textContent = next ? (next.title || next.query) : "Queue empty";
+      $("remote-btn-next").title = next ? `Next: ${next.title || next.query}` : "No upcoming song";
+    }
 
-  // Once a song starts playing, only the host can tweak guide vocals / mode mid-song
-  $("np-prefs").replaceChildren(...(isAdmin && np && !dragging ? [songPrefs(np)] : []));
-  renderNowBattle();
-  renderQueue(queue, played, active_playlist);
+    document.querySelectorAll('#transport button[data-action="seek_by"]').forEach((b) => {
+      b.disabled = !mayScrub;
+      b.classList.toggle("opacity-40", !mayScrub);
+      b.classList.toggle("pointer-events-none", !mayScrub);
+    });
+
+    if (!np) {
+      renderPlayback({ uid: null, time: 0, duration: 0, paused: true });
+    } else {
+      const pb = np.playback || (state.playback?.uid === np.uid ? state.playback : null);
+      if (pb && Number.isFinite(pb.time)) renderPlayback(pb);
+    }
+
+    const isAdmin = Boolean(Auth.me.admin);
+    $("np-lyrics").classList.toggle("hidden", !np);
+    if (np) {
+      if (isAdmin) {
+        $("np-lyrics").textContent = needsLyrics(np) ? "📝 AI lyrics: fix" : "📝 Edit lyrics";
+        $("np-lyrics").className = `rounded-lg px-2.5 py-1 text-xs font-semibold ${
+          needsLyrics(np) ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50" : "bg-white/10 text-stone-200 hover:bg-white/20"
+        }`;
+      } else {
+        $("np-lyrics").textContent = "📖 Read lyrics";
+        $("np-lyrics").className = "rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-stone-200 hover:bg-white/20";
+      }
+    }
+
+    // Once a song starts playing, only the host can tweak guide vocals / mode mid-song
+    $("np-prefs").replaceChildren(...(isAdmin && np && !dragging ? [songPrefs(np)] : []));
+    renderNowBattle();
+    renderQueue(queue, played, active_playlist);
+  } catch (err) {
+    console.error("EXACT ERROR IN renderState:", err?.message || String(err), err?.stack);
+  }
 }
 Auth.onChange(() => renderState());
 
@@ -108,8 +113,8 @@ function renderPlayback({ time, duration, paused }) {
   if (!dragging) {
     $("np-seek").max = Math.round(duration);
     $("np-seek").value = Math.round(time);
-    $("np-cur").textContent = fmtDuration(time);
-    $("np-dur").textContent = fmtDuration(duration);
+    $("np-cur").textContent = fmt(time);
+    $("np-dur").textContent = fmt(duration);
   }
   const btn = $("btn-toggle");
   btn.dataset.action = paused ? "play" : "pause";
@@ -118,7 +123,7 @@ function renderPlayback({ time, duration, paused }) {
     : '<svg viewBox="0 0 24 24" class="h-6 w-6 fill-current"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>';
 }
 
-$("np-seek").oninput = () => { dragging = true; $("np-cur").textContent = fmtDuration($("np-seek").value); };
+$("np-seek").oninput = () => { dragging = true; $("np-cur").textContent = fmt($("np-seek").value); };
 $("np-seek").onchange = () => { dragging = false; send({ type: "control", action: "seek", value: Number($("np-seek").value) }); };
 
 document.querySelectorAll("#transport button").forEach((b) => {
@@ -152,3 +157,4 @@ function connect() {
   ws.onclose = () => setTimeout(connect, 2000);
 }
 connect();
+api("/api/queue").then(renderState).catch(() => {});
