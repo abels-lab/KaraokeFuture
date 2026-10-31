@@ -35,6 +35,8 @@ SPECS = [
        "Slower checks are skipped after this long (0 = don't check).", NOW),
     _n("max_queue", "library", "Queue length limit", c.MAX_QUEUE_LENGTH, 5, 200, 5, "songs",
        "Guests can't add more songs once the queue is this long.", NOW),
+    _s("playlist_promote_on_user_queue", "library", "Promote playlist songs to user queue", True, "bool",
+       "When a user queues a song that is in the active playlist, move it to the user queue and remove it from the playlist queue.", NOW),
     _s("download_video", "library", "Download music videos", c.DOWNLOAD_VIDEO, "bool",
        "Play the song's video behind the lyrics. Adds roughly 30–60 MB per song."),
     _s("video_max_height", "library", "Video quality", c.VIDEO_MAX_HEIGHT, "choice",

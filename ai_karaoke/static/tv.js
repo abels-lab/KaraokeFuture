@@ -41,8 +41,8 @@ function sendClock() {
 }
 setInterval(sendClock, 250);
 
-function onState({ now_playing: np, queue = [], played = [], screens = 0 }) {
-  renderSide(queue, played, screens, np);
+function onState({ now_playing: np, queue = [], played = [], screens = 0, active_playlist = null }) {
+  renderSide(queue, played, screens, np, active_playlist);
   if (!np) {
     try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
     if (current) stopSong();
