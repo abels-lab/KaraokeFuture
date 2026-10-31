@@ -20,7 +20,7 @@ from core import cache_manager
 from core.queue_manager import queue as queue_mgr
 from core.warmer import warmer
 from core.worker import worker
-from routers import agent, api, auth, battle, library, queue, settings, ws
+from routers import agent, api, auth, battle, library, playlists, queue, settings, ws
 from services import tailscale, watcher
 
 setup_logging()
@@ -69,6 +69,7 @@ app.include_router(queue.router)
 app.include_router(battle.router)
 app.include_router(auth.router)
 app.include_router(library.router)
+app.include_router(playlists.router)
 app.include_router(settings.router)
 app.include_router(agent.router)
 app.include_router(ws.router)

@@ -2,7 +2,7 @@
 // own songs (never ahead of anyone else), remove them, and per song the singing mode and the
 // guide-vocal volume the control panel uses when it plays. Needs common.js, auth.js, lyrics.js.
 const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle / Duet (2 mics)"]];
-let lastQueue = [], lastPlayed = [], dragging = false;
+let lastQueue = [], lastPlayed = [], lastActivePlaylist = null, dragging = false;
 let queueFilter = "all"; // "all" | "mine" | "played"
 
 const savePrefs = (e, changes) => {
@@ -48,7 +48,13 @@ function lyricsActionBtn(e) {
   const cls = isTranscribed
     ? "bg-amber-900/80 text-amber-200 ring-1 ring-amber-500/50"
     : "bg-white/10 text-stone-200";
-  return iconButton(label, title, () => openLyrics(e), cls);
+  return el("button", `rounded-lg px-2 py-1 text-xs font-semibold ${cls}`, label, {
+    title,
+    onclick: (ev) => {
+      ev.stopPropagation();
+      openLyrics(e);
+    }
+  });
 }
 
 function setQueueFilter(f) {
@@ -75,9 +81,10 @@ $("qfilter-all")?.addEventListener("click", () => setQueueFilter("all"));
 $("qfilter-mine")?.addEventListener("click", () => setQueueFilter("mine"));
 $("qfilter-played")?.addEventListener("click", () => setQueueFilter("played"));
 
-function renderQueue(queue = lastQueue, played = lastPlayed) {
+function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = lastActivePlaylist) {
   lastQueue = queue;
   lastPlayed = played;
+  if (activePlaylist !== undefined) lastActivePlaylist = activePlaylist;
   if (dragging) return;   // don't redraw under the finger; the save redraws it
   const { admin } = Auth.me;
   const mine = queue.filter(Auth.owns);
@@ -106,6 +113,7 @@ function renderQueue(queue = lastQueue, played = lastPlayed) {
       }
     }
     $("queue")?.replaceChildren(...revPlayed.map((e, i) => playedRow(e, i)));
+    $("autodj-remote-box")?.classList.add("hidden");
     return;
   }
 
@@ -114,8 +122,13 @@ function renderQueue(queue = lastQueue, played = lastPlayed) {
     empty.classList.toggle("hidden", items.length > 0);
     if (items.length === 0) {
       if (queue.length === 0) {
-        if ($("empty-title")) $("empty-title").textContent = "Nobody in line";
-        if ($("empty-sub")) $("empty-sub").textContent = "Be the first to queue a song!";
+        if (lastActivePlaylist) {
+          if ($("empty-title")) $("empty-title").textContent = "Auto-DJ Active";
+          if ($("empty-sub")) $("empty-sub").textContent = `Playing from ${lastActivePlaylist.name} (low priority). Claim a song below or search to sing next!`;
+        } else {
+          if ($("empty-title")) $("empty-title").textContent = "Nobody in line";
+          if ($("empty-sub")) $("empty-sub").textContent = "Be the first to queue a song!";
+        }
       } else {
         if ($("empty-title")) $("empty-title").textContent = "No songs queued by you";
         if ($("empty-sub")) $("empty-sub").textContent = `There are ${queue.length} other songs waiting in line.`;
@@ -143,4 +156,49 @@ function renderQueue(queue = lastQueue, played = lastPlayed) {
     }
     return row;
   }));
+
+  // Auto-DJ Playlist Section on Remote
+  let autodjSection = $("autodj-remote-box");
+  if (!autodjSection && $("queue")) {
+    autodjSection = el("div", "mt-4 space-y-2");
+    autodjSection.id = "autodj-remote-box";
+    $("queue").parentElement.append(autodjSection);
+  }
+  if (autodjSection) {
+    if (lastActivePlaylist && lastActivePlaylist.queue && lastActivePlaylist.queue.length > 0 && queueFilter !== "played") {
+      autodjSection.classList.remove("hidden");
+      autodjSection.replaceChildren();
+      const title = el("div", "flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-400/90 px-1");
+      title.append(
+        el("span", "flex items-center gap-1", `📻 Auto-DJ: ${lastActivePlaylist.name}`),
+        el("span", "text-[10px] text-stone-400 font-normal lowercase", "lower priority")
+      );
+      const list = el("ul", "space-y-1.5");
+      for (const [idx, item] of lastActivePlaylist.queue.slice(0, 6).entries()) {
+        const row = el("li", "flex items-center justify-between gap-2 rounded-xl bg-white/5 border border-white/5 p-2 text-xs");
+        const info = el("div", "min-w-0 flex-1");
+        info.append(
+          el("p", "truncate font-semibold text-stone-200", item.title || item.query),
+          el("p", "truncate text-[10px] text-stone-400", item.artist ? `${item.artist} · Auto-DJ` : "Auto-DJ filler")
+        );
+        const claimBtn = el("button", "shrink-0 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2.5 py-1 text-xs font-bold transition flex items-center gap-1", "🎤 Sing this!");
+        claimBtn.onclick = async () => {
+          try {
+            await api("/api/playlists/promote", {
+              method: "POST",
+              body: { query: item.query || item.title, index: idx }
+            });
+            toast(`Added "${item.title || item.query}" to your queue!`);
+          } catch (err) {
+            fail(err);
+          }
+        };
+        row.append(info, claimBtn);
+        list.append(row);
+      }
+      autodjSection.append(title, list);
+    } else {
+      autodjSection.classList.add("hidden");
+    }
+  }
 }

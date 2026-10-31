@@ -22,7 +22,7 @@ $("tab-side-upcoming")?.addEventListener("click", () => setSideTab("upcoming"));
 $("tab-side-played")?.addEventListener("click", () => setSideTab("played"));
 $("tab-side-all")?.addEventListener("click", () => setSideTab("all"));
 
-function renderSide(queue = [], played = [], screens = 0, current = null) {
+function renderSide(queue = [], played = [], screens = 0, current = null, activePlaylist = null) {
   $("screens").textContent = screens ? `📽 ${screens} projector screen${screens > 1 ? "s" : ""} connected` : "No projector screen connected";
   $("screens").classList.toggle("text-emerald-400", screens > 0);
 
@@ -42,15 +42,46 @@ function renderSide(queue = [], played = [], screens = 0, current = null) {
   }
 
   // Next song button with real label
-  const next = queue.length > 0 ? queue[0] : null;
+  const next = queue.length > 0 ? queue[0] : (activePlaylist?.queue?.[0] || null);
   if ($("btn-next")) {
-    $("btn-next").disabled = !next;
-    if ($("btn-next-label")) $("btn-next-label").textContent = next ? next.title : "Queue empty";
-    $("btn-next").title = next ? `Next: ${next.title} (${singers(next)}) (N)` : "No upcoming song";
+    $("btn-next").disabled = !next && !current;
+    if ($("btn-next-label")) $("btn-next-label").textContent = next ? (next.title || next.query) : "Queue empty";
+    $("btn-next").title = next ? `Next: ${next.title || next.query}` : "No upcoming song";
+  }
+
+  // Auto-DJ Playlist Status Banner
+  let autoDjBox = $("tv-autodj-box");
+  if (!autoDjBox && $("section-upcoming")) {
+    autoDjBox = el("div", "rounded-xl bg-amber-500/10 border border-amber-400/25 p-2.5 text-xs space-y-1.5");
+    autoDjBox.id = "tv-autodj-box";
+    $("section-upcoming")?.prepend(autoDjBox);
+  }
+  if (autoDjBox) {
+    if (activePlaylist) {
+      autoDjBox.classList.remove("hidden");
+      autoDjBox.replaceChildren();
+      const header = el("div", "flex items-center justify-between gap-2");
+      header.append(
+        el("span", "font-bold text-amber-300 flex items-center gap-1", `📻 Auto-DJ: ${activePlaylist.name}`),
+        el("button", "text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-200 px-2 py-0.5 rounded font-bold transition", "Stop")
+      );
+      header.lastChild.onclick = () => api("/api/playlists/stop", { method: "POST" });
+      const sub = el("p", "text-[11px] text-stone-400", `${activePlaylist.remaining} song(s) in playlist queue (plays when singer queue is empty)`);
+      autoDjBox.append(header, sub);
+    } else {
+      autoDjBox.classList.add("hidden");
+    }
   }
 
   // 1. Upcoming list
-  if ($("queue-empty")) $("queue-empty").classList.toggle("hidden", queue.length > 0);
+  if ($("queue-empty")) {
+    $("queue-empty").classList.toggle("hidden", queue.length > 0);
+    if (activePlaylist && queue.length === 0) {
+      $("queue-empty").textContent = `Auto-DJ is playing ${activePlaylist.name} (low priority). Queue a song on your phone to sing next!`;
+    } else if (queue.length === 0) {
+      $("queue-empty").textContent = "The queue is empty — grab your phone!";
+    }
+  }
   if ($("queue")) $("queue").replaceChildren(...queue.map((e, i) => queueRow(e, i, queue.length, { extras: choiceBadge(e) })));
 
   // 2. Played list (most recently played first)
