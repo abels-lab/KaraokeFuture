@@ -128,7 +128,7 @@ api("/api/info").then(({ qr, remote_url: url }) => {
 requestAnimationFrame(tick);
 
 
-// Top-left temporary chat notifications (7 seconds duration, small font)
+// Top-left temporary chat notifications (configurable duration, enabled toggle, size, opacity)
 function createScreenChat(root) {
   if (!root) return { addMessage: () => {} };
   const messagesEl = $("screen-chat-messages") || root;
@@ -151,8 +151,50 @@ function createScreenChat(root) {
     return t;
   }
 
+  function getOpacityVal() {
+    const raw = Settings.get("screen_chat_opacity", 85);
+    return Math.max(0.1, Math.min(1.0, (Number(raw) || 85) / 100));
+  }
+
+  function getSizeConfig() {
+    const size = Settings.get("screen_chat_size", "small");
+    if (size === "large") {
+      return { maxW: "max-w-[32rem]", badgeClass: "text-[14px]", bodyClass: "text-[16px]" };
+    }
+    if (size === "medium") {
+      return { maxW: "max-w-[27rem]", badgeClass: "text-[12px]", bodyClass: "text-[14px]" };
+    }
+    return { maxW: "max-w-[22rem]", badgeClass: "text-[11px]", bodyClass: "text-[12px]" };
+  }
+
+  function applySettings() {
+    const enabled = Settings.get("screen_chat_enabled", true);
+    if (!enabled) {
+      root.style.opacity = "0";
+      root.style.pointerEvents = "none";
+      if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
+    }
+    const { maxW, badgeClass, bodyClass } = getSizeConfig();
+    root.classList.remove("max-w-[22rem]", "max-w-[27rem]", "max-w-[32rem]");
+    root.classList.add(maxW);
+
+    const opacityVal = getOpacityVal();
+    messagesEl.querySelectorAll(".screen-chat-card").forEach((card) => {
+      card.style.backgroundColor = `rgba(18, 18, 22, ${opacityVal})`;
+      const badge = card.querySelector(".chat-badge");
+      if (badge) badge.className = badge.className.replace(/text-\[\d+px\]/, badgeClass);
+      const body = card.querySelector(".chat-body");
+      if (body) body.className = body.className.replace(/text-\[\d+px\]/, bodyClass);
+    });
+  }
+
+  Settings.onChange?.(applySettings);
+  applySettings();
+
   function addMessage(msg) {
     if (!msg || !msg.text) return;
+    if (!Settings.get("screen_chat_enabled", true)) return;
+
     const dedupKey = msg.id || `${msg.sender}:${String(msg.text).slice(0, 40)}`;
     if (seenIds.has(dedupKey)) return;
     seenIds.add(dedupKey);
@@ -167,14 +209,20 @@ function createScreenChat(root) {
     const borderColor = isAgent ? "border-purple-500/40" : "border-amber-500/40";
     const icon = isAgent ? "✨" : "🎤";
 
+    const { maxW, badgeClass, bodyClass } = getSizeConfig();
+    root.classList.remove("max-w-[22rem]", "max-w-[27rem]", "max-w-[32rem]");
+    root.classList.add(maxW);
+
+    const opacityVal = getOpacityVal();
     const card = document.createElement("div");
-    card.className = `rounded-xl bg-black/85 backdrop-blur-md border ${borderColor} px-3 py-2 shadow-2xl transition-all duration-300`;
+    card.className = `screen-chat-card rounded-xl backdrop-blur-md border ${borderColor} px-3 py-2 shadow-2xl transition-all duration-300`;
+    card.style.backgroundColor = `rgba(18, 18, 22, ${opacityVal})`;
     card.innerHTML = `
-      <div class="flex items-center gap-1.5 ${badgeColor} text-[11px] font-bold uppercase tracking-wider">
+      <div class="chat-badge flex items-center gap-1.5 ${badgeColor} ${badgeClass} font-bold uppercase tracking-wider">
         <span>${icon}</span>
         <span>${escapeText(senderName)}</span>
       </div>
-      <div class="mt-0.5 text-[12px] leading-snug text-stone-200 break-words font-normal">
+      <div class="chat-body mt-0.5 ${bodyClass} leading-snug text-stone-200 break-words font-normal">
         ${formatText(msg.text)}
       </div>
     `;
@@ -188,11 +236,13 @@ function createScreenChat(root) {
     root.style.opacity = "1";
     root.style.pointerEvents = "auto";
 
+    const durationSec = Math.max(1, Number(Settings.get("screen_chat_duration", 7)) || 7);
+
     if (hideTimer) clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {
       root.style.opacity = "0";
       root.style.pointerEvents = "none";
-    }, 7000);
+    }, durationSec * 1000);
   }
 
   return { addMessage };

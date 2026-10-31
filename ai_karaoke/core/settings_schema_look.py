@@ -59,4 +59,17 @@ LOOK_SPECS = [
        "Show the same card once more halfway through the song.", NOW, client=True),
     _s("loading_jokes", "look", "Jokes while loading", True, "bool",
        "While the next song is being prepared, the screens pass the time with karaoke memes.", NOW, client=True),
+    # ── Projector chat overlay ──────────────────────────────────────────────
+    _s("screen_chat_enabled", "look", "Show chat on projector screen", True, "bool",
+       "Show recent chat messages on the top-left of the projector screen when the host or DJ Co-Pilot messages.",
+       NOW, client=True),
+    _n("screen_chat_duration", "look", "Chat display duration", 7, 2, 30, 1, "s",
+       "How many seconds chat messages stay visible on the projector screen before fading out.",
+       NOW, client=True),
+    _s("screen_chat_size", "look", "Chat text size", "small", "choice",
+       "Font size of the chat messages shown on the projector screen.",
+       NOW, client=True, choices=[["small", "Small (default)"], ["medium", "Medium"], ["large", "Large"]]),
+    _n("screen_chat_opacity", "look", "Chat card opacity / transparency", 85, 20, 100, 5, "%",
+       "Background opacity of the chat bubbles on the projector screen (higher is more opaque, lower is more transparent).",
+       NOW, client=True),
 ]

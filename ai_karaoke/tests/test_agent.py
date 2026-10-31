@@ -71,6 +71,23 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.get("status"), "ok")
         self.assertEqual(settings.get("agent_layout_mode"), "drawer")
 
+        # Test projector screen chat settings via agent
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_enabled", "value": "false"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertFalse(settings.get("screen_chat_enabled"))
+
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_duration", "value": "12"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("screen_chat_duration"), 12)
+
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_size", "value": "large"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("screen_chat_size"), "large")
+
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_opacity", "value": "50"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("screen_chat_opacity"), 50)
+
     @patch("core.worker.worker.submit", new_callable=AsyncMock)
     @patch("services.search.run")
     async def test_search_and_queue(self, mock_search, mock_submit):
