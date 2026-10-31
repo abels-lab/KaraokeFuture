@@ -396,5 +396,39 @@ class TestAgentChat(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(normalized["properties"]["count"]["type"], "integer")
 
 
+    @patch("routers.agent.hub.broadcast", new_callable=AsyncMock)
+    @patch("routers.agent.agent.chat_with_agent", new_callable=AsyncMock)
+    async def test_chat_endpoint_broadcasts_to_screen(self, mock_chat, mock_broadcast):
+        from routers.agent import ChatRequest, chat
+        from core.auth import Who
+
+        mock_chat.return_value = {"reply": "Playing Bohemian Rhapsody!", "tool_calls": []}
+        who = Who(name="HostAdmin", admin=True)
+        req = ChatRequest(message="Play Queen")
+
+        res = await chat(req, who=who)
+        self.assertEqual(res["reply"], "Playing Bohemian Rhapsody!")
+
+        # Check broadcast was called twice: once for user message, once for agent response
+        self.assertEqual(mock_broadcast.call_count, 2)
+
+        # Call 1: user message
+        user_call = mock_broadcast.call_args_list[0]
+        user_msg = user_call[0][0]
+        self.assertEqual(user_msg["type"], "chat")
+        self.assertEqual(user_msg["sender"], "user")
+        self.assertEqual(user_msg["text"], "Play Queen")
+        self.assertEqual(user_msg["name"], "HostAdmin")
+        self.assertIn("screen", user_call[0][1:])
+
+        # Call 2: agent response
+        agent_call = mock_broadcast.call_args_list[1]
+        agent_msg = agent_call[0][0]
+        self.assertEqual(agent_msg["type"], "chat")
+        self.assertEqual(agent_msg["sender"], "agent")
+        self.assertEqual(agent_msg["text"], "Playing Bohemian Rhapsody!")
+        self.assertEqual(agent_msg["name"], "DJ Co-Pilot")
+        self.assertIn("screen", agent_call[0][1:])
+
 if __name__ == "__main__":
     unittest.main()

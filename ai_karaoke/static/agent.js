@@ -314,6 +314,17 @@
     const msg = input.value.trim();
     if (!msg) return;
 
+    if ("BroadcastChannel" in window) {
+      new BroadcastChannel("karaoke-chat").postMessage({
+        type: "chat",
+        id: "user_bc_" + Date.now(),
+        sender: "user",
+        name: "Host",
+        text: msg,
+        timestamp: Date.now() / 1000,
+      });
+    }
+
     appendUserMsg(msg);
     input.value = "";
     sendBtn.disabled = true;
@@ -332,6 +343,17 @@
       history.push({ role: "user", content: msg });
       history.push({ role: "assistant", content: res.reply || "" });
       if (history.length > 10) history = history.slice(-10);
+
+      if ("BroadcastChannel" in window && res.reply) {
+        new BroadcastChannel("karaoke-chat").postMessage({
+          type: "chat",
+          id: "agent_bc_" + Date.now(),
+          sender: "agent",
+          name: "DJ Co-Pilot",
+          text: res.reply,
+          timestamp: Date.now() / 1000,
+        });
+      }
 
       appendAgentMsg(res.reply || "Done!", res.tool_calls || [], res.proposals || []);
     } catch (err) {
