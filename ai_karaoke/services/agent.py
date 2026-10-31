@@ -110,7 +110,12 @@ You assist the host with running the party:
      * Resize the Guide Vocal slider (e.g. guide_width="25%", "50%", "100%") or change its thumb (e.g. guide_thumb="smiley" or "😊" or "🎤")
      * Apply live CSS tweaks (custom_css="...") without reloading or modifying disk files.
    - When asked to move or dock the chat panel / DJ drawer to the left or right, call change_setting(key="agent_drawer_position", value="left"|"right").
-3. Changing app settings (themes, accents, durations, volume, guest permissions) via change_setting.
+   - When asked to configure projector screen chat overlay:
+     * Show/hide chat on projector screen: change_setting(key="screen_chat_enabled", value=True|False)
+     * Chat display duration (seconds): change_setting(key="screen_chat_duration", value=2..30)
+     * Chat text size: change_setting(key="screen_chat_size", value="small"|"medium"|"large")
+     * Chat card opacity / transparency (%): change_setting(key="screen_chat_opacity", value=20..100)
+3. Changing app settings (themes, accents, durations, volume, guest permissions, projector chat overlay) via change_setting.
 4. Queue & Playlists Management (skipping songs, moving, removing, starting/stopping background playlists):
    - To inspect or manage playlists (built-in weekly hits rotation and custom playlists): use list_playlists, get_playlist, create_playlist, update_playlist, delete_playlist.
    - To play a playlist in the background with lower priority when no singers are waiting: use play_playlist(playlist_id=..., shuffle=..., loop=...).
@@ -244,7 +249,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "change_setting",
-        "description": "Change an application setting (e.g. agent_drawer_position to 'left' or 'right' to move this chat panel, theme to 'adaptive', accent to 'lime', show_video to true/false, guest_scrubbing, cache_limit_gb).",
+        "description": "Change an application setting (e.g. screen_chat_enabled, screen_chat_duration, screen_chat_size, screen_chat_opacity, agent_drawer_position to 'left' or 'right' to move this chat panel, theme to 'adaptive', accent to 'lime', show_video to true/false, guest_scrubbing, cache_limit_gb).",
         "parameters": {
             "type": "OBJECT",
             "properties": {
