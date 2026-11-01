@@ -49,25 +49,66 @@ function renderSide(queue = [], played = [], screens = 0, current = null, active
     $("btn-next").title = next ? `Next: ${next.title || next.query}` : "No upcoming song";
   }
 
-  // Auto-DJ Playlist Status Banner
+  // Auto-DJ Playlist Expanded Queue Section (Below Singer Queue)
   let autoDjBox = $("tv-autodj-box");
   if (!autoDjBox && $("section-upcoming")) {
-    autoDjBox = el("div", "rounded-xl bg-amber-500/10 border border-amber-400/25 p-2.5 text-xs space-y-1.5");
+    autoDjBox = el("div", "rounded-xl bg-amber-500/10 border border-amber-400/25 p-3 text-xs space-y-2");
     autoDjBox.id = "tv-autodj-box";
-    $("section-upcoming")?.prepend(autoDjBox);
+    $("section-upcoming")?.append(autoDjBox);
   }
   if (autoDjBox) {
-    if (activePlaylist) {
+    if (activePlaylist && activePlaylist.queue && activePlaylist.queue.length > 0) {
       autoDjBox.classList.remove("hidden");
       autoDjBox.replaceChildren();
-      const header = el("div", "flex items-center justify-between gap-2");
+
+      const header = el("div", "flex items-center justify-between gap-2 border-b border-amber-400/20 pb-1.5");
+      const titleWrap = el("div", "min-w-0 flex-1 truncate");
+      titleWrap.append(
+        el("p", "font-bold text-amber-300 flex items-center gap-1.5 truncate", `📻 Auto-DJ: ${activePlaylist.name}`),
+        el("p", "text-[10px] text-stone-400 truncate", `${activePlaylist.remaining} song(s) queued (plays when singer queue is empty)`)
+      );
       header.append(
-        el("span", "font-bold text-amber-300 flex items-center gap-1", `📻 Auto-DJ: ${activePlaylist.name}`),
-        el("button", "text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-200 px-2 py-0.5 rounded font-bold transition", "Stop")
+        titleWrap,
+        el("button", "shrink-0 text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-200 px-2 py-0.5 rounded font-bold transition", "⏹ Stop")
       );
       header.lastChild.onclick = () => api("/api/playlists/stop", { method: "POST" });
-      const sub = el("p", "text-[11px] text-stone-400", `${activePlaylist.remaining} song(s) in playlist queue (plays when singer queue is empty)`);
-      autoDjBox.append(header, sub);
+
+      const list = el("ul", "space-y-1 max-h-56 overflow-y-auto pr-1");
+      const songsToShow = activePlaylist.queue.slice(0, 10);
+      for (const [idx, item] of songsToShow.entries()) {
+        const row = el("li", "flex items-center justify-between gap-2 rounded-lg bg-black/40 border border-white/5 px-2 py-1.5 text-xs hover:border-amber-400/30 transition");
+        const info = el("div", "min-w-0 flex-1 flex items-center gap-2");
+        const num = el("span", "text-[10px] font-mono font-bold text-amber-400/70 w-4 text-center shrink-0", `${idx + 1}`);
+        const trackText = el("div", "min-w-0 flex-1");
+        trackText.append(
+          el("p", "truncate font-semibold text-stone-200 text-xs", item.title || item.query),
+          el("p", "truncate text-[10px] text-stone-400", item.artist ? `${item.artist} · Auto-DJ` : "Auto-DJ filler")
+        );
+        info.append(num, trackText);
+
+        const promoteBtn = el("button", "shrink-0 rounded bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1", "🎤 Queue");
+        promoteBtn.title = "Move this song into the main singer queue to sing next";
+        promoteBtn.onclick = async () => {
+          try {
+            await api("/api/playlists/promote", {
+              method: "POST",
+              body: { query: item.query || item.title, index: idx, singer: "Host" }
+            });
+            toast(`Added "${item.title || item.query}" to singer queue!`);
+          } catch (e) {
+            fail(e);
+          }
+        };
+        row.append(info, promoteBtn);
+        list.append(row);
+      }
+
+      if (activePlaylist.remaining > 10) {
+        const moreNote = el("p", "text-[10px] text-center text-stone-500 italic pt-1", `+ ${activePlaylist.remaining - 10} more songs in playlist`);
+        autoDjBox.append(header, list, moreNote);
+      } else {
+        autoDjBox.append(header, list);
+      }
     } else {
       autoDjBox.classList.add("hidden");
     }
