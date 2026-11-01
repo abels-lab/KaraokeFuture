@@ -33,6 +33,7 @@ class QueueManager(PersonalQueue):
         self.played: list[dict] = []
         self.playback: dict = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}
         self.active_playlist: dict | None = None
+        self._user_stopped_playlist: bool = False
         self._last_save: float = 0.0
 
     def update_playback(self, uid: str, time_sec: float, duration: float, paused: bool) -> None:
@@ -285,6 +286,7 @@ class QueueManager(PersonalQueue):
 
         item = self.active_playlist["queue"].pop(0)
         self.active_playlist.setdefault("played", []).append(item)
+        self._user_stopped_playlist = False
         self._prewarm_upcoming_playlist()
 
         resolved = await self._resolve_playlist_item(item)
@@ -351,6 +353,7 @@ class QueueManager(PersonalQueue):
             return False
         pl_name = self.active_playlist.get("name", "playlist")
         self.active_playlist = None
+        self._user_stopped_playlist = True
         log.info("Stopped active playlist '%s'", pl_name)
         await self.broadcast_state()
         return True
@@ -490,6 +493,15 @@ class QueueManager(PersonalQueue):
             # User queue is empty: Auto-DJ filler from active playlist
             pl_entry = await self._pop_and_prepare_playlist_song()
             self.current = pl_entry
+        elif not self.entries and not self.active_playlist and not getattr(self, "_user_stopped_playlist", False) and settings.get("autodj_auto_start", True):
+            # User queue empty and no active playlist: auto-start default playlist
+            default_pl = settings.get("autodj_default_playlist", "weekly_hits")
+            await self.start_playlist(default_pl)
+            if self.active_playlist:
+                pl_entry = await self._pop_and_prepare_playlist_song()
+                self.current = pl_entry
+            else:
+                self.current = None
         else:
             self.current = None
 

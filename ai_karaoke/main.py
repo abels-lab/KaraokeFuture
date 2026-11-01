@@ -48,6 +48,13 @@ async def lifespan(_: FastAPI):
         if entry.get("status") != "ready":
             await worker.submit(entry["song_id"])
     warmer.start()   # popular songs, in the background, after a short delay
+    from core import settings
+    if settings.get("autodj_auto_start", True) and not queue_mgr.active_playlist:
+        default_pl = settings.get("autodj_default_playlist", "weekly_hits")
+        try:
+            await queue_mgr.start_playlist(default_pl)
+        except Exception as exc:
+            log.warning("Could not auto-start default Auto-DJ playlist (%s): %s", default_pl, exc)
     static_watcher_task = asyncio.create_task(watcher.watch_static(), name="karaoke-static-watcher")
     ip = get_local_ip()
     log.info("Control panel: http://localhost:%d/tv", PORT)
