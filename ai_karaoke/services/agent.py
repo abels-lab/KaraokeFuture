@@ -116,7 +116,9 @@ You assist the host with running the party:
      * Chat text size: change_setting(key="screen_chat_size", value="small"|"medium"|"large")
      * Chat card opacity / transparency (%): change_setting(key="screen_chat_opacity", value=20..100)
 3. Changing app settings (themes, accents, durations, volume, guest permissions, projector chat overlay) via change_setting.
-4. Queue & Playlists Management (skipping songs, moving, removing, starting/stopping background playlists):
+4. Queue & Playlists Management (skipping songs, moving, removing/deleting songs, starting/stopping background playlists):
+   - To remove or delete a song from the queue: use queue_action(action="remove", song="<song title or query>", or uid="<uid>"). If the user asks to remove the currently playing song, pass song="current" or call queue_action(action="skip").
+   - To clear all queued songs: use queue_action(action="clear").
    - To inspect or manage playlists (built-in weekly hits rotation and custom playlists): use list_playlists, get_playlist, create_playlist, update_playlist, delete_playlist.
    - To play a playlist in the background with lower priority when no singers are waiting: use play_playlist(playlist_id=..., shuffle=..., loop=...).
    - To stop background playlist playback: use stop_playlist().
@@ -274,13 +276,17 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "queue_action",
-        "description": "Perform an action on the playback or queue: skip, play, pause, restart, remove, move.",
+        "description": "Perform an action on the playback or queue: skip/next, play, pause, restart, remove/delete, move, clear, or promote.",
         "parameters": {
             "type": "OBJECT",
             "properties": {
-                "action": {"type": "STRING", "description": "'skip', 'play', 'pause', 'restart', 'remove', or 'move'"},
-                "uid": {"type": "STRING", "description": "Queue entry UID if applicable"},
+                "action": {"type": "STRING", "description": "'remove' (or 'delete'), 'skip' (or 'next'), 'play', 'pause', 'restart', 'move', 'clear', or 'promote'"},
+                "uid": {"type": "STRING", "description": "Queue entry UID if known"},
+                "song": {"type": "STRING", "description": "Song title, artist, query, or 'current'/'now_playing' to remove/delete when UID is not known"},
+                "index": {"type": "INTEGER", "description": "1-based position in queue to remove (e.g. 1 for next song in line)"},
                 "offset": {"type": "INTEGER", "description": "Offset to move if action is 'move' (e.g. -1 for up, 1 for down)"},
+                "query": {"type": "STRING", "description": "Song query to promote or search"},
+                "singer": {"type": "STRING", "description": "Singer name when promoting a playlist song"},
             },
             "required": ["action"],
         },
@@ -578,12 +584,24 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         items = snap.get("queue", [])
         return {
             "now_playing": {
-                "title": current.get("title") if current else None,
-                "singer": current.get("singer") if current else None,
-                "duration": current.get("duration") if current else None,
+                "uid": current.get("uid"),
+                "song_id": current.get("song_id"),
+                "title": current.get("title"),
+                "singer": current.get("singer"),
+                "duration": current.get("duration"),
             } if current else None,
             "queue_count": len(items),
-            "upcoming": [{"title": i.get("title"), "singer": i.get("singer")} for i in items[:5]],
+            "upcoming": [
+                {
+                    "uid": i.get("uid"),
+                    "song_id": i.get("song_id"),
+                    "title": i.get("title"),
+                    "singer": i.get("singer"),
+                    "index": idx + 1,
+                }
+                for idx, i in enumerate(items[:10])
+            ],
+            "active_playlist": snap.get("active_playlist"),
             "theme": settings.get("theme"),
             "accent": settings.get("accent"),
         }
@@ -675,9 +693,12 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         }
 
     elif name == "queue_action":
-        action = args.get("action")
+        action = str(args.get("action", "")).lower().strip()
         uid = args.get("uid")
         offset = args.get("offset", 0)
+        target_song = (args.get("song") or args.get("query") or args.get("title") or "").strip()
+        target_idx = args.get("index")
+
         if action in ("skip", "next"):
             started = await queue.next()
             if started:
@@ -694,18 +715,60 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         elif action in ("pause", "restart"):
             await queue.control(action)
             return {"status": action}
-        elif action == "remove" and uid:
-            ok = await queue.remove(uid)
-            return {"status": "removed" if ok else "not_found"}
-        elif action == "move" and uid:
-            ok = await queue.move(uid, offset)
-            return {"status": "moved" if ok else "not_found"}
-        elif action == "clear":
+        elif action in ("remove", "delete"):
+            target_uid = uid
+            # 1. By index (1-based index in queue.entries)
+            if not target_uid and target_idx is not None:
+                try:
+                    idx = int(target_idx)
+                    if 1 <= idx <= len(queue.entries):
+                        target_uid = queue.entries[idx - 1].get("uid")
+                except (ValueError, TypeError):
+                    pass
+
+            # 2. By query/title match
+            if not target_uid and target_song:
+                s_lower = target_song.lower()
+                if s_lower in ("current", "now", "now_playing", "this", "playing"):
+                    if queue.current:
+                        target_uid = queue.current.get("uid")
+                else:
+                    match = next((e for e in queue.entries if s_lower in e.get("title", "").lower() or s_lower in e.get("channel", "").lower()), None)
+                    if match:
+                        target_uid = match.get("uid")
+                    elif queue.current and (s_lower in queue.current.get("title", "").lower() or s_lower in queue.current.get("channel", "").lower()):
+                        target_uid = queue.current.get("uid")
+
+            # 3. If neither UID, index, nor song query given, but user asked to remove/delete:
+            if not target_uid and not target_song and target_idx is None:
+                if queue.current:
+                    target_uid = queue.current.get("uid")
+                elif queue.entries:
+                    target_uid = queue.entries[0].get("uid")
+
+            if target_uid:
+                if queue.current and queue.current.get("uid") == target_uid:
+                    cur_title = queue.current.get("title", "Song")
+                    await queue.next()
+                    return {"status": "removed", "target": cur_title, "message": f"Removed currently playing song '{cur_title}' and advanced playback"}
+                entry_title = next((e.get("title") for e in queue.entries if e.get("uid") == target_uid), target_uid)
+                ok = await queue.remove(target_uid)
+                return {"status": "removed" if ok else "not_found", "target": entry_title, "uid": target_uid}
+            return {"error": f"Could not find song '{target_song or 'specified'}' in queue to remove"}
+        elif action == "move":
+            target_uid = uid
+            if not target_uid and queue.entries:
+                target_uid = queue.entries[0].get("uid")
+            if target_uid:
+                ok = await queue.move(target_uid, offset)
+                return {"status": "moved" if ok else "not_found", "uid": target_uid}
+            return {"error": "Missing UID or songs in queue to move"}
+        elif action in ("clear", "delete_all", "remove_all"):
             queue.entries.clear()
             await queue.broadcast_state()
             return {"status": "cleared"}
         elif action == "promote":
-            target = args.get("uid") or args.get("query")
+            target = args.get("uid") or args.get("query") or args.get("song")
             singer = args.get("singer", "Host")
             if target is None:
                 return {"error": "Missing target song query or uid to promote"}

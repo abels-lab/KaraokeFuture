@@ -447,5 +447,42 @@ class TestAgentChat(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(agent_msg["name"], "DJ Co-Pilot")
         self.assertIn("screen", agent_call[0][1:])
 
+    async def test_queue_action_remove_and_delete(self):
+        from core.queue_manager import queue
+
+        # Set up a fake current and entries
+        queue.entries = [
+            {"uid": "uid_1", "title": "Wonderwall", "channel": "Oasis", "singer": "Alice"},
+            {"uid": "uid_2", "title": "Shape of You", "channel": "Ed Sheeran", "singer": "Bob"},
+        ]
+        queue.current = {"uid": "uid_cur", "title": "Bohemian Rhapsody", "channel": "Queen", "singer": "Host"}
+
+        # 1. Remove by song title in queue
+        res = await agent.execute_tool("queue_action", {"action": "remove", "song": "Wonderwall"})
+        self.assertEqual(res.get("status"), "removed")
+        self.assertEqual(len(queue.entries), 1)
+
+        # 2. Delete by 1-based index (now Shape of You is index 1)
+        res2 = await agent.execute_tool("queue_action", {"action": "delete", "index": 1})
+        self.assertEqual(res2.get("status"), "removed")
+        self.assertEqual(len(queue.entries), 0)
+
+        # 3. Delete currently playing song via song='current'
+        with patch.object(queue, "next", new_callable=AsyncMock) as mock_next:
+            res3 = await agent.execute_tool("queue_action", {"action": "delete", "song": "current"})
+            self.assertEqual(res3.get("status"), "removed")
+            mock_next.assert_awaited_once()
+
+        # 4. Remove without args when current song playing
+        with patch.object(queue, "next", new_callable=AsyncMock) as mock_next:
+            res4 = await agent.execute_tool("queue_action", {"action": "remove"})
+            self.assertEqual(res4.get("status"), "removed")
+            mock_next.assert_awaited_once()
+
+        # Clean up
+        queue.entries = []
+        queue.current = None
+
+
 if __name__ == "__main__":
     unittest.main()

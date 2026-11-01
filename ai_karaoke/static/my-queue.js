@@ -157,7 +157,7 @@ function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = la
     return row;
   }));
 
-  // Auto-DJ Playlist Section on Remote
+  // Auto-DJ Playlist Section on Remote (Expanded below singer queue)
   let autodjSection = $("autodj-remote-box");
   if (!autodjSection && $("queue")) {
     autodjSection = el("div", "mt-4 space-y-2");
@@ -171,13 +171,24 @@ function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = la
       autodjSection.replaceChildren();
 
       if (hasActiveQueue) {
-        const title = el("div", "flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-400/90 px-1");
-        const leftSpan = el("span", "flex items-center gap-1", `📻 Auto-DJ: ${lastActivePlaylist.name}`);
-        const rightWrap = el("div", "flex items-center gap-2");
+        const wrapBox = el("div", "rounded-2xl bg-amber-500/10 border border-amber-400/25 p-3.5 space-y-2.5");
+        
+        // Header
+        const header = el("div", "flex items-center justify-between gap-2 border-b border-amber-400/20 pb-2");
+        const titleWrap = el("div", "min-w-0 flex-1");
+        const tTitle = el("div", "flex items-center gap-1.5 font-bold text-amber-300 text-xs truncate");
+        tTitle.append(
+          el("span", "", "📻"),
+          el("span", "truncate", `Auto-DJ: ${lastActivePlaylist.name}`)
+        );
+        const tSub = el("p", "text-[10px] text-stone-400 truncate mt-0.5", `${lastActivePlaylist.remaining} songs queued · Plays automatically when nobody is in line`);
+        titleWrap.append(tTitle, tSub);
+
+        const rightWrap = el("div", "flex items-center gap-1.5 shrink-0");
         if (admin) {
-          const switchBtn = el("button", "rounded bg-white/10 hover:bg-white/20 text-stone-200 px-2 py-0.5 text-[11px] font-bold transition", "🔀 Change");
+          const switchBtn = el("button", "rounded-lg bg-white/10 hover:bg-white/20 text-stone-200 px-2.5 py-1 text-[11px] font-bold transition flex items-center gap-1", "🔀 Manage");
           switchBtn.onclick = openPlaylistModal;
-          const stopBtn = el("button", "rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 px-2 py-0.5 text-[11px] font-bold transition", "⏹ Stop");
+          const stopBtn = el("button", "rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 px-2 py-1 text-[11px] font-bold transition", "⏹ Stop");
           stopBtn.onclick = async () => {
             try {
               await api("/api/playlists/stop", { method: "POST" });
@@ -188,19 +199,26 @@ function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = la
           };
           rightWrap.append(switchBtn, stopBtn);
         } else {
-          rightWrap.append(el("span", "text-[10px] text-stone-400 font-normal lowercase", "lower priority"));
+          rightWrap.append(el("span", "rounded-full bg-white/10 text-stone-300 px-2 py-0.5 text-[10px] font-semibold", "Auto filler"));
         }
-        title.append(leftSpan, rightWrap);
+        header.append(titleWrap, rightWrap);
 
-        const list = el("ul", "space-y-1.5");
-        for (const [idx, item] of lastActivePlaylist.queue.slice(0, 6).entries()) {
-          const row = el("li", "flex items-center justify-between gap-2 rounded-xl bg-white/5 border border-white/5 p-2 text-xs");
-          const info = el("div", "min-w-0 flex-1");
-          info.append(
-            el("p", "truncate font-semibold text-stone-200", item.title || item.query),
+        // Expanded Song List (up to 15 items with scroll)
+        const list = el("ul", "space-y-1.5 max-h-72 overflow-y-auto pr-1");
+        const songsToShow = lastActivePlaylist.queue.slice(0, 15);
+        for (const [idx, item] of songsToShow.entries()) {
+          const row = el("li", "flex items-center justify-between gap-2 rounded-xl bg-black/40 border border-white/5 p-2 text-xs hover:border-amber-400/30 transition");
+          const info = el("div", "min-w-0 flex-1 flex items-center gap-2");
+          const num = el("span", "text-[10px] font-mono font-bold text-amber-400/80 w-5 text-center shrink-0", `${idx + 1}`);
+          const trackText = el("div", "min-w-0 flex-1");
+          trackText.append(
+            el("p", "truncate font-semibold text-stone-200 text-xs", item.title || item.query),
             el("p", "truncate text-[10px] text-stone-400", item.artist ? `${item.artist} · Auto-DJ` : "Auto-DJ filler")
           );
+          info.append(num, trackText);
+
           const claimBtn = el("button", "shrink-0 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2.5 py-1 text-xs font-bold transition flex items-center gap-1", "🎤 Sing this!");
+          claimBtn.title = "Add this song into your user queue to sing it next";
           claimBtn.onclick = async () => {
             try {
               await api("/api/playlists/promote", {
@@ -215,17 +233,25 @@ function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = la
           row.append(info, claimBtn);
           list.append(row);
         }
-        autodjSection.append(title, list);
+
+        wrapBox.append(header, list);
+
+        if (lastActivePlaylist.remaining > 15) {
+          const moreNote = el("p", "text-[10px] text-center text-stone-400 italic pt-1", `+ ${lastActivePlaylist.remaining - 15} more songs in playlist queue`);
+          wrapBox.append(moreNote);
+        }
+
+        autodjSection.append(wrapBox);
       } else if (admin) {
-        // Admin view when no Auto-DJ playlist is currently running
-        const idleBox = el("div", "rounded-xl border border-dashed border-amber-400/30 bg-amber-400/5 p-3 text-xs space-y-2");
+        // Host view when no Auto-DJ playlist is currently running
+        const idleBox = el("div", "rounded-2xl border border-dashed border-amber-400/30 bg-amber-400/5 p-4 text-xs space-y-2.5");
         const hTitle = el("div", "flex items-center justify-between font-bold text-amber-300");
         hTitle.append(
-          el("span", "flex items-center gap-1", "📻 Auto-DJ: Idle"),
+          el("span", "flex items-center gap-1.5", "📻 Auto-DJ: Idle"),
           el("span", "text-[10px] text-stone-400 font-normal", "Host control")
         );
-        const hSub = el("p", "text-stone-300 text-[11px]", "No background playlist is currently active. Select an existing playlist to play filler songs when the queue is empty.");
-        const hBtn = el("button", "rounded-lg bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold px-3 py-1.5 transition text-xs flex items-center gap-1", "▶ Select & Start Playlist");
+        const hSub = el("p", "text-stone-300 text-xs", "No background playlist is currently active. Select or create a playlist to automatically play filler songs whenever nobody is waiting in line.");
+        const hBtn = el("button", "rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold px-4 py-2 transition text-xs flex items-center gap-1.5 shadow", "▶ Select / Manage Playlists");
         hBtn.onclick = openPlaylistModal;
         idleBox.append(hTitle, hSub, hBtn);
         autodjSection.append(idleBox);
@@ -236,11 +262,56 @@ function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = la
   }
 }
 
-// ── Auto-DJ Playlist Modal Dialog (Host) ──────────────────────────────────
-async function openPlaylistModal() {
-  const modal = $("playlist-modal");
-  if (!modal) return;
-  modal.classList.replace("hidden", "flex");
+// ── Auto-DJ Playlists Modal & CRUD Dialog (Host) ──────────────────────────
+function updatePlaylistSongsCount() {
+  const textarea = $("playlist-form-songs");
+  const countEl = $("playlist-form-count");
+  if (!textarea || !countEl) return;
+  const lines = textarea.value.split("\n").map(l => l.trim()).filter(Boolean);
+  countEl.textContent = `${lines.length} song(s)`;
+}
+
+function showPlaylistListView() {
+  $("playlist-view-list")?.classList.remove("hidden");
+  $("playlist-view-form")?.classList.add("hidden");
+  loadPlaylistList();
+}
+
+function showPlaylistFormView(playlist = null) {
+  $("playlist-view-list")?.classList.add("hidden");
+  $("playlist-view-form")?.classList.remove("hidden");
+
+  const idInput = $("playlist-form-id");
+  const nameInput = $("playlist-form-name");
+  const descInput = $("playlist-form-desc");
+  const songsTextarea = $("playlist-form-songs");
+  const titleEl = $("playlist-form-title");
+
+  if (playlist) {
+    if (titleEl) titleEl.textContent = `Edit: ${playlist.name}`;
+    if (idInput) idInput.value = playlist.id || "";
+    if (nameInput) nameInput.value = playlist.name || "";
+    if (descInput) descInput.value = playlist.description || "";
+    if (songsTextarea) {
+      const songLines = (playlist.songs || []).map(s => {
+        if (typeof s === "string") return s;
+        if (s.artist && s.title) return `${s.artist} - ${s.title}`;
+        return s.title || s.query || "";
+      }).filter(Boolean);
+      songsTextarea.value = songLines.join("\n");
+    }
+  } else {
+    if (titleEl) titleEl.textContent = "Create New Playlist";
+    if (idInput) idInput.value = "";
+    if (nameInput) nameInput.value = "";
+    if (descInput) descInput.value = "";
+    if (songsTextarea) songsTextarea.value = "";
+  }
+  updatePlaylistSongsCount();
+  nameInput?.focus();
+}
+
+async function loadPlaylistList() {
   const list = $("playlist-modal-list");
   if (!list) return;
   list.innerHTML = '<div class="p-4 text-center text-stone-400 text-xs">Loading playlists...</div>';
@@ -254,9 +325,10 @@ async function openPlaylistModal() {
     }
     list.replaceChildren(...playlists.map(pl => {
       const isCurrent = pl.id === activeId;
-      const card = el("div", `rounded-xl p-3 text-xs border transition flex items-center justify-between gap-3 ${
+      const card = el("div", `rounded-xl p-3 text-xs border transition flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 ${
         isCurrent ? "bg-amber-400/15 border-amber-400/50 shadow-sm" : "bg-white/5 border-white/10 hover:border-white/20"
       }`);
+
       const info = el("div", "min-w-0 flex-1 space-y-1");
       const nameRow = el("div", "flex flex-wrap items-center gap-1.5");
       nameRow.append(el("span", "font-bold text-sm text-stone-100 truncate", pl.name));
@@ -265,33 +337,126 @@ async function openPlaylistModal() {
       }
       if (pl.is_built_in) {
         nameRow.append(el("span", "rounded-full bg-white/10 text-stone-300 px-1.5 py-0.5 text-[10px]", pl.rotation ? "Weekly Rotation" : "Built-in"));
+      } else {
+        nameRow.append(el("span", "rounded-full bg-amber-400/20 text-amber-300 px-1.5 py-0.5 text-[10px] font-semibold", "Custom"));
       }
       info.append(
         nameRow,
         el("p", "text-[11px] text-stone-400 line-clamp-1", pl.description || `${pl.count || 0} songs`),
         el("p", "text-[10px] text-stone-500 font-mono", `${pl.count || 0} songs`)
       );
-      const btn = el("button", `shrink-0 rounded-lg px-3 py-1.5 font-bold transition text-xs flex items-center gap-1 ${
+
+      const actions = el("div", "flex items-center gap-1.5 shrink-0 flex-wrap justify-end");
+
+      // Custom playlists can be edited or deleted
+      if (!pl.is_built_in) {
+        const editBtn = el("button", "rounded-lg bg-white/10 hover:bg-white/20 text-stone-200 px-2.5 py-1 text-xs font-semibold transition flex items-center gap-1", "✏️ Edit");
+        editBtn.title = "Edit playlist name and songs";
+        editBtn.onclick = async () => {
+          try {
+            const fullPl = await api(`/api/playlists/${pl.id}`);
+            showPlaylistFormView(fullPl);
+          } catch (err) {
+            fail(err);
+          }
+        };
+
+        const deleteBtn = el("button", "rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-300 px-2 py-1 text-xs font-semibold transition", "🗑️");
+        deleteBtn.title = `Delete playlist "${pl.name}"`;
+        deleteBtn.onclick = async () => {
+          if (!confirm(`Are you sure you want to delete playlist "${pl.name}"?`)) return;
+          try {
+            await api(`/api/playlists/${pl.id}`, { method: "DELETE" });
+            toast(`Deleted playlist "${pl.name}"`);
+            loadPlaylistList();
+          } catch (err) {
+            fail(err);
+          }
+        };
+
+        actions.append(editBtn, deleteBtn);
+      }
+
+      // Play / Active Button
+      const playBtn = el("button", `rounded-lg px-3 py-1 font-bold transition text-xs flex items-center gap-1 ${
         isCurrent
           ? "bg-amber-400/20 text-amber-200 hover:bg-amber-400/30"
           : "bg-amber-400 hover:bg-amber-300 text-stone-950 shadow"
       }`, isCurrent ? "Active (Restart)" : "▶ Play");
-      btn.onclick = async () => {
+      playBtn.onclick = async () => {
         try {
           await api(`/api/playlists/${pl.id}/play`, { method: "POST" });
           toast(`Started Auto-DJ with "${pl.name}"!`);
-          modal.classList.replace("flex", "hidden");
+          $("playlist-modal")?.classList.replace("flex", "hidden");
         } catch (err) {
           fail(err);
         }
       };
-      card.append(info, btn);
+      actions.append(playBtn);
+
+      card.append(info, actions);
       return card;
     }));
   } catch (err) {
     list.innerHTML = `<div class="p-4 text-center text-rose-400 text-xs">${escapeHtml(err.message || String(err))}</div>`;
   }
 }
+
+async function openPlaylistModal() {
+  const modal = $("playlist-modal");
+  if (!modal) return;
+  modal.classList.replace("hidden", "flex");
+  showPlaylistListView();
+}
+
+async function savePlaylistFromForm() {
+  const idInput = $("playlist-form-id");
+  const nameInput = $("playlist-form-name");
+  const descInput = $("playlist-form-desc");
+  const songsTextarea = $("playlist-form-songs");
+
+  const name = nameInput ? nameInput.value.trim() : "";
+  if (!name) {
+    alert("Please enter a playlist name.");
+    nameInput?.focus();
+    return;
+  }
+
+  const rawSongs = songsTextarea ? songsTextarea.value.split("\n").map(l => l.trim()).filter(Boolean) : [];
+  if (rawSongs.length === 0) {
+    alert("Please enter at least one song for the playlist.");
+    songsTextarea?.focus();
+    return;
+  }
+
+  const pid = idInput ? idInput.value.trim() : "";
+  const description = descInput ? descInput.value.trim() : "";
+
+  try {
+    if (pid) {
+      await api(`/api/playlists/${pid}`, {
+        method: "PUT",
+        body: { name, description, songs: rawSongs, action: "set" }
+      });
+      toast(`Updated playlist "${name}"!`);
+    } else {
+      await api("/api/playlists", {
+        method: "POST",
+        body: { name, description, songs: rawSongs }
+      });
+      toast(`Created playlist "${name}"!`);
+    }
+    showPlaylistListView();
+  } catch (err) {
+    fail(err);
+  }
+}
+
+$("playlist-form-songs")?.addEventListener("input", updatePlaylistSongsCount);
+$("playlist-btn-new")?.addEventListener("click", () => showPlaylistFormView(null));
+$("playlist-form-back")?.addEventListener("click", showPlaylistListView);
+$("playlist-form-cancel")?.addEventListener("click", showPlaylistListView);
+$("playlist-form-save")?.addEventListener("click", savePlaylistFromForm);
 
 $("playlist-modal-close")?.addEventListener("click", () => $("playlist-modal")?.classList.replace("flex", "hidden"));
 $("playlist-modal-done")?.addEventListener("click", () => $("playlist-modal")?.classList.replace("flex", "hidden"));
