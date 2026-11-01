@@ -44,8 +44,8 @@ async def lifespan(_: FastAPI):
     if removed:
         log.info("Removed %d half-processed song folder(s)", len(removed))
     worker.start()
-    for entry in queue_mgr.entries:
-        if entry.get("status") != "ready":
+    for entry in queue_mgr.entries + ([queue_mgr.current] if queue_mgr.current else []):
+        if entry.get("status") != "ready" and entry.get("song_id"):
             await worker.submit(entry["song_id"])
     warmer.start()   # popular songs, in the background, after a short delay
     from core import settings

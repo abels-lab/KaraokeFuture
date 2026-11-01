@@ -3,7 +3,7 @@ import shutil
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
@@ -246,6 +246,47 @@ class TestQueuePlaylistIntegration(unittest.IsolatedAsyncioTestCase):
                 self.qm._user_stopped_playlist = True
                 await self.qm.next()
                 mock_start.assert_not_awaited()
+
+    async def test_autodj_unready_song_not_skipped_by_worker(self):
+        """When an unready Auto-DJ song is popped, it must be in current immediately
+        so that queue.has_song(sid) is True and worker_jobs does not skip it."""
+        from core import worker_jobs
+        with patch.object(self.qm, "broadcast_state", new=AsyncMock()), \
+             patch.object(self.qm, "_changed", new=AsyncMock()), \
+             patch("core.cache_manager.is_ready", return_value=False), \
+             patch("core.worker.worker.submit", new_callable=AsyncMock) as mock_submit:
+            self.qm.active_playlist = {
+                "id": "test_pl",
+                "name": "Test Playlist",
+                "queue": [{"query": "Queen - Radio Ga Ga", "title": "Radio Ga Ga", "artist": "Queen", "song_id": "sid_queen"}],
+                "played": [],
+                "loop": False,
+                "enabled": True,
+            }
+            self.qm.entries = []
+            mock_resolved = {
+                "song_id": "sid_queen",
+                "title": "Radio Ga Ga",
+                "channel": "Queen",
+                "duration": 340,
+                "thumbnail": "",
+                "ready": False,
+            }
+            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)):
+                pl_picked = await self.qm.next()
+                self.assertIsNotNone(pl_picked)
+                self.assertEqual(pl_picked["song_id"], "sid_queen")
+                self.assertEqual(pl_picked["status"], "queued")
+                # Crucial assertion: queue.has_song must return True
+                self.assertTrue(self.qm.has_song("sid_queen"))
+                # Crucial assertion: worker.submit was called
+                mock_submit.assert_awaited_with("sid_queen")
+                # dispatch must not skip it
+                with patch("core.worker_jobs._process", new_callable=AsyncMock) as mock_proc, \
+                     patch("core.worker_jobs.queue", self.qm):
+                    res = await worker_jobs.dispatch(MagicMock(), "process", "sid_queen")
+                    self.assertTrue(res)
+                    mock_proc.assert_awaited_once()
 
 
 class TestPlaylistsApi(unittest.TestCase):

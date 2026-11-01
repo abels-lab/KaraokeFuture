@@ -136,6 +136,19 @@ class QueueManager(PersonalQueue):
         return next((e for e in self._everyone() if e["uid"] == uid), None)
 
     def has_song(self, song_id: str) -> bool:
+        if not song_id:
+            return False
+        if self.current and self.current.get("song_id") == song_id:
+            return True
+        if any(e.get("song_id") == song_id for e in self.entries):
+            return True
+        if self.active_playlist:
+            for item in self.active_playlist.get("queue", []):
+                if isinstance(item, dict) and item.get("song_id") == song_id:
+                    return True
+            for item in self.active_playlist.get("played", []):
+                if isinstance(item, dict) and item.get("song_id") == song_id:
+                    return True
         return song_id in self.protected_ids()
 
     def is_playing(self, song_id: str) -> bool:
@@ -269,9 +282,12 @@ class QueueManager(PersonalQueue):
         try:
             resolved = await self._resolve_playlist_item(item)
             sid = resolved.get("song_id")
-            if sid and not cache_manager.is_ready(sid):
-                from core.worker import worker
-                await worker.submit_warm(sid, self.active_playlist.get("id", "playlist"))
+            if sid:
+                if isinstance(item, dict):
+                    item["song_id"] = sid
+                if not cache_manager.is_ready(sid):
+                    from core.worker import worker
+                    await worker.submit_warm(sid, self.active_playlist.get("id", "playlist"))
         except Exception as e:
             log.debug("Failed pre-warming playlist item: %s", e)
 
@@ -317,6 +333,7 @@ class QueueManager(PersonalQueue):
             "is_playlist": True,
             "playlist_id": self.active_playlist.get("id"),
         }
+        self.current = entry
         if cache_manager.is_ready(sid):
             cache_manager.touch(sid)
         else:
@@ -429,6 +446,11 @@ class QueueManager(PersonalQueue):
             self.current.update(status=status, error=error)
             if status == "ready":
                 self.current["media"] = media_urls(song_id)
+        if not self.current and status == "ready":
+            ready = next((e for e in self.entries if e["status"] == "ready"), None)
+            if ready:
+                await self.next()
+                return
         await self._changed()
 
     async def reset_song(self, song_id: str) -> None:
