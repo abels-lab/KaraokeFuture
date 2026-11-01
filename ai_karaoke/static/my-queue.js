@@ -165,40 +165,146 @@ function renderQueue(queue = lastQueue, played = lastPlayed, activePlaylist = la
     $("queue").parentElement.append(autodjSection);
   }
   if (autodjSection) {
-    if (lastActivePlaylist && lastActivePlaylist.queue && lastActivePlaylist.queue.length > 0 && queueFilter !== "played") {
+    const hasActiveQueue = lastActivePlaylist && lastActivePlaylist.queue && lastActivePlaylist.queue.length > 0;
+    if (queueFilter !== "played" && (hasActiveQueue || admin)) {
       autodjSection.classList.remove("hidden");
       autodjSection.replaceChildren();
-      const title = el("div", "flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-400/90 px-1");
-      title.append(
-        el("span", "flex items-center gap-1", `📻 Auto-DJ: ${lastActivePlaylist.name}`),
-        el("span", "text-[10px] text-stone-400 font-normal lowercase", "lower priority")
-      );
-      const list = el("ul", "space-y-1.5");
-      for (const [idx, item] of lastActivePlaylist.queue.slice(0, 6).entries()) {
-        const row = el("li", "flex items-center justify-between gap-2 rounded-xl bg-white/5 border border-white/5 p-2 text-xs");
-        const info = el("div", "min-w-0 flex-1");
-        info.append(
-          el("p", "truncate font-semibold text-stone-200", item.title || item.query),
-          el("p", "truncate text-[10px] text-stone-400", item.artist ? `${item.artist} · Auto-DJ` : "Auto-DJ filler")
+
+      if (hasActiveQueue) {
+        const title = el("div", "flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-amber-400/90 px-1");
+        const leftSpan = el("span", "flex items-center gap-1", `📻 Auto-DJ: ${lastActivePlaylist.name}`);
+        const rightWrap = el("div", "flex items-center gap-2");
+        if (admin) {
+          const switchBtn = el("button", "rounded bg-white/10 hover:bg-white/20 text-stone-200 px-2 py-0.5 text-[11px] font-bold transition", "🔀 Change");
+          switchBtn.onclick = openPlaylistModal;
+          const stopBtn = el("button", "rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 px-2 py-0.5 text-[11px] font-bold transition", "⏹ Stop");
+          stopBtn.onclick = async () => {
+            try {
+              await api("/api/playlists/stop", { method: "POST" });
+              toast("Stopped Auto-DJ playlist");
+            } catch (err) {
+              fail(err);
+            }
+          };
+          rightWrap.append(switchBtn, stopBtn);
+        } else {
+          rightWrap.append(el("span", "text-[10px] text-stone-400 font-normal lowercase", "lower priority"));
+        }
+        title.append(leftSpan, rightWrap);
+
+        const list = el("ul", "space-y-1.5");
+        for (const [idx, item] of lastActivePlaylist.queue.slice(0, 6).entries()) {
+          const row = el("li", "flex items-center justify-between gap-2 rounded-xl bg-white/5 border border-white/5 p-2 text-xs");
+          const info = el("div", "min-w-0 flex-1");
+          info.append(
+            el("p", "truncate font-semibold text-stone-200", item.title || item.query),
+            el("p", "truncate text-[10px] text-stone-400", item.artist ? `${item.artist} · Auto-DJ` : "Auto-DJ filler")
+          );
+          const claimBtn = el("button", "shrink-0 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2.5 py-1 text-xs font-bold transition flex items-center gap-1", "🎤 Sing this!");
+          claimBtn.onclick = async () => {
+            try {
+              await api("/api/playlists/promote", {
+                method: "POST",
+                body: { query: item.query || item.title, index: idx }
+              });
+              toast(`Added "${item.title || item.query}" to your queue!`);
+            } catch (err) {
+              fail(err);
+            }
+          };
+          row.append(info, claimBtn);
+          list.append(row);
+        }
+        autodjSection.append(title, list);
+      } else if (admin) {
+        // Admin view when no Auto-DJ playlist is currently running
+        const idleBox = el("div", "rounded-xl border border-dashed border-amber-400/30 bg-amber-400/5 p-3 text-xs space-y-2");
+        const hTitle = el("div", "flex items-center justify-between font-bold text-amber-300");
+        hTitle.append(
+          el("span", "flex items-center gap-1", "📻 Auto-DJ: Idle"),
+          el("span", "text-[10px] text-stone-400 font-normal", "Host control")
         );
-        const claimBtn = el("button", "shrink-0 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2.5 py-1 text-xs font-bold transition flex items-center gap-1", "🎤 Sing this!");
-        claimBtn.onclick = async () => {
-          try {
-            await api("/api/playlists/promote", {
-              method: "POST",
-              body: { query: item.query || item.title, index: idx }
-            });
-            toast(`Added "${item.title || item.query}" to your queue!`);
-          } catch (err) {
-            fail(err);
-          }
-        };
-        row.append(info, claimBtn);
-        list.append(row);
+        const hSub = el("p", "text-stone-300 text-[11px]", "No background playlist is currently active. Select an existing playlist to play filler songs when the queue is empty.");
+        const hBtn = el("button", "rounded-lg bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold px-3 py-1.5 transition text-xs flex items-center gap-1", "▶ Select & Start Playlist");
+        hBtn.onclick = openPlaylistModal;
+        idleBox.append(hTitle, hSub, hBtn);
+        autodjSection.append(idleBox);
       }
-      autodjSection.append(title, list);
     } else {
       autodjSection.classList.add("hidden");
     }
   }
 }
+
+// ── Auto-DJ Playlist Modal Dialog (Host) ──────────────────────────────────
+async function openPlaylistModal() {
+  const modal = $("playlist-modal");
+  if (!modal) return;
+  modal.classList.replace("hidden", "flex");
+  const list = $("playlist-modal-list");
+  if (!list) return;
+  list.innerHTML = '<div class="p-4 text-center text-stone-400 text-xs">Loading playlists...</div>';
+  try {
+    const data = await api("/api/playlists");
+    const playlists = data.playlists || [];
+    const activeId = data.active_playlist?.id || lastActivePlaylist?.id;
+    if (playlists.length === 0) {
+      list.innerHTML = '<div class="p-4 text-center text-stone-400 text-xs">No playlists found.</div>';
+      return;
+    }
+    list.replaceChildren(...playlists.map(pl => {
+      const isCurrent = pl.id === activeId;
+      const card = el("div", `rounded-xl p-3 text-xs border transition flex items-center justify-between gap-3 ${
+        isCurrent ? "bg-amber-400/15 border-amber-400/50 shadow-sm" : "bg-white/5 border-white/10 hover:border-white/20"
+      }`);
+      const info = el("div", "min-w-0 flex-1 space-y-1");
+      const nameRow = el("div", "flex flex-wrap items-center gap-1.5");
+      nameRow.append(el("span", "font-bold text-sm text-stone-100 truncate", pl.name));
+      if (isCurrent) {
+        nameRow.append(el("span", "rounded-full bg-emerald-500/20 text-emerald-300 px-2 py-0.5 text-[10px] font-bold", "Playing"));
+      }
+      if (pl.is_built_in) {
+        nameRow.append(el("span", "rounded-full bg-white/10 text-stone-300 px-1.5 py-0.5 text-[10px]", pl.rotation ? "Weekly Rotation" : "Built-in"));
+      }
+      info.append(
+        nameRow,
+        el("p", "text-[11px] text-stone-400 line-clamp-1", pl.description || `${pl.count || 0} songs`),
+        el("p", "text-[10px] text-stone-500 font-mono", `${pl.count || 0} songs`)
+      );
+      const btn = el("button", `shrink-0 rounded-lg px-3 py-1.5 font-bold transition text-xs flex items-center gap-1 ${
+        isCurrent
+          ? "bg-amber-400/20 text-amber-200 hover:bg-amber-400/30"
+          : "bg-amber-400 hover:bg-amber-300 text-stone-950 shadow"
+      }`, isCurrent ? "Active (Restart)" : "▶ Play");
+      btn.onclick = async () => {
+        try {
+          await api(`/api/playlists/${pl.id}/play`, { method: "POST" });
+          toast(`Started Auto-DJ with "${pl.name}"!`);
+          modal.classList.replace("flex", "hidden");
+        } catch (err) {
+          fail(err);
+        }
+      };
+      card.append(info, btn);
+      return card;
+    }));
+  } catch (err) {
+    list.innerHTML = `<div class="p-4 text-center text-rose-400 text-xs">${escapeHtml(err.message || String(err))}</div>`;
+  }
+}
+
+$("playlist-modal-close")?.addEventListener("click", () => $("playlist-modal")?.classList.replace("flex", "hidden"));
+$("playlist-modal-done")?.addEventListener("click", () => $("playlist-modal")?.classList.replace("flex", "hidden"));
+$("playlist-modal")?.addEventListener("click", (e) => {
+  if (e.target === $("playlist-modal")) $("playlist-modal")?.classList.replace("flex", "hidden");
+});
+$("playlist-modal-stop")?.addEventListener("click", async () => {
+  try {
+    await api("/api/playlists/stop", { method: "POST" });
+    toast("Auto-DJ playlist stopped");
+    $("playlist-modal")?.classList.replace("flex", "hidden");
+  } catch (err) {
+    fail(err);
+  }
+});
+$("btn-remote-playlists")?.addEventListener("click", openPlaylistModal);

@@ -9,6 +9,7 @@ function paintLogin(me) {
   $("me-bar").classList.toggle("hidden", !in_);
   $("guest-tools").classList.toggle("hidden", !in_);
   $("host-singer-box").classList.toggle("hidden", !me.admin);
+  $("btn-remote-playlists")?.classList.toggle("hidden", !me.admin);
   $("host-singer").placeholder = me.guest ? `${me.guest.name} (you), or anyone` : "e.g. Freddie";
   $("me-name").textContent = me.guest?.name || (me.admin ? "Host" : "");
   if (!in_ && !$("login-name").value) $("login-name").value = store("singer") || ""; // the old free-text name

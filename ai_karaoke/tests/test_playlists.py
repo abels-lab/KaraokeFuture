@@ -226,6 +226,28 @@ class TestQueuePlaylistIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(self.qm.active_playlist["queue"]), 1)
 
 
+    async def test_autodj_auto_start_on_empty_queue(self):
+        # When queue.next() is called with an empty queue, no active playlist, and autodj_auto_start=True
+        with patch("core.settings.get", side_effect=lambda k, d=None: True if k == "autodj_auto_start" else ("weekly_hits" if k == "autodj_default_playlist" else d)):
+            with patch.object(self.qm, "start_playlist", new=AsyncMock()) as mock_start:
+                mock_start.side_effect = lambda pid: setattr(self.qm, "active_playlist", {"name": "Weekly Hits", "queue": [], "enabled": True})
+                self.qm.entries = []
+                self.qm.active_playlist = None
+                self.qm._user_stopped_playlist = False
+                await self.qm.next()
+                mock_start.assert_awaited_once_with("weekly_hits")
+
+    async def test_autodj_respects_user_stop(self):
+        # If user explicitly stopped playlist, next() must not auto-start
+        with patch("core.settings.get", side_effect=lambda k, d=None: True if k == "autodj_auto_start" else ("weekly_hits" if k == "autodj_default_playlist" else d)):
+            with patch.object(self.qm, "start_playlist", new=AsyncMock()) as mock_start:
+                self.qm.entries = []
+                self.qm.active_playlist = None
+                self.qm._user_stopped_playlist = True
+                await self.qm.next()
+                mock_start.assert_not_awaited()
+
+
 class TestPlaylistsApi(unittest.TestCase):
     def setUp(self):
         self.client = TestClient(app)
