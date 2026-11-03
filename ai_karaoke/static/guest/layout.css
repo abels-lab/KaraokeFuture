@@ -54,6 +54,10 @@
   .guest-shell { max-width: 64rem; padding-bottom: 2rem; }
   .guest-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
   [data-view="now"] { position: sticky; top: 1rem; }
+  /* In a browser window (tabs + taskbar take ~150px) the Auto-DJ list's fixed 18rem made the
+     queue column, and so the page, taller than the screen. It gives up what's missing instead:
+     ~31rem is everything else from header to footer when nobody is in line (+.5rem for rounding). */
+  #autodj-mount ul { max-height: clamp(7rem, calc(100dvh - 31.5rem), 18rem); }
 }
 
 /* ── Laptop: centred, Now | Queue | Ready songs ────────────────────────── */
