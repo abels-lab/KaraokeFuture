@@ -57,7 +57,7 @@ async def lifespan(_: FastAPI):
             log.warning("Could not auto-start default Auto-DJ playlist (%s): %s", default_pl, exc)
     static_watcher_task = asyncio.create_task(watcher.watch_static(), name="karaoke-static-watcher")
     ip = get_local_ip()
-    log.info("Control panel: http://localhost:%d/tv", PORT)
+    log.info("Control panel: http://localhost:%d/host", PORT)
     log.info("Projector:     http://%s:%d/screen", ip, PORT)
     log.info("Guests:        http://%s:%d/remote", ip, PORT)
     public = await asyncio.to_thread(tailscale.funnel_url, PORT)
@@ -81,8 +81,10 @@ app.include_router(settings.router)
 app.include_router(agent.router)
 app.include_router(ws.router)
 
-PAGES = {"tv": "tv.html", "screen": "screen.html", "remote": "remote.html", "library": "library.html",
-         "settings": "settings.html"}
+# The host app is one page (static/host.html); its old addresses still work and open the matching
+# view or popup (static/host/router.js): /tv = the control panel, /library, /settings.
+PAGES = {"host": "host.html", "tv": "host.html", "library": "host.html", "settings": "host.html",
+         "screen": "screen.html", "remote": "remote.html"}
 
 
 @app.middleware("http")
@@ -107,7 +109,7 @@ async def root():
 
 @app.get("/{page}", include_in_schema=False)
 async def page(page: str):
-    """/tv (host screen), /remote (guest phones), /library (song & lyrics manager)."""
+    """/host (the host app; also /tv, /library, /settings), /screen (projector), /remote (guest phones)."""
     if page not in PAGES:
         raise HTTPException(404)
     return FileResponse(STATIC_DIR / PAGES[page])

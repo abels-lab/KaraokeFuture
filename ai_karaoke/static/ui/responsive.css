@@ -1,0 +1,95 @@
+/* Shared layer for the single-page apps: the three screen sizes, the phone's safe areas (notch,
+   home bar), finger-sized tap targets and the popup look (ui/popup.js). Loaded after theme.css,
+   which it never overrides. Breakpoints (CSS variables can't be used inside @media, so they are
+   written out): phone up to 640px, tablet 641–1024px, laptop from 1025px. */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --gutter: 1rem;            /* page side padding: grows with the screen */
+  --tap: 44px;               /* smallest comfortable finger target */
+  --popup-z: 30;             /* popups stack from here; lyrics (40), host PIN + toast (50) stay above */
+  --sheet-max-h: 92vh;
+}
+@supports (height: 1dvh) { :root { --sheet-max-h: 92dvh; } }
+@media (min-width: 641px) { :root { --gutter: 1.5rem; } }
+@media (min-width: 1025px) { :root { --gutter: 2rem; } }
+
+/* ── Show / hide by screen size ─────────────────────────────────────────── */
+@media (max-width: 640px) { .hide-phone, .only-tablet, .only-laptop { display: none !important; } }
+@media (min-width: 641px) and (max-width: 1024px) { .hide-tablet, .only-phone, .only-laptop { display: none !important; } }
+@media (min-width: 1025px) { .hide-laptop, .only-phone, .only-tablet { display: none !important; } }
+
+/* ── Safe areas: keep content clear of the notch and the home bar ───────── */
+.safe-x { padding-left: max(var(--gutter), var(--safe-left)); padding-right: max(var(--gutter), var(--safe-right)); }
+.safe-top { padding-top: max(0.75rem, var(--safe-top)); }
+.safe-bottom { padding-bottom: max(0.75rem, var(--safe-bottom)); }
+
+/* ── Finger-sized targets on touch screens ──────────────────────────────── */
+@media (pointer: coarse) {
+  .tap, .popup :is(button, select, input:not([type=checkbox]):not([type=radio]):not([type=range])) {
+    min-height: var(--tap);
+  }
+  .tap-square { min-width: var(--tap); min-height: var(--tap); }
+}
+
+/* ── A row of pills that scrolls sideways without a scrollbar ───────────── */
+.pill-row {
+  display: flex; align-items: center; gap: .375rem;
+  overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.pill-row::-webkit-scrollbar { display: none; }
+.pill-row > * { flex-shrink: 0; }
+
+/* ── Popups (ui/popup.js) ───────────────────────────────────────────────── */
+html.popup-lock, html.popup-lock body { overflow: hidden; }
+.popup-backdrop {
+  position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(0, 0, 0, .72); opacity: 0; transition: opacity .18s ease;
+}
+.popup-backdrop.popup-open { opacity: 1; }
+.popup {
+  position: relative; display: flex; flex-direction: column; width: 100%;
+  max-height: var(--sheet-max-h); outline: none; color: var(--ink);
+  background: rgba(18, 12, 8, .97);
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .55);
+  border-radius: 1.25rem 1.25rem 0 0; border-bottom: 0;
+  padding-bottom: var(--safe-bottom);
+  transform: translateY(2rem); transition: transform .22s ease;
+}
+.popup-open .popup { transform: none; }
+.popup-handle { width: 2.75rem; height: .3rem; margin: .5rem auto 0; border-radius: 9999px; background: rgba(255, 255, 255, .25); flex-shrink: 0; }
+.popup-head { display: flex; align-items: center; gap: .75rem; padding: .5rem 1rem .5rem; flex-shrink: 0; }
+.popup-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.popup-x { flex-shrink: 0; width: 2.25rem; height: 2.25rem; font-size: .9rem; }
+.popup-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; padding: .25rem 1rem 1rem;
+  padding-left: max(1rem, var(--safe-left)); padding-right: max(1rem, var(--safe-right));
+}
+/* Phone, "full": the whole screen, below the notch */
+@media (max-width: 640px) {
+  .popup-full { height: 100%; max-height: none; border-radius: 0; border: 0; padding-top: var(--safe-top); }
+  .popup-full .popup-handle { display: none; }
+}
+/* Tablet and laptop: a centred dialog, as wide as its size asks */
+@media (min-width: 641px) {
+  .popup-backdrop { align-items: center; padding: 1.5rem; }
+  .popup {
+    border-radius: 1rem; border-bottom: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+    max-height: min(88vh, 900px); padding-bottom: 0; box-shadow: 0 24px 60px rgba(0, 0, 0, .6);
+    transform: scale(.97);
+  }
+  .popup-handle { display: none; }
+  .popup-head { padding: 1rem 1.25rem .5rem; }
+  .popup-body { padding: .25rem 1.25rem 1.25rem; }
+  .popup-sm { max-width: 26rem; }
+  .popup-md { max-width: 38rem; }
+  .popup-lg { max-width: 56rem; }
+  .popup-full { max-width: 72rem; height: 88vh; }
+}
+@media (min-width: 1025px) { .popup-lg { max-width: 64rem; } .popup-full { max-width: 80rem; } }
+@media (prefers-reduced-motion: reduce) { .popup-backdrop, .popup { transition: none; } }

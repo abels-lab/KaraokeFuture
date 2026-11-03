@@ -1,54 +1,33 @@
-// Control panel (laptop): plays the audio and is the clock every projector screen follows.
-// Shows a monitor of the stage (video + lyrics) and transport with scrubbing; the sidebar,
-// buttons and keys are in tv-side.js. Before each song the intro countdown runs (intro-run.js),
-// and while the next song is still being prepared the loading screen shows (loading.js).
-const inst = $("inst"), voc = $("voc"), seek = $("seek");
-const stage = createStage({ main: $("line-main"), next: $("line-next"), hint: $("countdown"),
-                            noLyrics: $("no-lyrics"), video: $("stage-video") });
-const loading = createLoading($("loading"), true);   // compact: the projector has the big one
-const pulse = createPulse();   // adaptive theme: light follows the music
-// Same-machine projector windows get the clock instantly; other devices via the WebSocket
-const channel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-clock") : null;
-let current = null, scrubbing = false;
-
-const send = connectWS("tv", (msg) => {
-  if (msg.type === "state") onState(msg.data);
-  else if (msg.type === "control") onControl(msg.action, msg.value);
-  else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
-  else if (msg.type === "library") loading.poke();   // a pipeline stage moved on
-  else if (msg.type === "ui_config") window.TvUi?.applyConfig(msg.config);
-}, () => {
-  if (current && !inst.paused) {
-    send({
-      type: "sync_playback",
-      uid: current.uid,
-      time: inst.currentTime,
-      duration: inst.duration || 0,
-      paused: inst.paused,
-    });
-  }
-});
-GamePanel.init(send);
+// The player (the laptop's control panel): plays the audio and is the clock every projector
+// screen follows — same-machine projector windows hear it instantly (BroadcastChannel), other
+// devices via the WebSocket ("playback", 4 Hz). Before each song the intro countdown runs
+// (intro-run.js). Only one device should be the player: host/mode.js decides, host/boot.js
+// calls HostPlayer.start() and makes it the Deck. Audio resilience (retries, the guide track's
+// lock-step, resume after a reload, song ended) is in tv-audio.js; the drawing in tv-now.js.
+// Needs common.js, tv-now.js, tv-audio.js, game-panel.js, guide.js, intro-run.js and send()
+// (host/boot.js: the page's one WebSocket).
+// HostPlayer = { start(), onOpen(), onState(state), onControl(action, value), onMedia(song_id),
+//   play(), pause(), toggle(), restart(), seekTo(t), seekBy(s), prev(), next(), time(), paused,
+//   current, introRunning, skipIntro(), render(t) } — the Deck interface shared with host/controller.js.
+const clockChannel = "BroadcastChannel" in window ? new BroadcastChannel("karaoke-clock") : null;
+let current = null;   // the entry playing here (global: guide.js reads it)
 
 function sendClock() {
   if (!current) return;
-  try {
-    sessionStorage.setItem("karaoke_active_playback", JSON.stringify({ uid: current.uid, time: inst.currentTime, paused: inst.paused }));
-  } catch {}
+  TvAudio.remember(current.uid);
   const clock = { type: "playback", uid: current.uid, time: inst.currentTime, duration: inst.duration || 0, paused: inst.paused };
   send(clock);
-  channel?.postMessage(clock);
+  clockChannel?.postMessage(clock);
 }
-setInterval(sendClock, 250);
 
 function onState({ now_playing: np, queue = [], played = [], screens = 0, active_playlist = null }) {
   renderSide(queue, played, screens, np, active_playlist);
   if (!np) {
-    try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
+    TvAudio.forget();
     if (current) stopSong();
     resetNowPlaying();
     showStage(false, queue);
-    if (window.__pendingReload) { location.reload(); return; }
+    if (window.__pendingReload) location.reload();
     return;
   }
   if (!current || current.uid !== np.uid) {
@@ -81,35 +60,6 @@ function onControl(action, value) {
   else if (action === "seek_by") seekTo(inst.currentTime + value);
 }
 
-// ── Player ────────────────────────────────────────────────────────────────
-function showStage(on, queue = []) {
-  $("stage").classList.toggle("hidden", !on);
-  const waiting = loading.render(on ? [] : queue);   // nothing plays, songs wait: show their progress
-  $("idle").classList.toggle("hidden", on);
-  $("idle").classList.toggle("has-loading", waiting);
-  $("idle-mic").classList.remove("hidden");
-}
-const showSinger = (entry) => {
-  $("np-singer").textContent = singers(entry);
-  $("np-title").textContent = entry.title;
-  const lbtn = $("np-lyrics-btn");
-  if (lbtn) {
-    lbtn.classList.remove("hidden");
-    lbtn.onclick = () => typeof openLyrics === "function" && openLyrics(entry);
-  }
-};
-const resetNowPlaying = () => {
-  if ($("np-singer")) $("np-singer").textContent = "Nobody yet";
-  if ($("np-title")) $("np-title").textContent = "Pick a song to get started";
-  const lbtn = $("np-lyrics-btn");
-  if (lbtn) lbtn.classList.add("hidden");
-  if ($("time-cur")) $("time-cur").textContent = "0:00";
-  if ($("time-dur")) $("time-dur").textContent = "0:00";
-  if (seek) { seek.value = 0; seek.max = 0; }
-  if ($("btn-play")) setIcon($("btn-play"), "play");
-};
-resetNowPlaying();
-
 async function loadSong(entry) {
   IntroRun.stop();
   current = entry;
@@ -117,49 +67,20 @@ async function loadSong(entry) {
   showStage(true);
   inst.src = entry.media.instrumental; voc.src = entry.media.vocals;
   Guide.forEntry(entry); // the singer's own guide volume, if they chose one
-
-  let savedTime = 0, wasPaused = false;
-  try {
-    const raw = sessionStorage.getItem("karaoke_active_playback");
-    if (raw) {
-      const sp = JSON.parse(raw);
-      if (sp?.uid === entry.uid && Number.isFinite(sp.time)) {
-        savedTime = Number(sp.time);
-        wasPaused = Boolean(sp.paused);
-      }
-    }
-  } catch {}
-  if (entry.playback && (entry.playback.uid === entry.uid || !entry.playback.uid) && Number.isFinite(entry.playback.time)) {
-    const srvTime = Number(entry.playback.time);
-    if (srvTime > savedTime) {
-      savedTime = srvTime;
-      wasPaused = Boolean(entry.playback.paused);
-    }
-  }
-
-  const isResuming = savedTime > 1.5;
+  const { time: savedTime, paused: wasPaused } = TvAudio.resumePoint(entry);
 
   await Promise.all([stage.load(entry), GamePanel.load(entry)]);
   if (current !== entry) return; // another song started while lyrics loaded
 
-  if (isResuming) {
-    IntroRun.stop();
+  if (savedTime > 1.5) {   // a reload mid-song: carry on where it was, no countdown
     const introMsg = { type: "intro", uid: entry.uid, left: 0, total: 0, mode: entry.mode || "", names: [] };
     send(introMsg);
-    channel?.postMessage(introMsg);
-
-    const applyResume = () => {
+    clockChannel?.postMessage(introMsg);
+    TvAudio.whenReady(() => {
       if (current !== entry) return;
       seekTo(savedTime);
-      stage.seek?.(savedTime);
       if (!wasPaused) play();
-    };
-
-    if (inst.readyState >= 1) {
-      applyResume();
-    } else {
-      inst.addEventListener("loadedmetadata", applyResume, { once: true });
-    }
+    });
   } else {
     skipSpokenIntro(entry);
     // The intro card counts down; play() from anywhere (Space, a phone) cuts it short itself
@@ -171,12 +92,11 @@ async function loadSong(entry) {
 function skipSpokenIntro(entry) {
   const intro = Number(entry.media?.intro_end ?? 0);
   if (!Settings.get("skip_intro", true) || !(intro > 0)) return;
-  if (inst.readyState >= 1) seekTo(intro);
-  else inst.addEventListener("loadedmetadata", () => { if (current === entry && inst.currentTime < 1.0) seekTo(intro); }, { once: true });
+  TvAudio.whenReady(() => { if (current === entry && inst.currentTime < 1.0) seekTo(intro); });
 }
 
 function stopSong() {
-  try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
+  TvAudio.forget();
   current = null; pause(); stage.clear(); pulse.clear(); GamePanel.clear(); Guide.forEntry(null);
   [inst, voc].forEach((a) => { a.removeAttribute("src"); a.load(); });
   resetNowPlaying();
@@ -201,94 +121,29 @@ function seekTo(t) {
   stage.seek?.(target);
 }
 
-const reportEnded = (delay = 0) => {
-  try { sessionStorage.removeItem("karaoke_active_playback"); } catch {}
-  const uid = current?.uid;
-  if (uid) setTimeout(() => send({ type: "ended", uid }), delay);
+const HostPlayer = {
+  isPlayer: true,
+  start() {
+    GamePanel.init(send);
+    TvAudio.install();
+    setInterval(sendClock, 250);
+  },
+  // Reconnected: tell the server (and so every screen) where the song is right now
+  onOpen() {
+    if (current && !inst.paused) send({ type: "sync_playback", uid: current.uid, time: inst.currentTime, duration: inst.duration || 0, paused: inst.paused });
+  },
+  onState, onControl,
+  onMedia(songId) { if (current?.song_id === songId) stage.load(current); },
+  play, pause, seekTo,
+  toggle: () => (inst.paused ? play() : pause()),
+  restart: () => onControl("restart"),
+  seekBy: (s) => seekTo(inst.currentTime + s),
+  prev: () => send({ type: "control", action: "previous" }),
+  next: () => send({ type: "control", action: "skip" }),
+  time: () => inst.currentTime,
+  get introRunning() { return IntroRun.running; },
+  skipIntro: () => IntroRun.skip(),
+  get paused() { return inst.paused; },
+  get current() { return current; },
+  render: (t) => GamePanel.render(t),
 };
-inst.onended = () => reportEnded(GamePanel.finish()); // game on: results stay up before the next song
-
-let instRetries = 0, lastRetryTime = 0;
-function handleAudioError(audio, isInst) {
-  if (!current) return;
-  const src = audio.getAttribute("src");
-  if (!src) return;
-
-  const now = performance.now();
-  if (now - lastRetryTime > 15000) instRetries = 0;
-  lastRetryTime = now;
-  instRetries++;
-
-  if (instRetries <= 5) {
-    const resumeAt = audio.currentTime;
-    const wasPlaying = !audio.paused;
-    setTimeout(() => {
-      if (!current) return;
-      audio.load();
-      const onReady = () => {
-        if (!current) return;
-        audio.currentTime = resumeAt;
-        if (wasPlaying) audio.play().catch(() => {});
-      };
-      if (audio.readyState >= 1) onReady();
-      else audio.addEventListener("loadedmetadata", onReady, { once: true });
-    }, 800);
-  } else if (isInst) {
-    reportEnded(3000); // truly broken after 5 retries -> skip
-  }
-}
-
-function handleAudioStall(audio) {
-  if (!current || audio.paused) return;
-  const t = audio.currentTime;
-  try { audio.currentTime = t; } catch {}
-}
-
-inst.onerror = () => handleAudioError(inst, true);
-voc.onerror = () => handleAudioError(voc, false);
-
-let instStallTimer = null;
-inst.onstalled = () => {
-  clearTimeout(instStallTimer);
-  instStallTimer = setTimeout(() => handleAudioStall(inst), 1500);
-};
-let vocStallTimer = null;
-voc.onstalled = () => {
-  clearTimeout(vocStallTimer);
-  vocStallTimer = setTimeout(() => handleAudioStall(voc), 1500);
-};
-
-inst.onplaying = () => {
-  instRetries = 0;
-  clearTimeout(instStallTimer);
-};
-voc.onplaying = () => {
-  clearTimeout(vocStallTimer);
-};
-
-inst.onplay = inst.onpause = () => { setIcon($("btn-play"), inst.paused ? "play" : "pause"); sendClock(); };
-inst.onseeked = sendClock; // screens jump at once instead of waiting for the next tick
-inst.onloadedmetadata = () => { seek.max = inst.duration; $("time-dur").textContent = fmt(inst.duration); };
-
-// Timeline: dragging previews the time; letting go seeks both tracks
-seek.oninput = () => { scrubbing = true; $("time-cur").textContent = fmt(Number(seek.value)); };
-seek.onchange = () => { scrubbing = false; seekTo(Number(seek.value)); };
-
-// Keep the guide-vocal track locked to the instrumental. A timer, not the animation loop:
-// browsers stop animation frames when this window is minimized, but timers keep running.
-setInterval(() => {
-  if (!current) return;
-  if (voc.paused !== inst.paused) inst.paused ? voc.pause() : voc.play().catch(() => {});
-  if (!inst.paused && Math.abs(voc.currentTime - inst.currentTime) > 0.08) voc.currentTime = inst.currentTime;
-}, 500);
-
-function tick() {
-  requestAnimationFrame(tick);
-  if (!current) return;
-  const t = inst.currentTime;
-  if (!scrubbing) { seek.value = t; $("time-cur").textContent = fmt(t); }
-  stage.render(t, !inst.paused);
-  pulse.render(t, current.song_id);
-  GamePanel.render(t);
-}
-requestAnimationFrame(tick);

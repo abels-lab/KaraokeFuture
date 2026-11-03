@@ -1,7 +1,9 @@
 // Control panel sidebar and controls: the queue with each singer's choices, projector count,
-// transport buttons, keyboard shortcuts and the QR code. Load just BEFORE tv.js: its handlers
-// use tv.js's player (play, seekTo, send…) only when clicked, while tv.js's first WebSocket
-// message already needs renderSide.
+// transport buttons, display buttons and the QR code. Same in player and controller mode: the
+// buttons talk to the Deck (tv.js or host/controller.js, set by host/boot.js) only when clicked.
+// Needs common.js, auth.js, guide.js, mics.js, mic-setup.js, ui/autodj-box.js and the markup (host/markup-*.js).
+// Below the singer queue: the Auto-DJ playlist (ui/autodj-box.js, needs ui/playlists-panel.js).
+// Exposes renderSide(queue, played, screens, current, activePlaylist) for both decks' "state" handling.
 
 let activeSideTab = "upcoming"; // "upcoming" | "played" | "all"
 function setSideTab(tab) {
@@ -21,6 +23,9 @@ function setSideTab(tab) {
 $("tab-side-upcoming")?.addEventListener("click", () => setSideTab("upcoming"));
 $("tab-side-played")?.addEventListener("click", () => setSideTab("played"));
 $("tab-side-all")?.addEventListener("click", () => setSideTab("all"));
+
+const autoDjBox = createAutoDjBox({ max: 10, compact: true, singer: () => store("host_singer") || "" });
+$("autodj-mount")?.append(autoDjBox);
 
 function renderSide(queue = [], played = [], screens = 0, current = null, activePlaylist = null) {
   $("screens").textContent = screens ? `📽 ${screens} projector screen${screens > 1 ? "s" : ""} connected` : "No projector screen connected";
@@ -46,82 +51,18 @@ function renderSide(queue = [], played = [], screens = 0, current = null, active
   if ($("btn-next")) {
     $("btn-next").disabled = !next && !current;
     if ($("btn-next-label")) $("btn-next-label").textContent = next ? (next.title || next.query) : "Queue empty";
-    $("btn-next").title = next ? `Next: ${next.title || next.query}` : "No upcoming song";
+    $("btn-next").title = next ? `Next: ${next.title || next.query} (${next.uid ? singers(next) : "Auto-DJ"}) (N)` : "No upcoming song";
   }
 
-  // Auto-DJ Playlist Expanded Queue Section (Below Singer Queue)
-  let autoDjBox = $("tv-autodj-box");
-  if (!autoDjBox && $("section-upcoming")) {
-    autoDjBox = el("div", "rounded-xl bg-amber-500/10 border border-amber-400/25 p-3 text-xs space-y-2");
-    autoDjBox.id = "tv-autodj-box";
-    $("section-upcoming")?.append(autoDjBox);
-  }
-  if (autoDjBox) {
-    if (activePlaylist && activePlaylist.queue && activePlaylist.queue.length > 0) {
-      autoDjBox.classList.remove("hidden");
-      autoDjBox.replaceChildren();
-
-      const header = el("div", "flex items-center justify-between gap-2 border-b border-amber-400/20 pb-1.5");
-      const titleWrap = el("div", "min-w-0 flex-1 truncate");
-      titleWrap.append(
-        el("p", "font-bold text-amber-300 flex items-center gap-1.5 truncate", `📻 Auto-DJ: ${activePlaylist.name}`),
-        el("p", "text-[10px] text-stone-400 truncate", `${activePlaylist.remaining} song(s) queued (plays when singer queue is empty)`)
-      );
-      header.append(
-        titleWrap,
-        el("button", "shrink-0 text-[10px] bg-red-500/20 hover:bg-red-500/30 text-red-200 px-2 py-0.5 rounded font-bold transition", "⏹ Stop")
-      );
-      header.lastChild.onclick = () => api("/api/playlists/stop", { method: "POST" });
-
-      const list = el("ul", "space-y-1 max-h-56 overflow-y-auto pr-1");
-      const songsToShow = activePlaylist.queue.slice(0, 10);
-      for (const [idx, item] of songsToShow.entries()) {
-        const row = el("li", "flex items-center justify-between gap-2 rounded-lg bg-black/40 border border-white/5 px-2 py-1.5 text-xs hover:border-amber-400/30 transition");
-        const info = el("div", "min-w-0 flex-1 flex items-center gap-2");
-        const num = el("span", "text-[10px] font-mono font-bold text-amber-400/70 w-4 text-center shrink-0", `${idx + 1}`);
-        const trackText = el("div", "min-w-0 flex-1");
-        trackText.append(
-          el("p", "truncate font-semibold text-stone-200 text-xs", item.title || item.query),
-          el("p", "truncate text-[10px] text-stone-400", item.artist ? `${item.artist} · Auto-DJ` : "Auto-DJ filler")
-        );
-        info.append(num, trackText);
-
-        const promoteBtn = el("button", "shrink-0 rounded bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 px-2 py-0.5 text-[10px] font-bold transition flex items-center gap-1", "🎤 Queue");
-        promoteBtn.title = "Move this song into the main singer queue to sing next";
-        promoteBtn.onclick = async () => {
-          try {
-            await api("/api/playlists/promote", {
-              method: "POST",
-              body: { query: item.query || item.title, index: idx, singer: "Host" }
-            });
-            toast(`Added "${item.title || item.query}" to singer queue!`);
-          } catch (e) {
-            fail(e);
-          }
-        };
-        row.append(info, promoteBtn);
-        list.append(row);
-      }
-
-      if (activePlaylist.remaining > 10) {
-        const moreNote = el("p", "text-[10px] text-center text-stone-500 italic pt-1", `+ ${activePlaylist.remaining - 10} more songs in playlist`);
-        autoDjBox.append(header, list, moreNote);
-      } else {
-        autoDjBox.append(header, list);
-      }
-    } else {
-      autoDjBox.classList.add("hidden");
-    }
-  }
+  // Auto-DJ playlist below the singer queue (ui/autodj-box.js): Stop, Manage, move a song up
+  autoDjBox.paint(activePlaylist);
 
   // 1. Upcoming list
   if ($("queue-empty")) {
     $("queue-empty").classList.toggle("hidden", queue.length > 0);
-    if (activePlaylist && queue.length === 0) {
-      $("queue-empty").textContent = `Auto-DJ is playing ${activePlaylist.name} (low priority). Queue a song on your phone to sing next!`;
-    } else if (queue.length === 0) {
-      $("queue-empty").textContent = "The queue is empty — grab your phone!";
-    }
+    $("queue-empty").textContent = activePlaylist
+      ? `Auto-DJ is playing ${activePlaylist.name} (low priority). Queue a song to sing next!`
+      : "The queue is empty — tap ＋ or grab your phone!";
   }
   if ($("queue")) $("queue").replaceChildren(...queue.map((e, i) => queueRow(e, i, queue.length, { extras: choiceBadge(e) })));
 
@@ -159,23 +100,24 @@ const choiceBadge = (e) => (e.mode || Number.isFinite(e.guide)
   ? [el("span", "shrink-0 text-[11px] text-stone-300", [MODE_LABEL[e.mode], Number.isFinite(e.guide) ? `🗣${e.guide}%` : ""].filter(Boolean).join(" "))]
   : []);
 
-// ── Controls & startup (guide-vocal slider: guide.js) ─────────────────────
-$("btn-prev").onclick = () => send({ type: "control", action: "previous" });
-$("btn-play").onclick = () => (inst.paused ? play() : pause());
-$("btn-restart").onclick = () => onControl("restart");
-$("btn-back").onclick = () => seekTo(inst.currentTime - 10);
-$("btn-fwd").onclick = () => seekTo(inst.currentTime + 10);
-$("btn-next").onclick = () => send({ type: "control", action: "skip" });
+// ── Controls & startup (guide-vocal slider: guide.js, keyboard: host/keys.js) ──
+// Each button asks the Deck: the player acts at once, the controller asks the laptop (REST)
+$("btn-prev").onclick = () => Deck?.prev();
+$("btn-play").onclick = () => Deck?.toggle();
+$("btn-restart").onclick = () => Deck?.restart();
+$("btn-back").onclick = () => Deck?.seekBy(-10);
+$("btn-fwd").onclick = () => Deck?.seekBy(10);
+$("btn-next").onclick = () => Deck?.next();
 
 $("unlock").onclick = () => {
   $("unlock").classList.add("hidden");
-  play();
+  Deck?.play();
   // Audio input also needs this first click; restart the mics if they were on last time
   if (store("micsOn") === "1") Mics.start().then(() => micStrip?.render()).catch((err) => toast(`Microphones: ${err.message}`, false));
 };
 $("open-mics").onclick = () => openMicSetup();
 
-// Both are settings for every screen (this laptop is host): music video on / off, lyrics mode
+// Both are settings for every screen (only the host may change them): music video on / off, lyrics mode
 const setLook = (values) => api("/api/settings", { method: "PUT", body: { values } }).then(() => Settings.load()).catch(fail);
 const LYRICS_NEXT = { full: "plain", plain: "off", off: "full" }, LYRICS_LABEL = { full: "", plain: "plain", off: "off" };
 $("btn-video").onclick = () => setLook({ show_video: !Settings.get("show_video", true) });
@@ -187,22 +129,10 @@ Settings.onChange(() => {
 
 // A separate window: drag it onto the projector, then click it (or press F) for fullscreen
 $("open-screen").onclick = () => window.open("/screen", "karaoke-screen", "popup,width=1280,height=720");
-document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "INPUT" && e.target.type !== "range") return;
-  if (IntroRun.running && (e.key === "Enter" || e.key === "Escape")) { e.preventDefault(); IntroRun.skip(); }
-  else if (e.code === "Space") { e.preventDefault(); $("btn-play").click(); }   // during the intro: start now
-  else if (e.key === "ArrowLeft") { e.preventDefault(); seekTo(inst.currentTime - 5); }
-  else if (e.key === "ArrowRight") { e.preventDefault(); seekTo(inst.currentTime + 5); }
-  else if (e.key === "p" || e.key === "P") $("btn-prev").click();
-  else if (e.key === "n" || e.key === "N") $("btn-next").click();
-  else if (e.key === "v" || e.key === "V") $("btn-video").click();
-  else if (e.key === "l" || e.key === "L") $("btn-lyrics").click();
-  else if (e.key === "f" || e.key === "F") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
-});
 
 api("/api/info").then(({ qr, remote_url: url }) => {
-  if ($("qr")) $("qr").src = qr; if ($("qr-big")) $("qr-big").src = qr; if ($("qr-url")) $("qr-url").textContent = url; if ($("qr-url-big")) $("qr-url-big").textContent = url;
-});
+  $("qr").src = qr; $("qr-big").src = qr; $("qr-url").textContent = url; $("qr-url-big").textContent = url;
+}).catch(() => {});
 // First run: until a host PIN exists only this laptop can manage the party
-api("/api/auth/me").then(({ pin_set: pinSet }) => $("pin-hint").classList.toggle("hidden", pinSet)).catch(() => {});
+Auth.onChange(({ pin_set: pinSet, laptop }) => $("pin-hint").classList.toggle("hidden", pinSet || !laptop));
 Guide.refresh();
