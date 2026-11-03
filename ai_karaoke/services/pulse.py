@@ -13,7 +13,7 @@ import numpy as np
 import soundfile as sf
 
 from config import INSTRUMENTAL_FILE
-from core import cache_manager
+from core import cache_files, cache_manager
 
 PULSE_FILE = "pulse.json"
 HOP = 0.05            # seconds per level value (20 per second: smooth enough for lights)
@@ -37,8 +37,10 @@ def _beats(flux: np.ndarray) -> list[float]:
 
 def compute(song_id: str) -> dict:
     out = cache_manager.song_file(song_id, PULSE_FILE)
-    if out.is_file():
+    try:
         return json.loads(out.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):   # not computed yet, or truncated by a crash
+        pass
     audio, sr = sf.read(str(cache_manager.song_file(song_id, INSTRUMENTAL_FILE)), dtype="float32", always_2d=True)
     mono = audio.mean(axis=1)
     hop = int(sr * HOP)
@@ -49,5 +51,5 @@ def compute(song_id: str) -> dict:
     bass = np.log1p(spectrum[:, np.fft.rfftfreq(hop, 1 / sr) < BASS_HZ].sum(axis=1))
     flux = np.maximum(0, np.diff(bass, prepend=bass[0]))   # only rises: a hit, not its fade
     result = {"hop": HOP, "level": [round(float(v), 2) for v in level], "beats": _beats(flux)}
-    out.write_text(json.dumps(result, separators=(",", ":")), encoding="utf-8")
+    cache_files.write_atomic(out, json.dumps(result, separators=(",", ":")))
     return result

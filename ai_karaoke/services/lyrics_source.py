@@ -9,7 +9,7 @@ import re
 import syncedlyrics
 
 from config import LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
-from core import cache_manager, settings
+from core import cache_files, cache_manager, settings
 from services import genius, guitar_tabs, lrclib
 from services.song_names import build_query  # shared with the search de-duplication
 
@@ -90,7 +90,7 @@ def online_for(song_id: str, title: str, channel: str = "", duration: float | No
         if raw := fetch_online(title, channel, duration):
             if cached and not lrclib.fits(raw, duration):
                 return cached  # nothing better found: keep the text, the aligner drops its timestamps
-            path.write_text(raw, encoding="utf-8")
+            cache_files.write_atomic(path, raw)
             return raw
     return cached
 

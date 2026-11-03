@@ -15,7 +15,7 @@ import numpy as np
 import soundfile as sf
 
 from config import LYRICS_FILE, MELODY_FILE, VOCALS_FILE
-from core import cache_manager, settings
+from core import cache_files, cache_manager, settings
 from services import lyrics_source, melody, ultrastar, ultrastar_sync, usdb, vocal_activity
 
 log = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ def _fetch(song_id: str) -> str | None:
             best, why = (usdb_id, text), "title"
     cache_manager.update_meta(song_id, usdb={"id": best[0], "match": why} if best else {})
     if best:
-        path.write_text(best[1], encoding="utf-8")
+        cache_files.write_atomic(path, best[1])
         log.info("UltraStar file for %s: USDB %d (%s match)", song_id, best[0], why)
     return why
 

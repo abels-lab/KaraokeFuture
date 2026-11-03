@@ -12,7 +12,7 @@ import numpy as np
 import soundfile as sf
 
 from config import VOCAL_MAP_FILE, VOCALS_FILE
-from core import cache_manager, settings
+from core import cache_files, cache_manager, settings
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def map_for(song_id: str) -> dict:
     except (FileNotFoundError, ValueError):
         pass
     vocal_map = analyse(cache_manager.song_file(song_id, VOCALS_FILE))
-    target.write_text(json.dumps(vocal_map), encoding="utf-8")
+    cache_files.write_atomic(target, json.dumps(vocal_map))
     log.info("Vocal map for %s: %d phrases, %.0f s with vocals", song_id,
              len(vocal_map["regions"]), sum(e - s for s, e in vocal_map["regions"]))
     return vocal_map

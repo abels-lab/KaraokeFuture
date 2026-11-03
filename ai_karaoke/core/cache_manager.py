@@ -1,7 +1,10 @@
-"""5 GB LRU song cache: per-song folders, metadata (meta.json) and eviction (order: core/eviction)."""
-import json
+"""5 GB LRU song cache: per-song folders, metadata (meta.json) and eviction (order: core/eviction).
+
+meta.json reads are served from memory while the file is unchanged and folders are sized in
+one scandir pass (core/cache_files.py), so listing the library doesn't re-read the disk.
+Crash repair at startup: core/cache_heal.py. Host tools (stats, trim, clear): core/cache_admin.py.
+"""
 import logging
-import os
 import shutil
 import threading
 import time
@@ -16,7 +19,7 @@ from config import (
     META_FILE,
     VOCALS_FILE,
 )
-from core import eviction, settings
+from core import cache_files, eviction, settings
 
 log = logging.getLogger(__name__)
 _lock = threading.RLock()
@@ -34,22 +37,15 @@ def song_file(song_id: str, name: str) -> Path:
 
 # ── Metadata ─────────────────────────────────────────────────────────────────
 def read_meta(song_id: str) -> dict:
-    try:
-        with open(song_file(song_id, META_FILE), encoding="utf-8") as fh:
-            return json.load(fh)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+    """The song's meta.json ({} when missing or corrupt); a private copy, safe to change."""
+    return cache_files.read_json(song_file(song_id, META_FILE)) or {}
 
 
 def write_meta(song_id: str, data: dict) -> None:
     """Atomic write (temp file + os.replace) so readers never see half a file."""
     with _lock:
-        folder = song_dir(song_id)
-        folder.mkdir(parents=True, exist_ok=True)
-        tmp = folder / f"{META_FILE}.tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(data, fh, ensure_ascii=False, indent=2)
-        os.replace(tmp, folder / META_FILE)
+        song_dir(song_id).mkdir(parents=True, exist_ok=True)
+        cache_files.write_json(song_file(song_id, META_FILE), data, indent=2)
 
 
 def update_meta(song_id: str, **fields) -> dict:
@@ -76,28 +72,34 @@ def is_ready(song_id: str) -> bool:
     return all(song_file(song_id, f).is_file() for f in READY_FILES)
 
 
+def _entry(folder: Path) -> dict:
+    size, names = cache_files.scan(folder)
+    meta = read_meta(folder.name)
+    ready = meta.get("status") == "ready" and all(f in names for f in READY_FILES)
+    return {**meta, "id": folder.name, "ready": ready, "size": size}
+
+
 def list_songs() -> list[dict]:
     """Every cached song folder (ready or still processing), most recently used first."""
-    songs = [{**read_meta(d.name), "id": d.name, "ready": is_ready(d.name), "size": folder_size(d)}
-             for d in _song_dirs()]
+    songs = [_entry(d) for d in song_dirs()]
     return sorted(songs, key=lambda m: m.get("last_accessed", 0), reverse=True)
 
 
 # ── Size accounting & eviction ───────────────────────────────────────────────
-def _song_dirs() -> list[Path]:
+def song_dirs() -> list[Path]:
     return [d for d in CACHE_DIR.iterdir() if d.is_dir()]
 
 
 def folder_size(path: Path) -> int:
-    return sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+    return cache_files.scan(path)[0]
 
 
 def total_size() -> int:
-    return sum(folder_size(d) for d in _song_dirs())
+    return sum(folder_size(d) for d in song_dirs())
 
 
 def song_ids() -> set[str]:
-    return {d.name for d in _song_dirs()}
+    return {d.name for d in song_dirs()}
 
 
 def _meta_of(path: Path) -> dict:
@@ -108,6 +110,7 @@ def _meta_of(path: Path) -> dict:
 def evict(song_id: str) -> None:
     with _lock:
         shutil.rmtree(song_dir(song_id), ignore_errors=True)
+        cache_files.forget(song_dir(song_id))
         log.info("Evicted %s from cache", song_id)
 
 
@@ -120,7 +123,7 @@ def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYT
     protected = set(protect)
     evicted: list[str] = []
     with _lock:
-        dirs = {d.name: d for d in _song_dirs()}
+        dirs = {d.name: d for d in song_dirs()}
         sizes = {d: folder_size(d) for d in dirs.values()}
         total = sum(sizes.values())
         for folder in (dirs[i] for i in eviction.order([_meta_of(d) for d in dirs.values()])):
@@ -137,12 +140,3 @@ def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYT
         log.info("Cache now %.2f GB after evicting %d song(s)", total / 1024**3, len(evicted))
     return evicted
 
-
-def purge_incomplete(protect: Iterable[str] = ()) -> list[str]:
-    """Remove folders left half-processed by a crash (call once at startup),
-    excluding any songs currently protected or queued."""
-    protected = set(protect)
-    removed = [d.name for d in _song_dirs() if not is_ready(d.name) and d.name not in protected]
-    for song_id in removed:
-        evict(song_id)
-    return removed
