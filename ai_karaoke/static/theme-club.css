@@ -1,0 +1,6 @@
+/* Club theme (Settings → Screen & theme; look.js sets body[data-theme]): night-club photo, blue-black shade. */
+body[data-theme="club"]::before { background-image: url("/static/img/club.jpg"); background-position: center 40%; }
+body[data-theme="club"]::after {
+  background: linear-gradient(180deg, rgba(4, 6, 18, .55) 0%, rgba(4, 6, 18, .82) 55%, rgba(4, 6, 18, .95) 100%);
+}
+body[data-theme="club"] .panel { background: rgba(6, 8, 22, .62); border-color: color-mix(in srgb, var(--gold) 28%, transparent); }

@@ -1,0 +1,99 @@
+/* Control panel 3-column workstation layout (body.tv #tv-layout) and responsive lyric rows. */
+:root {
+  --side-panel-width: 26rem;
+  --agent-panel-width: 27rem;
+}
+
+body.tv #tv-layout {
+  display: grid !important;
+  grid-template-columns: minmax(20rem, var(--agent-panel-width, 27rem)) minmax(0, 1fr) var(--side-panel-width, 26rem) !important;
+  height: 100% !important;
+  width: 100% !important;
+  gap: 1rem !important;
+  padding: 1rem !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* DJ Co-Pilot permanently docked in left column */
+#agent-drawer {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  max-width: none !important;
+  width: 100% !important;
+  box-shadow: none !important;
+  border-radius: 1rem !important;
+  background: rgba(14, 9, 6, .62) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(244, 194, 91, .14) !important;
+}
+
+#agent-toggle {
+  display: none !important;
+}
+
+/* 1. Idle Screen inside Preview Box (Control Panel only) */
+#tv-layout #idle-mic {
+  max-height: 5rem;
+  width: auto;
+}
+#tv-layout #idle.has-loading #idle-mic {
+  max-height: 3.5rem !important;
+  opacity: 0.85;
+}
+#tv-layout #idle.has-loading h1[data-title] {
+  margin-top: 0.25rem !important;
+  font-size: 1.5rem !important;
+  line-height: 1.2 !important;
+}
+#tv-layout #idle.has-loading #loading {
+  margin-top: 0.5rem !important;
+  max-height: 45vh !important;
+  overflow-y: auto !important;
+}
+
+/* 2. Responsive Workstation Layout */
+@media (max-width: 1280px) {
+  body.tv #tv-layout {
+    grid-template-columns: minmax(18rem, 23rem) minmax(0, 1fr) minmax(18rem, 22rem) !important;
+    gap: 0.75rem !important;
+    padding: 0.75rem !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  body.tv #tv-layout {
+    grid-template-columns: 1fr 1fr !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
+  }
+  body.tv #tv-layout > :first-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  body.tv #tv-layout {
+    grid-template-columns: 1fr !important;
+  }
+  body.tv #tv-layout > * {
+    grid-column: span 1 !important;
+  }
+}
+
+/* 3. Monitor Lyrics Responsive Spacing & Word Wrap */
+#line-main, #line-next {
+  transition: font-size 0.2s ease, opacity 0.2s ease;
+  word-break: break-word;
+  max-width: 100%;
+}
+
+@media (max-height: 800px) {
+  [data-lyrics-box] {
+    gap: 0.75rem !important;
+    padding-bottom: 1.25rem !important;
+  }
+}

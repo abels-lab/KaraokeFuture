@@ -1,0 +1,8 @@
+/* Rock theme (Settings → Screen & theme; look.js sets body[data-theme]): rock stage photo, warm shade,
+   upper-case display font. */
+body[data-theme="rock"]::before { background-image: url("/static/img/rock.jpg"); background-position: 60% center; }
+body[data-theme="rock"]::after {
+  background: linear-gradient(180deg, rgba(10, 4, 2, .5) 0%, rgba(10, 4, 2, .8) 55%, rgba(10, 4, 2, .96) 100%);
+}
+body[data-theme="rock"] .panel { background: rgba(14, 6, 3, .66); border-color: color-mix(in srgb, var(--gold) 30%, transparent); }
+body[data-theme="rock"] .font-display { letter-spacing: .02em; text-transform: uppercase; }
