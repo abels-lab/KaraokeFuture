@@ -1,11 +1,14 @@
 """Host AI Assistant / Co-Pilot API endpoints."""
 import logging
+import time
+import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from core import auth
+from core.hub import hub
 from services import agent
 
 log = logging.getLogger(__name__)
@@ -30,7 +33,32 @@ async def chat(req: ChatRequest, who: auth.Who = Depends(auth.require_admin)) ->
     """Host AI chat: executes tools, answers questions, modifies styles or proposes Python diffs."""
     if not req.message.strip():
         raise HTTPException(400, "Message cannot be empty")
-    return await agent.chat_with_agent(req.message, req.history)
+
+    user_msg_id = f"user_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+    await hub.broadcast({
+        "type": "chat",
+        "id": user_msg_id,
+        "sender": "user",
+        "name": getattr(who, "name", None) or "Host",
+        "text": req.message,
+        "timestamp": time.time(),
+    }, "screen")
+
+    res = await agent.chat_with_agent(req.message, req.history)
+
+    reply_text = res.get("reply", "")
+    if reply_text:
+        agent_msg_id = f"agent_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        await hub.broadcast({
+            "type": "chat",
+            "id": agent_msg_id,
+            "sender": "agent",
+            "name": "DJ Co-Pilot",
+            "text": reply_text,
+            "timestamp": time.time(),
+        }, "screen")
+
+    return res
 
 
 @router.post("/diff/apply")
@@ -65,8 +93,8 @@ async def get_improvements(who: auth.Who = Depends(auth.require_admin)) -> list[
     """Retrieve logged agent capability gaps, tool errors, and host feature requests."""
     return agent.list_improvements(limit=50)
 
+
 @router.get("/ui-config")
 async def get_ui_config() -> dict[str, Any]:
     """Retrieve active Control Panel UI customization config."""
     return agent.get_ui_config()
-

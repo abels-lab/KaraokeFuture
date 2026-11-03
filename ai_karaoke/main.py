@@ -20,7 +20,7 @@ from core import cache_manager
 from core.queue_manager import queue as queue_mgr
 from core.warmer import warmer
 from core.worker import worker
-from routers import agent, api, auth, battle, library, queue, settings, ws
+from routers import agent, api, auth, battle, library, playlists, queue, settings, ws
 from services import tailscale, watcher
 
 setup_logging()
@@ -44,10 +44,17 @@ async def lifespan(_: FastAPI):
     if removed:
         log.info("Removed %d half-processed song folder(s)", len(removed))
     worker.start()
-    for entry in queue_mgr.entries:
-        if entry.get("status") != "ready":
+    for entry in queue_mgr.entries + ([queue_mgr.current] if queue_mgr.current else []):
+        if entry.get("status") != "ready" and entry.get("song_id"):
             await worker.submit(entry["song_id"])
     warmer.start()   # popular songs, in the background, after a short delay
+    from core import settings
+    if settings.get("autodj_auto_start", True) and not queue_mgr.active_playlist:
+        default_pl = settings.get("autodj_default_playlist", "weekly_hits")
+        try:
+            await queue_mgr.start_playlist(default_pl)
+        except Exception as exc:
+            log.warning("Could not auto-start default Auto-DJ playlist (%s): %s", default_pl, exc)
     static_watcher_task = asyncio.create_task(watcher.watch_static(), name="karaoke-static-watcher")
     ip = get_local_ip()
     log.info("Control panel: http://localhost:%d/host", PORT)
@@ -69,6 +76,7 @@ app.include_router(queue.router)
 app.include_router(battle.router)
 app.include_router(auth.router)
 app.include_router(library.router)
+app.include_router(playlists.router)
 app.include_router(settings.router)
 app.include_router(agent.router)
 app.include_router(ws.router)

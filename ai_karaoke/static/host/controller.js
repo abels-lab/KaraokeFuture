@@ -44,9 +44,9 @@ const HostController = (() => {
     intro.show({ entry, ...m });
   }
 
-  function onState({ now_playing: np, queue = [], played = [], screens = 0, playback, tv_connected: tv }) {
+  function onState({ now_playing: np, queue = [], played = [], screens = 0, playback, tv_connected: tv, active_playlist: autoDj = null }) {
     tvConnected = Boolean(tv);
-    renderSide(queue, played, screens, np);
+    renderSide(queue, played, screens, np, autoDj);
     if (!np) {
       if (entry) { stage.clear(); pulse.clear(); intro.hide(); Guide.forEntry(null); }
       entry = null;

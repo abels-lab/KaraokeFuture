@@ -1,10 +1,11 @@
 // The guest remote's ⚙ popup. Everyone: who you are (log in / log out), host mode (PIN unlock),
 // your defaults for new songs (guest/prefs.js) and this device's display options
 // (guest/display.js). The host (PIN or the laptop) also gets 📚 Library (the shared library
-// panel in a full popup on top) and every party setting (the shared settings panel).
+// panel in a full popup on top), 📻 Playlists (ui/playlists-panel.js, on top too) and every
+// party setting (the shared settings panel).
 // The content and both host panels are made once and reused for every open; the host panels
 // only when a host first opens this, so a guest's phone never loads them.
-// Needs common.js, auth.js, ui/popup.js, ui/settings-panel.js, ui/library-panel.js,
+// Needs common.js, auth.js, ui/popup.js, ui/settings-panel.js, ui/library-panel.js, ui/playlists-panel.js,
 // guest/overlay-back.js, guest/prefs.js, guest/display.js, remote-login.js.
 // GuestSettings.open(); GuestSettings.onSettings() on WS "settings"; .onLibrary() on "state" / "library" / "media".
 const GuestSettings = (() => {
@@ -58,7 +59,9 @@ const GuestSettings = (() => {
     settingsPanel ||= createSettingsPanel();
     const lib = section("Host tools");
     lib.append(el("p", "text-sm text-stone-400", "Every cached song: queue for anyone, fix lyrics, re-sync, rebuild or delete."),
-      button("📚 Open the library", "btn-gold", openLibrary));
+      button("📚 Open the library", "btn-gold", openLibrary),
+      el("p", "text-sm text-stone-400", "Auto-DJ: a playlist that plays whenever nobody is in line. Pick one, or make your own."),
+      button("📻 Playlists & Auto-DJ", "bg-white/10 hover:bg-white/20", () => Playlists.open()));
     const party = el("div", "space-y-3");
     party.append(el("h3", "px-1 text-xs font-semibold uppercase tracking-[0.2em] text-gold", "Party settings"), settingsPanel);
     host.replaceChildren(lib, party);

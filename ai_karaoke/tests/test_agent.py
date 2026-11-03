@@ -71,6 +71,23 @@ class TestAgentTools(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res.get("status"), "ok")
         self.assertEqual(settings.get("agent_layout_mode"), "drawer")
 
+        # Test projector screen chat settings via agent
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_enabled", "value": "false"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertFalse(settings.get("screen_chat_enabled"))
+
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_duration", "value": "12"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("screen_chat_duration"), 12)
+
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_size", "value": "large"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("screen_chat_size"), "large")
+
+        res = await agent.execute_tool("change_setting", {"key": "screen_chat_opacity", "value": "50"})
+        self.assertEqual(res.get("status"), "ok")
+        self.assertEqual(settings.get("screen_chat_opacity"), 50)
+
     @patch("core.worker.worker.submit", new_callable=AsyncMock)
     @patch("services.search.run")
     async def test_search_and_queue(self, mock_search, mock_submit):
@@ -394,6 +411,77 @@ class TestAgentChat(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(normalized["type"], "object")
         self.assertEqual(normalized["properties"]["name"]["type"], "string")
         self.assertEqual(normalized["properties"]["count"]["type"], "integer")
+
+
+    @patch("routers.agent.hub.broadcast", new_callable=AsyncMock)
+    @patch("routers.agent.agent.chat_with_agent", new_callable=AsyncMock)
+    async def test_chat_endpoint_broadcasts_to_screen(self, mock_chat, mock_broadcast):
+        from routers.agent import ChatRequest, chat
+        from core.auth import Who
+
+        mock_chat.return_value = {"reply": "Playing Bohemian Rhapsody!", "tool_calls": []}
+        who = Who(name="HostAdmin", admin=True)
+        req = ChatRequest(message="Play Queen")
+
+        res = await chat(req, who=who)
+        self.assertEqual(res["reply"], "Playing Bohemian Rhapsody!")
+
+        # Check broadcast was called twice: once for user message, once for agent response
+        self.assertEqual(mock_broadcast.call_count, 2)
+
+        # Call 1: user message
+        user_call = mock_broadcast.call_args_list[0]
+        user_msg = user_call[0][0]
+        self.assertEqual(user_msg["type"], "chat")
+        self.assertEqual(user_msg["sender"], "user")
+        self.assertEqual(user_msg["text"], "Play Queen")
+        self.assertEqual(user_msg["name"], "HostAdmin")
+        self.assertIn("screen", user_call[0][1:])
+
+        # Call 2: agent response
+        agent_call = mock_broadcast.call_args_list[1]
+        agent_msg = agent_call[0][0]
+        self.assertEqual(agent_msg["type"], "chat")
+        self.assertEqual(agent_msg["sender"], "agent")
+        self.assertEqual(agent_msg["text"], "Playing Bohemian Rhapsody!")
+        self.assertEqual(agent_msg["name"], "DJ Co-Pilot")
+        self.assertIn("screen", agent_call[0][1:])
+
+    async def test_queue_action_remove_and_delete(self):
+        from core.queue_manager import queue
+
+        # Set up a fake current and entries
+        queue.entries = [
+            {"uid": "uid_1", "title": "Wonderwall", "channel": "Oasis", "singer": "Alice"},
+            {"uid": "uid_2", "title": "Shape of You", "channel": "Ed Sheeran", "singer": "Bob"},
+        ]
+        queue.current = {"uid": "uid_cur", "title": "Bohemian Rhapsody", "channel": "Queen", "singer": "Host"}
+
+        # 1. Remove by song title in queue
+        res = await agent.execute_tool("queue_action", {"action": "remove", "song": "Wonderwall"})
+        self.assertEqual(res.get("status"), "removed")
+        self.assertEqual(len(queue.entries), 1)
+
+        # 2. Delete by 1-based index (now Shape of You is index 1)
+        res2 = await agent.execute_tool("queue_action", {"action": "delete", "index": 1})
+        self.assertEqual(res2.get("status"), "removed")
+        self.assertEqual(len(queue.entries), 0)
+
+        # 3. Delete currently playing song via song='current'
+        with patch.object(queue, "next", new_callable=AsyncMock) as mock_next:
+            res3 = await agent.execute_tool("queue_action", {"action": "delete", "song": "current"})
+            self.assertEqual(res3.get("status"), "removed")
+            mock_next.assert_awaited_once()
+
+        # 4. Remove without args when current song playing
+        with patch.object(queue, "next", new_callable=AsyncMock) as mock_next:
+            res4 = await agent.execute_tool("queue_action", {"action": "remove"})
+            self.assertEqual(res4.get("status"), "removed")
+            mock_next.assert_awaited_once()
+
+        # Clean up
+        queue.entries = []
+        queue.current = None
 
 
 if __name__ == "__main__":

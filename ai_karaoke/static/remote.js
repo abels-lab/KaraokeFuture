@@ -2,7 +2,8 @@
 // transport only for your own song, or the host; scrubbing for guests only when the host's
 // guest_scrubbing setting allows it), joining a battle on stage, and the lyrics button
 // (read-only for guests, the editor for the host). Also feeds the phone's compact now bar,
-// the Queue view (my-queue.js) and the keep-awake option. The WebSocket lives in guest/app.js.
+// the Queue view (my-queue.js, with the Auto-DJ playlist below it) and the keep-awake option. When
+// the singer queue is empty, Next names the Auto-DJ playlist's next song. The WebSocket lives in guest/app.js.
 // Needs common.js, auth.js, lyrics.js, remote-battle.js, my-queue.js and the guest/ modules.
 // renderState(state) with every "state" message, renderPlayback(msg) with every "playback" one;
 // lastState is the latest state; openNowLyrics() opens the lyrics of the song on stage.
@@ -17,8 +18,9 @@ function renderNavSongs(prev, next) {
   $("remote-prev-label").textContent = prev ? prev.title : "None";
   $("remote-btn-prev").title = prev ? `Previous: ${prev.title} (${singers(prev)})` : "No previous song";
   $("remote-btn-next").disabled = !next || !mayControlNow();
-  $("remote-next-label").textContent = next ? next.title : "Queue empty";
-  $("remote-btn-next").title = next ? `Next: ${next.title} (${singers(next)})` : "No upcoming song";
+  const label = next ? next.title || next.query : "";   // an Auto-DJ pick may only have its query yet
+  $("remote-next-label").textContent = next ? label : "Queue empty";
+  $("remote-btn-next").title = !next ? "No upcoming song" : next.uid ? `Next: ${label} (${singers(next)})` : `Next (Auto-DJ): ${label}`;
 }
 
 function renderLyricsButton(np) {
@@ -35,7 +37,7 @@ function renderLyricsButton(np) {
 
 function renderState(state = lastState) {
   lastState = state;
-  const { now_playing: np, queue = [], played = [] } = state;
+  const { now_playing: np, queue = [], played = [], active_playlist: autoDj = null } = state;
   nowEntry = np;
   const mayControl = mayControlNow();
   const mayScrub = Auth.me.admin || (Auth.owns(np) && Settings.get("guest_scrubbing", false));
@@ -44,7 +46,7 @@ function renderState(state = lastState) {
   $("np-seek").disabled = !np || !mayScrub;
   $("transport").classList.toggle("hidden", Boolean(np) && !mayControl);
   $("transport-note").classList.toggle("hidden", !np || mayControl);
-  renderNavSongs(played.length ? played[played.length - 1] : null, queue[0] || null);
+  renderNavSongs(played.length ? played[played.length - 1] : null, queue[0] || autoDj?.queue?.[0] || null);
   document.querySelectorAll('#transport button[data-action="seek_by"]').forEach((b) => {
     b.disabled = !mayScrub;
     b.classList.toggle("opacity-40", !mayScrub);
@@ -60,7 +62,7 @@ function renderState(state = lastState) {
   // Once a song starts playing, only the host can tweak guide vocals / mode mid-song
   $("np-prefs").replaceChildren(...(Auth.me.admin && np && !dragging ? [songPrefs(np)] : []));
   renderNowBattle();
-  renderQueue(queue, played);
+  renderQueue(queue, played, autoDj);
   NowBar.paint(np, { mayControl, paused: nowPaused });
   GuestDisplay.mySongUp(isMine(np) || isMine(queue[0]));
 }

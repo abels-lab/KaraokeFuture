@@ -1,5 +1,6 @@
-// Guest remote wiring: the song-search popup (＋ Find a song), the ⚙ popup, the phone's tab bar,
-// the laptop's third column of ready songs, and the page's one WebSocket, which hands every
+// Guest remote wiring: the song-search popup (＋ Find a song), the ⚙ popup, the host's 📻
+// playlists popup (ui/playlists-panel.js), the phone's tab bar, the laptop's third column of
+// ready songs, and the page's one WebSocket, which hands every
 // message to the part that needs it (the shared panels never open their own).
 // Each panel is made once and the same element goes into every popup that shows it.
 // Load last. Needs everything remote.html loads before it.
@@ -37,6 +38,7 @@ const GuestApp = (() => {
     search: openSearch,
     settings: () => { if (!Popup.depth) GuestSettings.open(); },
     lyrics: () => openNowLyrics(),
+    playlists: () => { if (!Popup.depth && Auth.me.admin) Playlists.open(); },   // host only (header 📻)
   };
   document.addEventListener("click", (e) => {
     const opener = e.target.closest("[data-open]");

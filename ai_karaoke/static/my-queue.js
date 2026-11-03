@@ -1,10 +1,14 @@
 // Guest phone: the queue with your own songs highlighted and their controls — swap among your
 // own songs (never ahead of anyone else), remove them, and per song the singing mode and the
 // guide-vocal volume the control panel uses when it plays. The ＋ in the empty-queue card opens
-// the search popup (guest/app.js). Needs common.js, auth.js, lyrics.js, remote-battle.js and
-// guest/overlay-back.js. renderQueue(queue, played) with every "state" message; songPrefs(entry).
+// the search popup (guest/app.js). Below the line: the Auto-DJ playlist's queue (ui/autodj-box.js;
+// guests may claim a song from it, the host also manages playlists), hidden under "Played".
+// Needs common.js, auth.js, lyrics.js, remote-battle.js, guest/overlay-back.js, ui/autodj-box.js.
+// renderQueue(queue, played, activePlaylist) with every "state" message; songPrefs(entry).
 const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle / Duet (2 mics)"]];
-let lastQueue = [], lastPlayed = [], dragging = false;
+let lastQueue = [], lastPlayed = [], lastAutoDj = null, dragging = false;
+const autoDjBox = createAutoDjBox({ singer: () => store("host_singer") || "" });   // same name as the search popup
+$("autodj-mount")?.append(autoDjBox);
 let queueFilter = "all"; // "all" | "mine" | "played"
 
 const savePrefs = (e, changes) => {
@@ -72,9 +76,10 @@ function setEmpty(show, title, sub) {
   $("empty-sub").textContent = sub;
 }
 
-function renderQueue(queue = lastQueue, played = lastPlayed) {
+function renderQueue(queue = lastQueue, played = lastPlayed, autoDj = lastAutoDj) {
   lastQueue = queue;
   lastPlayed = played;
+  lastAutoDj = autoDj;
   if (dragging) return;   // don't redraw under the finger; the save redraws it
   const { admin } = Auth.me;
   const mine = queue.filter(Auth.owns);
@@ -92,12 +97,15 @@ function renderQueue(queue = lastQueue, played = lastPlayed) {
     const revPlayed = [...played].reverse();
     setEmpty(!revPlayed.length, "No songs played yet", "Songs that finished singing will appear here.");
     $("queue")?.replaceChildren(...revPlayed.map((e, i) => playedRow(e, i)));
+    autoDjBox.paint(autoDj, false);
     return;
   }
 
   const items = queueFilter === "mine" ? mine : queue;
-  setEmpty(!items.length, queue.length ? "No songs queued by you" : "Nobody in line",
-    queue.length ? `There are ${queue.length} other songs waiting in line.` : "Be the first to queue a song!");
+  if (queue.length) setEmpty(!items.length, "No songs queued by you", `There are ${queue.length} other songs waiting in line.`);
+  else if (autoDj) setEmpty(true, "Auto-DJ is on", `Playing from ${autoDj.name} while nobody is in line. Claim a song below or find one to sing next!`);
+  else setEmpty(true, "Nobody in line", "Be the first to queue a song!");
+  autoDjBox.paint(autoDj);
 
   $("queue")?.replaceChildren(...items.map((e) => {
     const own = Auth.owns(e);

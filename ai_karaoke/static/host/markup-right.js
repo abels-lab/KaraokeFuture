@@ -76,6 +76,7 @@ document.getElementById("col-right").innerHTML = `
       <div id="section-upcoming" class="space-y-2">
         <ul id="queue" class="space-y-2"></ul>
         <p id="queue-empty" class="text-stone-400 text-xs text-center py-4">The queue is empty — tap ＋ or grab your phone!</p>
+        <div id="autodj-mount"></div>
       </div>
       <div id="section-played" class="hidden space-y-2">
         <ul id="played-list" class="space-y-2"></ul>

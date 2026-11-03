@@ -1,8 +1,9 @@
 // Control panel sidebar and controls: the queue with each singer's choices, projector count,
 // transport buttons, display buttons and the QR code. Same in player and controller mode: the
 // buttons talk to the Deck (tv.js or host/controller.js, set by host/boot.js) only when clicked.
-// Needs common.js, auth.js, guide.js, mics.js, mic-setup.js and the markup (host/markup-*.js).
-// Exposes renderSide(queue, played, screens, current) for both decks' "state" handling.
+// Needs common.js, auth.js, guide.js, mics.js, mic-setup.js, ui/autodj-box.js and the markup (host/markup-*.js).
+// Below the singer queue: the Auto-DJ playlist (ui/autodj-box.js, needs ui/playlists-panel.js).
+// Exposes renderSide(queue, played, screens, current, activePlaylist) for both decks' "state" handling.
 
 let activeSideTab = "upcoming"; // "upcoming" | "played" | "all"
 function setSideTab(tab) {
@@ -23,7 +24,10 @@ $("tab-side-upcoming")?.addEventListener("click", () => setSideTab("upcoming"));
 $("tab-side-played")?.addEventListener("click", () => setSideTab("played"));
 $("tab-side-all")?.addEventListener("click", () => setSideTab("all"));
 
-function renderSide(queue = [], played = [], screens = 0, current = null) {
+const autoDjBox = createAutoDjBox({ max: 10, compact: true, singer: () => store("host_singer") || "" });
+$("autodj-mount")?.append(autoDjBox);
+
+function renderSide(queue = [], played = [], screens = 0, current = null, activePlaylist = null) {
   $("screens").textContent = screens ? `📽 ${screens} projector screen${screens > 1 ? "s" : ""} connected` : "No projector screen connected";
   $("screens").classList.toggle("text-emerald-400", screens > 0);
 
@@ -43,15 +47,23 @@ function renderSide(queue = [], played = [], screens = 0, current = null) {
   }
 
   // Next song button with real label
-  const next = queue.length > 0 ? queue[0] : null;
+  const next = queue.length > 0 ? queue[0] : (activePlaylist?.queue?.[0] || null);
   if ($("btn-next")) {
-    $("btn-next").disabled = !next;
-    if ($("btn-next-label")) $("btn-next-label").textContent = next ? next.title : "Queue empty";
-    $("btn-next").title = next ? `Next: ${next.title} (${singers(next)}) (N)` : "No upcoming song";
+    $("btn-next").disabled = !next && !current;
+    if ($("btn-next-label")) $("btn-next-label").textContent = next ? (next.title || next.query) : "Queue empty";
+    $("btn-next").title = next ? `Next: ${next.title || next.query} (${next.uid ? singers(next) : "Auto-DJ"}) (N)` : "No upcoming song";
   }
 
+  // Auto-DJ playlist below the singer queue (ui/autodj-box.js): Stop, Manage, move a song up
+  autoDjBox.paint(activePlaylist);
+
   // 1. Upcoming list
-  if ($("queue-empty")) $("queue-empty").classList.toggle("hidden", queue.length > 0);
+  if ($("queue-empty")) {
+    $("queue-empty").classList.toggle("hidden", queue.length > 0);
+    $("queue-empty").textContent = activePlaylist
+      ? `Auto-DJ is playing ${activePlaylist.name} (low priority). Queue a song to sing next!`
+      : "The queue is empty — tap ＋ or grab your phone!";
+  }
   if ($("queue")) $("queue").replaceChildren(...queue.map((e, i) => queueRow(e, i, queue.length, { extras: choiceBadge(e) })));
 
   // 2. Played list (most recently played first)

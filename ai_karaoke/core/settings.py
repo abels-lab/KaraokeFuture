@@ -78,8 +78,12 @@ def _save() -> None:
     os.replace(tmp, SETTINGS_FILE)
 
 
-def get(key: str):
-    return _values.get(key, BY_KEY[key]["default"])
+def get(key: str, default=None):
+    if key in _values:
+        return _values[key]
+    if key in BY_KEY:
+        return BY_KEY[key]["default"]
+    return default
 
 
 def all_values() -> dict:

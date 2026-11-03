@@ -67,7 +67,12 @@
   <p id="fs-tip" class="panel fixed bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 text-sm text-stone-300 transition-opacity duration-700">
     Click anywhere or press <b>F</b> for fullscreen
   </p>
-    <!-- Top-Right QR Code for Projector Screen -->
+    <!-- Top-Left Chat for Projector Screen (appears for 7 seconds on message) -->
+  <aside id="screen-chat" aria-live="polite" class="fixed left-4 top-4 z-40 max-w-[22rem] w-full pointer-events-none transition-opacity duration-500" style="opacity: 0;">
+    <div id="screen-chat-messages" class="flex flex-col gap-1.5"></div>
+  </aside>
+
+  <!-- Top-Right QR Code for Projector Screen -->
   <aside id="corner-qr" class="panel fixed right-4 top-4 z-30 hidden items-center gap-3 p-2.5 bg-black/60 backdrop-blur-md border border-white/15 shadow-xl transition-opacity duration-500">
     <img id="qr-corner" alt="QR" class="h-[68px] w-[68px] rounded-lg bg-white p-1">
     <div id="corner-qr-text" class="hidden sm:block pr-1 text-right leading-tight">

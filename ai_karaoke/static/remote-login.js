@@ -29,6 +29,7 @@ const GuestLogin = (() => {
     const in_ = Boolean(me.guest || me.admin);
     form.classList.toggle("hidden", in_);
     document.body.classList.toggle("guest-out", !in_);
+    $("btn-remote-playlists")?.classList.toggle("hidden", !me.admin);   // 📻 Auto-DJ playlists: host only
     if (!in_ && !part("name").value) part("name").value = store("singer") || ""; // the old free-text name
   }
   Auth.onChange(paint);

@@ -3,6 +3,8 @@
 // (agent-voice.js) messages go to /api/agent/chat with the last few turns of history; the answer,
 // the tools it ran and any proposed backend change are drawn by agent-render.js. Ctrl+J focuses
 // the box (host/keys.js). Its UI tools (customize_control_panel) arrive as WS "ui_config" → TvUi.
+// The projector's chat overlay (screen.js) gets each turn from the server (WS "chat" to screens);
+// No extra BroadcastChannel copy here: the projector would show every message twice.
 // Needs common.js, agent-render.js, agent-voice.js and the markup (host/markup-left.js).
 (() => {
   const form = $("agent-form"), input = $("agent-input"), sendBtn = $("agent-send");

@@ -20,8 +20,8 @@ function sendClock() {
   clockChannel?.postMessage(clock);
 }
 
-function onState({ now_playing: np, queue = [], played = [], screens = 0 }) {
-  renderSide(queue, played, screens, np);
+function onState({ now_playing: np, queue = [], played = [], screens = 0, active_playlist = null }) {
+  renderSide(queue, played, screens, np, active_playlist);
   if (!np) {
     TvAudio.forget();
     if (current) stopSong();

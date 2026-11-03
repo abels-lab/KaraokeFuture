@@ -21,6 +21,7 @@
       <img src="/static/img/microphone.png" alt="" class="mic-glow h-10 w-auto -rotate-12">
       <h1 class="font-display min-w-0 flex-1 truncate text-2xl font-black text-gold" data-title>Golden Mic Karaoke</h1>
       <button type="button" data-open="search" class="hide-phone btn-gold tap rounded-xl px-4 py-2 text-sm">＋ Find a song</button>
+      <button id="btn-remote-playlists" type="button" data-open="playlists" class="hidden tap rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold text-amber-300 hover:bg-white/20" title="Auto-DJ playlists (host)" aria-label="Auto-DJ playlists">📻<span class="hide-phone"> Playlists</span></button>
       <button type="button" data-open="settings" class="hide-phone tap tap-square rounded-xl bg-white/10 px-3 py-2 text-lg hover:bg-white/20" title="Settings" aria-label="Settings">⚙</button>
     </header>
 
@@ -66,7 +67,7 @@
         <button type="button" data-open="search" class="only-phone btn-gold tap w-full rounded-xl py-3 text-base">＋ Find a song to sing</button>
       </div>
 
-      <!-- Queue: up next, with the my-songs filter and per-song controls (my-queue.js) -->
+      <!-- Queue: up next, with the my-songs filter and per-song controls (my-queue.js), then the Auto-DJ playlist -->
       <div data-view="queue" class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Queue (<span id="queue-count">0</span>)</h2>
@@ -82,6 +83,8 @@
           <p id="empty-sub" class="text-sm text-stone-400">Be the first to queue a song!</p>
           <button type="button" data-open="search" class="btn-gold tap rounded-xl px-5 py-2.5 text-sm font-bold">＋ Find a song to sing</button>
         </div>
+        <!-- Auto-DJ playlist queue below the singer queue (ui/autodj-box.js via my-queue.js) -->
+        <div id="autodj-mount"></div>
       </div>
 
       <!-- Laptop only: ready songs right beside the queue (guest/app.js) -->
@@ -115,6 +118,9 @@
   <script src="/static/ui/settings-panel.js"></script>
   <script src="/static/ui/library-card.js"></script>
   <script src="/static/ui/library-panel.js"></script>
+  <script src="/static/ui/playlist-form.js"></script>
+  <script src="/static/ui/playlists-panel.js"></script>
+  <script src="/static/ui/autodj-box.js"></script>
   <script src="/static/remote-battle.js"></script>
   <script src="/static/guest/overlay-back.js"></script>
   <script src="/static/guest/router.js"></script>

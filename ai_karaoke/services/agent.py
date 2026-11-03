@@ -15,6 +15,7 @@ from core import cache_manager, settings
 from core.worker import worker
 from core.hub import hub
 from core.queue_manager import queue
+from core.playlist_manager import playlist_manager
 import asyncio
 from services import search as smart_search
 from services import sources
@@ -109,8 +110,19 @@ You assist the host with running the party:
      * Resize the Guide Vocal slider (e.g. guide_width="25%", "50%", "100%") or change its thumb (e.g. guide_thumb="smiley" or "😊" or "🎤")
      * Apply live CSS tweaks (custom_css="...") without reloading or modifying disk files.
    - When asked to move or dock the chat panel / DJ drawer to the left or right, call change_setting(key="agent_drawer_position", value="left"|"right").
-3. Changing app settings (themes, accents, durations, volume, guest permissions) via change_setting.
-4. Queue management (skipping songs, moving, removing) via queue_action.
+   - When asked to configure projector screen chat overlay:
+     * Show/hide chat on projector screen: change_setting(key="screen_chat_enabled", value=True|False)
+     * Chat display duration (seconds): change_setting(key="screen_chat_duration", value=2..30)
+     * Chat text size: change_setting(key="screen_chat_size", value="small"|"medium"|"large")
+     * Chat card opacity / transparency (%): change_setting(key="screen_chat_opacity", value=20..100)
+3. Changing app settings (themes, accents, durations, volume, guest permissions, projector chat overlay) via change_setting.
+4. Queue & Playlists Management (skipping songs, moving, removing/deleting songs, starting/stopping background playlists):
+   - To remove or delete a song from the queue: use queue_action(action="remove", song="<song title or query>", or uid="<uid>"). If the user asks to remove the currently playing song, pass song="current" or call queue_action(action="skip").
+   - To clear all queued songs: use queue_action(action="clear").
+   - To inspect or manage playlists (built-in weekly hits rotation and custom playlists): use list_playlists, get_playlist, create_playlist, update_playlist, delete_playlist.
+   - To play a playlist in the background with lower priority when no singers are waiting: use play_playlist(playlist_id=..., shuffle=..., loop=...).
+   - To stop background playlist playback: use stop_playlist().
+   - If a user wants to sing a song that is in the active playlist, queuing it (or using queue_action with action="promote") promotes it to the user queue and removes it from the playlist queue.
 5. Live frontend code editing (static/*.css, static/*.js, static/*.html): modify permanent styles or templates directly via edit_frontend_file (supports full content OR old_snippet and new_snippet for quick surgical edits).
 6. Server backend code modifications (core/*.py, routers/*.py, services/*.py): propose changes via propose_backend_diff so the host can review the diff.
 7. Recording feature requests & capability gaps: call record_improvement_request when the host asks for something you lack tools for or that cannot safely be performed live.
@@ -204,7 +216,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "record_improvement_request",
-        "description": "Log a capability gap, missing tool, or host feature request into the development wishlist when you lack tools or cannot safely perform an action live (e.g. creating custom playlists, moving permanent structural HTML elements, deleting files, shell commands).",
+        "description": "Log a capability gap, missing tool, or host feature request into the development wishlist when you lack tools or cannot safely perform an action live (e.g. moving permanent structural HTML elements, deleting files, shell commands).",
         "parameters": {
             "type": "OBJECT",
             "properties": {
@@ -238,7 +250,7 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "change_setting",
-        "description": "Change an application setting (e.g. agent_drawer_position to 'left' or 'right' to move this chat panel, theme to 'adaptive', accent to 'lime', show_video to true/false, guest_scrubbing, cache_limit_gb).",
+        "description": "Change an application setting (e.g. screen_chat_enabled, screen_chat_duration, screen_chat_size, screen_chat_opacity, agent_drawer_position to 'left' or 'right' to move this chat panel, theme to 'adaptive', accent to 'lime', show_video to true/false, guest_scrubbing, cache_limit_gb).",
         "parameters": {
             "type": "OBJECT",
             "properties": {
@@ -263,13 +275,17 @@ TOOLS_SCHEMA = [
     },
     {
         "name": "queue_action",
-        "description": "Perform an action on the playback or queue: skip, play, pause, restart, remove, move.",
+        "description": "Perform an action on the playback or queue: skip/next, play, pause, restart, remove/delete, move, clear, or promote.",
         "parameters": {
             "type": "OBJECT",
             "properties": {
-                "action": {"type": "STRING", "description": "'skip', 'play', 'pause', 'restart', 'remove', or 'move'"},
-                "uid": {"type": "STRING", "description": "Queue entry UID if applicable"},
+                "action": {"type": "STRING", "description": "'remove' (or 'delete'), 'skip' (or 'next'), 'play', 'pause', 'restart', 'move', 'clear', or 'promote'"},
+                "uid": {"type": "STRING", "description": "Queue entry UID if known"},
+                "song": {"type": "STRING", "description": "Song title, artist, query, or 'current'/'now_playing' to remove/delete when UID is not known"},
+                "index": {"type": "INTEGER", "description": "1-based position in queue to remove (e.g. 1 for next song in line)"},
                 "offset": {"type": "INTEGER", "description": "Offset to move if action is 'move' (e.g. -1 for up, 1 for down)"},
+                "query": {"type": "STRING", "description": "Song query to promote or search"},
+                "singer": {"type": "STRING", "description": "Singer name when promoting a playlist song"},
             },
             "required": ["action"],
         },
@@ -334,6 +350,99 @@ TOOLS_SCHEMA = [
                 "song_id": {"type": "STRING", "description": "Specific song ID in cache (optional)"},
                 "query": {"type": "STRING", "description": "Song title or artist to search in queue or library (optional)"},
             },
+            "required": [],
+        },
+    },
+    {
+        "name": "list_playlists",
+        "description": "List all karaoke playlists (including built-in weekly hits rotation, top hits, and custom playlists) with song counts and active status.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {},
+            "required": [],
+        },
+    },
+    {
+        "name": "get_playlist",
+        "description": "Get details and song list for a specific playlist by ID (e.g. 'weekly_hits', 'top_hits', or custom ID).",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "playlist_id": {"type": "STRING", "description": "Playlist ID (e.g. 'weekly_hits', 'top_hits', or custom playlist ID)"},
+            },
+            "required": ["playlist_id"],
+        },
+    },
+    {
+        "name": "create_playlist",
+        "description": "Create a new custom playlist with a name, list of songs (titles/artists), and optional description.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "name": {"type": "STRING", "description": "Playlist name (e.g. '90s Pop Hits')"},
+                "songs": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"},
+                    "description": "List of song titles or 'Artist - Title' strings (e.g. ['Spice Girls - Wannabe', 'Backstreet Boys - I Want It That Way'])",
+                },
+                "description": {"type": "STRING", "description": "Optional description for the playlist"},
+                "playlist_id": {"type": "STRING", "description": "Optional custom ID / slug for the playlist"},
+            },
+            "required": ["name", "songs"],
+        },
+    },
+    {
+        "name": "update_playlist",
+        "description": "Update a custom playlist (modify name, description, or add/remove/set songs).",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "playlist_id": {"type": "STRING", "description": "Custom playlist ID to update"},
+                "name": {"type": "STRING", "description": "New playlist name (optional)"},
+                "description": {"type": "STRING", "description": "New playlist description (optional)"},
+                "songs": {
+                    "type": "ARRAY",
+                    "items": {"type": "STRING"},
+                    "description": "List of song queries to set, add, or remove",
+                },
+                "action": {
+                    "type": "STRING",
+                    "description": "Update action: 'set' (replace songs), 'add_songs' (append), or 'remove_songs' (default 'set')",
+                },
+            },
+            "required": ["playlist_id"],
+        },
+    },
+    {
+        "name": "delete_playlist",
+        "description": "Delete a custom playlist.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "playlist_id": {"type": "STRING", "description": "Custom playlist ID to delete"},
+            },
+            "required": ["playlist_id"],
+        },
+    },
+    {
+        "name": "play_playlist",
+        "description": "Start playing a playlist with lower priority in the queue (Auto-DJ filler). If user songs are queued, they always play first. If the singer queue is empty, songs from this playlist play. If a user queues a song in the playlist, it moves to their user queue.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {
+                "playlist_id": {"type": "STRING", "description": "ID of playlist to play (e.g. 'weekly_hits', 'top_hits', or custom playlist ID)"},
+                "shuffle": {"type": "BOOLEAN", "description": "Whether to shuffle the playlist songs (default false)"},
+                "loop": {"type": "BOOLEAN", "description": "Whether to loop the playlist when all songs finish (default false)"},
+            },
+            "required": ["playlist_id"],
+        },
+    },
+    {
+        "name": "stop_playlist",
+        "description": "Stop the currently playing playlist / Auto-DJ background playback.",
+        "parameters": {
+            "type": "OBJECT",
+            "properties": {},
             "required": [],
         },
     },
@@ -474,12 +583,24 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         items = snap.get("queue", [])
         return {
             "now_playing": {
-                "title": current.get("title") if current else None,
-                "singer": current.get("singer") if current else None,
-                "duration": current.get("duration") if current else None,
+                "uid": current.get("uid"),
+                "song_id": current.get("song_id"),
+                "title": current.get("title"),
+                "singer": current.get("singer"),
+                "duration": current.get("duration"),
             } if current else None,
             "queue_count": len(items),
-            "upcoming": [{"title": i.get("title"), "singer": i.get("singer")} for i in items[:5]],
+            "upcoming": [
+                {
+                    "uid": i.get("uid"),
+                    "song_id": i.get("song_id"),
+                    "title": i.get("title"),
+                    "singer": i.get("singer"),
+                    "index": idx + 1,
+                }
+                for idx, i in enumerate(items[:10])
+            ],
+            "active_playlist": snap.get("active_playlist"),
             "theme": settings.get("theme"),
             "accent": settings.get("accent"),
         }
@@ -571,9 +692,12 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         }
 
     elif name == "queue_action":
-        action = args.get("action")
+        action = str(args.get("action", "")).lower().strip()
         uid = args.get("uid")
         offset = args.get("offset", 0)
+        target_song = (args.get("song") or args.get("query") or args.get("title") or "").strip()
+        target_idx = args.get("index")
+
         if action in ("skip", "next"):
             started = await queue.next()
             if started:
@@ -590,13 +714,141 @@ async def execute_tool(name: str, args: dict[str, Any]) -> dict[str, Any]:
         elif action in ("pause", "restart"):
             await queue.control(action)
             return {"status": action}
-        elif action == "remove" and uid:
-            ok = await queue.remove(uid)
-            return {"status": "removed" if ok else "not_found"}
-        elif action == "move" and uid:
-            ok = await queue.move(uid, offset)
-            return {"status": "moved" if ok else "not_found"}
+        elif action in ("remove", "delete"):
+            target_uid = uid
+            # 1. By index (1-based index in queue.entries)
+            if not target_uid and target_idx is not None:
+                try:
+                    idx = int(target_idx)
+                    if 1 <= idx <= len(queue.entries):
+                        target_uid = queue.entries[idx - 1].get("uid")
+                except (ValueError, TypeError):
+                    pass
+
+            # 2. By query/title match
+            if not target_uid and target_song:
+                s_lower = target_song.lower()
+                if s_lower in ("current", "now", "now_playing", "this", "playing"):
+                    if queue.current:
+                        target_uid = queue.current.get("uid")
+                else:
+                    match = next((e for e in queue.entries if s_lower in e.get("title", "").lower() or s_lower in e.get("channel", "").lower()), None)
+                    if match:
+                        target_uid = match.get("uid")
+                    elif queue.current and (s_lower in queue.current.get("title", "").lower() or s_lower in queue.current.get("channel", "").lower()):
+                        target_uid = queue.current.get("uid")
+
+            # 3. If neither UID, index, nor song query given, but user asked to remove/delete:
+            if not target_uid and not target_song and target_idx is None:
+                if queue.current:
+                    target_uid = queue.current.get("uid")
+                elif queue.entries:
+                    target_uid = queue.entries[0].get("uid")
+
+            if target_uid:
+                if queue.current and queue.current.get("uid") == target_uid:
+                    cur_title = queue.current.get("title", "Song")
+                    await queue.next()
+                    return {"status": "removed", "target": cur_title, "message": f"Removed currently playing song '{cur_title}' and advanced playback"}
+                entry_title = next((e.get("title") for e in queue.entries if e.get("uid") == target_uid), target_uid)
+                ok = await queue.remove(target_uid)
+                return {"status": "removed" if ok else "not_found", "target": entry_title, "uid": target_uid}
+            return {"error": f"Could not find song '{target_song or 'specified'}' in queue to remove"}
+        elif action == "move":
+            target_uid = uid
+            if not target_uid and queue.entries:
+                target_uid = queue.entries[0].get("uid")
+            if target_uid:
+                ok = await queue.move(target_uid, offset)
+                return {"status": "moved" if ok else "not_found", "uid": target_uid}
+            return {"error": "Missing UID or songs in queue to move"}
+        elif action in ("clear", "delete_all", "remove_all"):
+            queue.entries.clear()
+            await queue.broadcast_state()
+            return {"status": "cleared"}
+        elif action == "promote":
+            target = args.get("uid") or args.get("query") or args.get("song")
+            singer = args.get("singer", "Host")
+            if target is None:
+                return {"error": "Missing target song query or uid to promote"}
+            entry = await queue.promote_playlist_song(target, singer=singer)
+            if entry:
+                return {"status": "promoted", "entry": entry}
+            return {"error": "Song not found in active playlist queue"}
         return {"error": f"Unsupported action: {action}"}
+
+    elif name == "list_playlists":
+        active_id = queue.active_playlist.get("id") if queue.active_playlist else None
+        return {
+            "playlists": playlist_manager.list_playlists(active_playlist_id=active_id),
+            "active_playlist": queue.active_playlist_snapshot(),
+        }
+
+    elif name == "get_playlist":
+        pid = args.get("playlist_id")
+        if not pid:
+            return {"error": "Missing playlist_id"}
+        pl = playlist_manager.get_playlist(pid)
+        if not pl:
+            return {"error": f"Playlist '{pid}' not found"}
+        return pl
+
+    elif name == "create_playlist":
+        p_name = args.get("name")
+        songs = args.get("songs") or []
+        desc = args.get("description", "")
+        pid = args.get("playlist_id")
+        if not p_name:
+            return {"error": "Missing playlist name"}
+        try:
+            res = playlist_manager.create_playlist(p_name, songs, description=desc, playlist_id=pid)
+            return {"status": "ok", "playlist": res}
+        except Exception as e:
+            return {"error": str(e)}
+
+    elif name == "update_playlist":
+        pid = args.get("playlist_id")
+        if not pid:
+            return {"error": "Missing playlist_id"}
+        try:
+            res = playlist_manager.update_playlist(
+                playlist_id=pid,
+                name=args.get("name"),
+                description=args.get("description"),
+                songs=args.get("songs"),
+                action=args.get("action", "set"),
+            )
+            return {"status": "ok", "playlist": res}
+        except Exception as e:
+            return {"error": str(e)}
+
+    elif name == "delete_playlist":
+        pid = args.get("playlist_id")
+        if not pid:
+            return {"error": "Missing playlist_id"}
+        try:
+            ok = playlist_manager.delete_playlist(pid)
+            if not ok:
+                return {"error": f"Playlist '{pid}' not found"}
+            return {"status": "ok", "deleted": pid}
+        except Exception as e:
+            return {"error": str(e)}
+
+    elif name == "play_playlist":
+        pid = args.get("playlist_id")
+        if not pid:
+            return {"error": "Missing playlist_id"}
+        shuffle = bool(args.get("shuffle", False))
+        loop = bool(args.get("loop", False))
+        try:
+            res = await queue.start_playlist(pid, shuffle=shuffle, loop=loop)
+            return {"status": "ok", "active_playlist": res}
+        except Exception as e:
+            return {"error": str(e)}
+
+    elif name == "stop_playlist":
+        stopped = await queue.stop_playlist()
+        return {"status": "ok" if stopped else "no_active_playlist"}
 
     elif name == "read_code_file":
         rel = args.get("path", "")
