@@ -34,6 +34,7 @@ class QueueManager(PersonalQueue):
         self.playback: dict = {"time": 0.0, "duration": 0.0, "paused": True, "updated_at": 0.0}
         self.active_playlist: dict | None = None
         self._user_stopped_playlist: bool = False
+        self._dj_picking: bool = False   # a next() is choosing the Auto-DJ song (awaits the search)
         self._last_save: float = 0.0
 
     def update_playback(self, uid: str, time_sec: float, duration: float, paused: bool) -> None:
@@ -292,6 +293,16 @@ class QueueManager(PersonalQueue):
             log.debug("Failed pre-warming playlist item: %s", e)
 
     async def _pop_and_prepare_playlist_song(self) -> dict | None:
+        """One Auto-DJ pick at a time: two next() calls at once must not each start a song."""
+        if self._dj_picking:
+            return None
+        self._dj_picking = True
+        try:
+            return await self._pick_playlist_song()
+        finally:
+            self._dj_picking = False
+
+    async def _pick_playlist_song(self) -> dict | None:
         """Get next song from active playlist with less priority."""
         if not self.active_playlist or not self.active_playlist.get("queue"):
             if self.active_playlist and self.active_playlist.get("loop") and self.active_playlist.get("played"):
@@ -333,12 +344,13 @@ class QueueManager(PersonalQueue):
             "is_playlist": True,
             "playlist_id": self.active_playlist.get("id"),
         }
-        self.current = entry
         if cache_manager.is_ready(sid):
             cache_manager.touch(sid)
-        else:
-            await worker.submit(sid)
-        return entry
+            return entry
+        # Not processed yet: wait in the queue like any song; set_song_status() starts it when ready
+        self.entries.append(entry)
+        await worker.submit(sid)
+        return None
 
     async def start_playlist(self, playlist_id: str, shuffle: bool = False, loop: bool = False) -> dict:
         """Start playing a playlist with less priority in queue (Auto-DJ filler)."""
@@ -446,9 +458,10 @@ class QueueManager(PersonalQueue):
             self.current.update(status=status, error=error)
             if status == "ready":
                 self.current["media"] = media_urls(song_id)
-        if not self.current and status == "ready":
-            ready = next((e for e in self.entries if e["status"] == "ready"), None)
-            if ready:
+        if status == "error":  # an Auto-DJ song that can't be made: drop it, the playlist moves on
+            self.entries = [e for e in self.entries if not (e["song_id"] == song_id and e.get("is_playlist"))]
+        if not self.current and status in ("ready", "error"):
+            if status == "error" or any(e["status"] == "ready" for e in self.entries):
                 await self.next()
                 return
         await self._changed()
@@ -518,12 +531,10 @@ class QueueManager(PersonalQueue):
         elif not self.entries and not self.active_playlist and not getattr(self, "_user_stopped_playlist", False) and settings.get("autodj_auto_start", True):
             # User queue empty and no active playlist: auto-start default playlist
             default_pl = settings.get("autodj_default_playlist", "weekly_hits")
-            await self.start_playlist(default_pl)
-            if self.active_playlist:
-                pl_entry = await self._pop_and_prepare_playlist_song()
-                self.current = pl_entry
-            else:
-                self.current = None
+            self.current = None
+            await self.start_playlist(default_pl)   # its _changed() may already have picked a song
+            if self.active_playlist and not self.current and not self.entries:
+                self.current = await self._pop_and_prepare_playlist_song()
         else:
             self.current = None
 

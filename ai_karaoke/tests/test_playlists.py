@@ -156,7 +156,7 @@ class TestQueuePlaylistIntegration(unittest.IsolatedAsyncioTestCase):
                 "thumbnail": "",
                 "ready": True,
             }
-            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)):
+            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)),                  patch("core.cache_manager.is_ready", return_value=True),                  patch("core.cache_manager.touch"),                  patch("core.queue_manager.media_urls", return_value={"instrumental": "/i", "vocals": "/v"}):
                 pl_picked = await self.qm.next()
                 self.assertIsNotNone(pl_picked)
                 self.assertTrue(pl_picked.get("is_playlist"))
@@ -248,46 +248,80 @@ class TestQueuePlaylistIntegration(unittest.IsolatedAsyncioTestCase):
                 await self.qm.next()
                 mock_start.assert_not_awaited()
 
-    async def test_autodj_unready_song_not_skipped_by_worker(self):
-        """When an unready Auto-DJ song is popped, it must be in current immediately
-        so that queue.has_song(sid) is True and worker_jobs does not skip it."""
+    def _one_song_playlist(self):
+        self.qm.active_playlist = {
+            "id": "test_pl",
+            "name": "Test Playlist",
+            "queue": [{"query": "Queen - Radio Ga Ga", "title": "Radio Ga Ga", "artist": "Queen", "song_id": "sid_queen"},
+                      {"query": "Oasis - Wonderwall", "title": "Wonderwall", "artist": "Oasis", "song_id": "sid_oasis"}],
+            "played": [],
+            "loop": False,
+            "enabled": True,
+        }
+        self.qm.entries = []
+        self.qm._prewarm_upcoming_playlist = lambda: None   # no background resolve in these tests
+        return {"song_id": "sid_queen", "title": "Radio Ga Ga", "channel": "Queen",
+                "duration": 340, "thumbnail": "", "ready": False}
+
+    async def test_autodj_unready_song_waits_in_queue(self):
+        """An unready Auto-DJ song must not become now_playing (the player has no media to play):
+        it waits in the queue, where queue.has_song(sid) keeps worker_jobs from skipping it."""
         from core import worker_jobs
-        with patch.object(self.qm, "broadcast_state", new=AsyncMock()), \
-             patch.object(self.qm, "_changed", new=AsyncMock()), \
-             patch("core.cache_manager.is_ready", return_value=False), \
-             patch("core.worker.worker.submit", new_callable=AsyncMock) as mock_submit:
-            self.qm.active_playlist = {
-                "id": "test_pl",
-                "name": "Test Playlist",
-                "queue": [{"query": "Queen - Radio Ga Ga", "title": "Radio Ga Ga", "artist": "Queen", "song_id": "sid_queen"}],
-                "played": [],
-                "loop": False,
-                "enabled": True,
-            }
-            self.qm.entries = []
-            mock_resolved = {
-                "song_id": "sid_queen",
-                "title": "Radio Ga Ga",
-                "channel": "Queen",
-                "duration": 340,
-                "thumbnail": "",
-                "ready": False,
-            }
+        with patch.object(self.qm, "broadcast_state", new=AsyncMock()),              patch.object(self.qm, "_changed", new=AsyncMock()),              patch("core.cache_manager.is_ready", return_value=False),              patch("core.worker.worker.submit", new_callable=AsyncMock) as mock_submit:
+            mock_resolved = self._one_song_playlist()
             with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)):
-                pl_picked = await self.qm.next()
-                self.assertIsNotNone(pl_picked)
-                self.assertEqual(pl_picked["song_id"], "sid_queen")
-                self.assertEqual(pl_picked["status"], "queued")
-                # Crucial assertion: queue.has_song must return True
+                self.assertIsNone(await self.qm.next())
+                self.assertIsNone(self.qm.current)
+                self.assertEqual([e["song_id"] for e in self.qm.entries], ["sid_queen"])
+                self.assertEqual(self.qm.entries[0]["status"], "queued")
+                self.assertIsNone(self.qm.entries[0]["media"])
                 self.assertTrue(self.qm.has_song("sid_queen"))
-                # Crucial assertion: worker.submit was called
                 mock_submit.assert_awaited_with("sid_queen")
-                # dispatch must not skip it
-                with patch("core.worker_jobs._process", new_callable=AsyncMock) as mock_proc, \
-                     patch("core.worker_jobs.queue", self.qm):
+                # Idle again while it prepares: the playlist must not pop a second song
+                self.assertIsNone(await self.qm.next())
+                self.assertEqual(len(self.qm.entries), 1)
+                with patch("core.worker_jobs._process", new_callable=AsyncMock) as mock_proc,                      patch("core.worker_jobs.queue", self.qm):
                     res = await worker_jobs.dispatch(MagicMock(), "process", "sid_queen")
                     self.assertTrue(res)
                     mock_proc.assert_awaited_once()
+
+    async def test_autodj_song_plays_once_ready(self):
+        with patch.object(self.qm, "broadcast_state", new=AsyncMock()),              patch.object(self.qm, "_changed", new=AsyncMock()),              patch("core.cache_manager.is_ready", return_value=False),              patch("core.cache_manager.touch"),              patch("core.queue_manager.media_urls", return_value={"instrumental": "/i", "vocals": "/v"}),              patch("core.worker.worker.submit", new_callable=AsyncMock):
+            mock_resolved = self._one_song_playlist()
+            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)):
+                await self.qm.next()
+            await self.qm.set_song_status("sid_queen", "ready")
+            self.assertIsNotNone(self.qm.current)
+            self.assertEqual(self.qm.current["song_id"], "sid_queen")
+            self.assertEqual(self.qm.current["media"]["instrumental"], "/i")
+            self.assertEqual(self.qm.entries, [])
+
+    async def test_autodj_picks_one_song_at_a_time(self):
+        """Host and screen joining at once both call next() while the song search is awaited,
+        and auto-start's own _changed() calls next() again: still only one Auto-DJ song."""
+        import asyncio
+        from core.hub import hub
+
+        async def slow_resolve(item):
+            await asyncio.sleep(0.01)
+            return {"song_id": item["query"], "title": item["title"], "channel": "", "duration": 1,
+                    "thumbnail": "", "ready": False}
+
+        with patch.object(self.qm, "broadcast_state", new=AsyncMock()),              patch.object(hub, "tv_connected", return_value=True),              patch("core.settings.get", side_effect=lambda k, d=None: d),              patch("core.cache_manager.is_ready", return_value=False),              patch("core.worker.worker.submit", new_callable=AsyncMock),              patch.object(self.qm, "_prewarm_upcoming_playlist", new=lambda: None),              patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(side_effect=slow_resolve)):
+            await asyncio.gather(self.qm.next(), self.qm.next())
+            self.assertIsNone(self.qm.current)
+            self.assertEqual(len(self.qm.entries), 1)
+
+    async def test_autodj_failed_song_moves_on(self):
+        with patch.object(self.qm, "broadcast_state", new=AsyncMock()),              patch.object(self.qm, "_changed", new=AsyncMock()),              patch("core.cache_manager.is_ready", return_value=False),              patch("core.worker.worker.submit", new_callable=AsyncMock) as mock_submit:
+            mock_resolved = self._one_song_playlist()
+            second = dict(mock_resolved, song_id="sid_oasis", title="Wonderwall")
+            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(side_effect=lambda item: second if item["song_id"] == "sid_oasis" else mock_resolved)):
+                await self.qm.next()
+                await self.qm.set_song_status("sid_queen", "error", "download failed")
+            self.assertIsNone(self.qm.current)
+            self.assertEqual([e["song_id"] for e in self.qm.entries], ["sid_oasis"])
+            mock_submit.assert_awaited_with("sid_oasis")
 
 
 class TestPlaylistsApi(unittest.TestCase):

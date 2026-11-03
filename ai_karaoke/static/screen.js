@@ -39,7 +39,7 @@ function onClock(m) {
 }
 
 connectWS("screen", (msg) => {
-  if (msg.type === "state") onState(msg.data);
+  if (msg.type === "state") onState(untilPlayable(msg.data));
   else if (msg.type === "playback") onClock(msg);
   else if (msg.type === "media" && current?.song_id === msg.song_id) stage.load(current);
   else if (msg.type === "game" || msg.type === "game_result") onGame(msg);
