@@ -1,4 +1,4 @@
-// Guest remote wiring: the song-search popup (＋ Find a song), the ⚙ popup, the host's 📻
+// Guest remote wiring: the song-search popup (＋ Find a song), the ⚙ popup, the ✨ DJ Co-Pilot chat, the host's 📻
 // playlists popup (ui/playlists-panel.js), the phone's tab bar, the laptop's third column of
 // ready songs, and the page's one WebSocket, which hands every
 // message to the part that needs it (the shared panels never open their own).
@@ -38,6 +38,7 @@ const GuestApp = (() => {
     search: openSearch,
     settings: () => { if (!Popup.depth) GuestSettings.open(); },
     lyrics: () => openNowLyrics(),
+    copilot: () => GuestCopilot.open(),   // the ✨ button (guest/copilot.js)
     playlists: () => { if (!Popup.depth && Auth.me.admin) Playlists.open(); },   // host only (header 📻)
   };
   document.addEventListener("click", (e) => {

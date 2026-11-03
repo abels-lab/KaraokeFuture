@@ -32,8 +32,8 @@ async function api(path, { method = "GET", body } = {}) {
   if (!res) throw new Error("Server unreachable");
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const d = data.detail;
-    throw new Error(Array.isArray(d) ? d.map((x) => x.msg).join(", ") : d || `Error ${res.status}`);
+    const d = data.detail;   // err.status: the HTTP code, for pages that word some errors themselves
+    throw Object.assign(new Error(Array.isArray(d) ? d.map((x) => x.msg).join(", ") : d || `Error ${res.status}`), { status: res.status });
   }
   return data;
 }
