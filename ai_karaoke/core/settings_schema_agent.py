@@ -20,4 +20,10 @@ AGENT_SPECS = [
     _s("agent_layout_mode", "agent", "DJ Co-Pilot Layout Mode", "split", "choice",
        "How DJ Co-Pilot opens on /tv: 'split' (docked 3-column stage) or 'drawer' (floating slide-over).",
        NOW, client=True, choices=[["split", "Docked Split Screen (Stage | Co-Pilot | Queue)"], ["drawer", "Floating Drawer Overlay"]]),
+    _s("agent_guest_chat", "agent", "Guests may talk to the Co-Pilot", False, "bool",
+       "Logged-in guests can ask the DJ Co-Pilot from their phones. It acts with their rights only: it queues "
+       "songs for them and can skip or remove only their own songs.", NOW, client=True),
+    _s("agent_guest_style", "agent", "Guests may restyle the party", False, "bool",
+       "Lets the Co-Pilot change the Custom style settings when a guest asks (one change a minute per guest). "
+       "Off: only the host can restyle.", NOW, client=True),
 ]

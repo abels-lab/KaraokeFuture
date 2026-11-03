@@ -13,7 +13,6 @@ window.TvUi = (() => {
     custom_buttons: [],
     guide_width: "25%",
     guide_thumb: "default",
-    custom_css: "",
   };
   const playSfx = (type) => TvSfx.play(type);
 
@@ -84,7 +83,6 @@ window.TvUi = (() => {
     if (activeConfig.hidden_elements) TvUiApply.hidden(activeConfig.hidden_elements);
     if (activeConfig.guide_width) TvUiApply.guideWidth(activeConfig.guide_width);
     if (activeConfig.guide_thumb) TvUiApply.guideThumb(activeConfig.guide_thumb);
-    if (activeConfig.custom_css !== undefined) TvUiApply.css(activeConfig.custom_css);
     if (activeConfig.custom_buttons) TvUiApply.buttons(activeConfig.custom_buttons, handleCustomAction);
   }
 

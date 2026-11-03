@@ -4,7 +4,7 @@
 // only paints it. The ids are the markup's (host/markup-*.js). Column order matters on the laptop
 // layout only: tablets and phones arrange the cards themselves (host/host.css).
 // Needs common.js. TvUiApply = { columns(order), hidden(ids), guideWidth(css), guideThumb(kind),
-//   css(text), buttons(list, onClick(button)) }
+//   buttons(list, onClick(button)) }
 const TvUiApply = (() => {
   function columns(order) {
     const layout = $("tv-layout");
@@ -88,8 +88,6 @@ const TvUiApply = (() => {
       }`;
   }
 
-  const css = (cssStr) => { styleTag("agent-custom-css").textContent = cssStr || ""; };
-
   const BUTTON_STYLE = {
     transport: "flex h-10 items-center justify-center gap-1 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-3 text-xs font-semibold text-amber-200 transition active:scale-95 shrink-0 shadow-sm",
     other: "flex items-center justify-center gap-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 px-3 py-1.5 text-xs font-semibold text-amber-200 transition active:scale-95 shadow-sm",
@@ -105,14 +103,14 @@ const TvUiApply = (() => {
       if (!parent) return;
       const btnEl = document.createElement("button");
       btnEl.id = `custom-btn-${b.id}`;
-      btnEl.className = b.style || (target === "transport" ? BUTTON_STYLE.transport : BUTTON_STYLE.other);
+      btnEl.className = target === "transport" ? BUTTON_STYLE.transport : BUTTON_STYLE.other;
       btnEl.title = `${b.label} (${b.action}: ${b.value || ""})`;
-      const iconSpan = b.icon ? `<span class="shrink-0">${b.icon}</span>` : "";
-      btnEl.innerHTML = `${iconSpan}<span>${b.label}</span>`;
+      if (b.icon) btnEl.append(el("span", "shrink-0", b.icon));   // text, never markup
+      btnEl.append(el("span", "", b.label));
       btnEl.onclick = () => onClick(b);
       parent.appendChild(btnEl);
     });
   }
 
-  return { columns, hidden, guideWidth, guideThumb, css, buttons };
+  return { columns, hidden, guideWidth, guideThumb, buttons };
 })();
