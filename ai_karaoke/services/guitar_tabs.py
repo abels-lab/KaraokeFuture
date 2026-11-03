@@ -14,6 +14,7 @@ import urllib.parse
 import requests
 
 from core import settings
+from services.chord_text import clean_chord_sheet, is_chord_or_noise
 
 log = logging.getLogger(__name__)
 
@@ -25,41 +26,6 @@ HEADERS = {
 TIMEOUT = 7.0
 
 _JS_STORE = re.compile(r'class="js-store"\s+data-content="([^"]+)"')
-_CHORD_TAG = re.compile(r"\[ch\][^\[]*?\[/ch\]", re.IGNORECASE)
-_TAB_TAG = re.compile(r"\[/?(?:tab|toptab|headline|closetab)\]", re.IGNORECASE)
-_FRET_DIAGRAM = re.compile(r"^[A-H][b#]?[a-z0-9]*\s+[\dxX\s-]{5,}$")
-_TAB_STAFF = re.compile(r"^[eBGDAE]\s*\|")
-_CHART_META = re.compile(r"^(tuning|capo|strumming|bpm|key|tempo|tone)\s*[:=]", re.IGNORECASE)
-_CHORD_TOKEN = re.compile(r"^[A-H][b#]?(?:m|maj|min|dim|aug|sus|add)?[0-9]*(?:/[A-H][b#]?)?$", re.IGNORECASE)
-
-
-def _is_chord_or_noise(line: str) -> bool:
-    """True if line contains guitar fret diagrams, tuning info, tab staves, or only chord names."""
-    trimmed = line.strip()
-    if not trimmed:
-        return True
-    if _FRET_DIAGRAM.match(trimmed) or _TAB_STAFF.match(trimmed) or _CHART_META.match(trimmed):
-        return True
-    # Tab staff or divider lines: mostly ASCII dashes/pipes/slashes
-    if len(trimmed) >= 5 and sum(ch in "-|~/\\x*=_" for ch in trimmed) / len(trimmed) > 0.4:
-        return True
-    # Lines where every word is a chord symbol (e.g. "Em D C G" or "Am7/G Dsus4 Cmaj7")
-    tokens = [t.strip(".,;:()[]{}|/\\-") for t in trimmed.split() if t.strip(".,;:()[]{}|/\\-")]
-    if tokens and all(_CHORD_TOKEN.match(t) for t in tokens):
-        return True
-    return False
-
-
-def _clean_ug_content(raw: str) -> str:
-    """Strip [ch]...[/ch] tags, tab wrappers, chord fret diagrams, and ASCII tab staves."""
-    text = _CHORD_TAG.sub("", raw or "")
-    text = _TAB_TAG.sub("", text)
-    lines = []
-    for line in text.splitlines():
-        trimmed = line.strip()
-        if not _is_chord_or_noise(trimmed):
-            lines.append(trimmed)
-    return "\n".join(lines)
 
 
 def _score_ug_hit(query: str, hit: dict) -> float:
@@ -121,7 +87,7 @@ def fetch_ultimate_guitar(query: str, title: str = "") -> str | None:
                 best = scored[0][1]
                 content = _fetch_ug_tab(best["tab_url"])
                 if content:
-                    cleaned = _clean_ug_content(content)
+                    cleaned = clean_chord_sheet(content)
                     log.info("Ultimate Guitar: found %r (%s - %s)", term, best.get("artist_name"), best.get("song_name"))
                     return cleaned
         except Exception as exc:
@@ -163,7 +129,7 @@ def fetch_amdm(query: str, title: str = "") -> str | None:
 
             no_chords = re.sub(r'<div[^>]*class="podbor__chord"[^>]*>.*?</div>', '', pre.group(1))
             clean = re.sub(r'<[^>]+>', '', no_chords)
-            lines = [l.strip() for l in clean.splitlines() if not _is_chord_or_noise(l)]
+            lines = [l.strip() for l in clean.splitlines() if not is_chord_or_noise(l)]
             log.info("AmDm: found %r via %s", term, song_url)
             return "\n".join(lines)
         except Exception as exc:
