@@ -9,7 +9,9 @@
 }
 
 html { background: #0b0705; }
-body { color: var(--ink); font-family: "Inter", system-ui, sans-serif; min-height: 100vh; }
+/* dvh, not vh: on phones 100vh is the height with the address bar hidden, so a 100vh body is
+   taller than the screen whenever the bar shows and the page scrolls by that much (vh = fallback) */
+body { color: var(--ink); font-family: "Inter", system-ui, sans-serif; min-height: 100vh; min-height: 100dvh; }
 
 /* Stage photo + darkening layer, fixed so it never scrolls (works on iOS too) */
 body::before, body::after { content: ""; position: fixed; inset: 0; pointer-events: none; }

@@ -57,10 +57,17 @@
 }
 
 /* ── Laptop: centred, Now | Queue | Ready songs ────────────────────────── */
+/* The ready-songs list is long, and sized by its content it would make the grid row (and the page)
+   ~150px taller than the screen even when Now and Queue fit. So the shell fills the screen, the grid
+   takes the room left between header and footer, and the side panel (contain: size, so its content
+   doesn't count) stretches into that row and scrolls inside it. */
 @media (min-width: 1025px) {
-  .guest-shell { max-width: 84rem; }
-  .guest-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); }
-  .guest-side { display: block; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
+  .guest-shell { max-width: 84rem; display: flex; flex-direction: column; min-height: 100dvh; }
+  .guest-grid { flex: 1; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1fr); }
+  .guest-side {
+    display: block; position: sticky; top: 1rem; align-self: stretch; contain: size;
+    max-height: calc(100dvh - 2rem); overflow-y: auto;
+  }
 }
 
 /* Touch screens: finger-sized queue and now-card controls; a queue row's line of buttons
