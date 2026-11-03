@@ -55,27 +55,22 @@ if ($Dev) {
     Write-Host "Development mode: auto-reload enabled on Python code changes." -ForegroundColor Cyan
 }
 if (-not $NoBrowser -and $env:KARAOKE_NO_BROWSER -ne "1") {
-    # Opens once the server answers, without holding up the server's own output.
-    # If a /tv tab is already open and connected from a previous session, skips opening a duplicate tab.
+    # Opens once the server answers, without holding up the server's own output. Opens nothing
+    # if the server never answered (it used to open anyway after ~2-3 min, i.e. right while the
+    # cache warmer was busy) or if a /tv tab from an earlier run reconnects within a few seconds.
     Start-Job -ArgumentList $Port {
         param($p)
-        $alreadyConnected = $false
-        foreach ($i in 1..60) {
-            try {
-                $state = Invoke-RestMethod "http://localhost:$p/api/queue" -TimeoutSec 2
-                Start-Sleep -Milliseconds 700
-                $state = Invoke-RestMethod "http://localhost:$p/api/queue" -TimeoutSec 2
-                if ($state.tv_connected) {
-                    $alreadyConnected = $true
-                }
-                break
-            } catch {
-                Start-Sleep 1
-            }
+        $answered = $false
+        foreach ($i in 1..90) {
+            try { Invoke-RestMethod "http://localhost:$p/api/queue" -TimeoutSec 2 | Out-Null; $answered = $true; break }
+            catch { Start-Sleep 1 }
         }
-        if (-not $alreadyConnected) {
-            Start-Process "http://localhost:$p/tv"
+        if (-not $answered) { return }
+        foreach ($i in 1..8) {   # give an open /tv tab time to reconnect its WebSocket
+            Start-Sleep -Milliseconds 750
+            try { if ((Invoke-RestMethod "http://localhost:$p/api/queue" -TimeoutSec 2).tv_connected) { return } } catch { }
         }
+        Start-Process "http://localhost:$p/tv"
     } | Out-Null
 }
 

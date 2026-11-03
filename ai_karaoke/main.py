@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from config import CACHE_DIR, HOST, PORT, STATIC_DIR, get_local_ip, setup_logging
 import contextlib
 
-from core import cache_manager
+from core import cache_manager, no_browser
 from core.queue_manager import queue as queue_mgr
 from core.warmer import warmer
 from core.worker import worker
@@ -24,6 +24,7 @@ from routers import agent, api, auth, battle, library, playlists, queue, setting
 from services import tailscale, watcher
 
 setup_logging()
+no_browser.install()   # background fetching must never pop up a browser tab (core/no_browser.py)
 log = logging.getLogger("karaoke")
 
 
