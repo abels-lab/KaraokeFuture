@@ -20,7 +20,7 @@ function send(msg) { return wsSend?.(msg); }
   Deck.start();
 
   wsSend = connectWS(player ? "tv" : "remote", (msg) => {
-    if (msg.type === "state") Deck.onState(msg.data);
+    if (msg.type === "state") Deck.onState(untilPlayable(msg.data));
     else if (msg.type === "control") Deck.onControl?.(msg.action, msg.value);   // sent to the player only
     else if (msg.type === "playback") Deck.onClock?.(msg);                       // the player's clock, to controllers
     else if (msg.type === "intro") Deck.onIntro?.(msg);

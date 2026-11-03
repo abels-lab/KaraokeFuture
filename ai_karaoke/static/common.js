@@ -6,6 +6,10 @@ const fmt = (s) => Number.isFinite(s) && s >= 0 ? `${Math.floor(s / 60)}:${Strin
 const thumbFor = (id) => (/^[\w-]{11}$/.test(id || "") ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : "/static/img/microphone.png");
 // "Ann & Bob" when a second singer joined a battle song (entry.partner), else just the singer
 const singers = (e) => (e?.partner ? `${e.singer} & ${e.partner.name}` : e?.singer || "");
+// A "state" whose now-playing song has no audio yet (still downloading / separating) can't play:
+// show it waiting at the front of the queue, so the loading screen tracks it until media arrives
+const untilPlayable = (s) => (s.now_playing && !s.now_playing.media
+  ? { ...s, now_playing: null, queue: [s.now_playing, ...(s.queue || [])] } : s);
 const store = (k, v) => { try { return v === undefined ? localStorage.getItem(k) : localStorage.setItem(k, v); } catch { return null; } };
 
 const STATUS = {
