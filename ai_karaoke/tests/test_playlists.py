@@ -156,7 +156,7 @@ class TestQueuePlaylistIntegration(unittest.IsolatedAsyncioTestCase):
                 "thumbnail": "",
                 "ready": True,
             }
-            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)),                  patch("core.cache_manager.is_ready", return_value=True),                  patch("core.cache_manager.touch"),                  patch("core.queue_manager.media_urls", return_value={"instrumental": "/i", "vocals": "/v"}):
+            with patch.object(self.qm, "_resolve_playlist_item", new=AsyncMock(return_value=mock_resolved)),                  patch("core.cache_manager.is_ready", return_value=True),                  patch("core.cache_manager.touch"),                  patch("core.queue_autodj.media_urls", return_value={"instrumental": "/i", "vocals": "/v"}):
                 pl_picked = await self.qm.next()
                 self.assertIsNotNone(pl_picked)
                 self.assertTrue(pl_picked.get("is_playlist"))

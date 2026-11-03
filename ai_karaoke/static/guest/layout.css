@@ -75,7 +75,7 @@
 }
 
 /* Touch screens: finger-sized queue and now-card controls; a queue row's line of buttons
-   (common.js queueRow: singer, status, then the buttons) wraps instead of squeezing them */
+   (ui/queue-rows.js queueRow: singer, status, then the buttons) wraps instead of squeezing them */
 @media (pointer: coarse) {
   #queue li :is(button, select), #np-battle button, #np-prefs :is(button, select) { min-height: var(--tap); }
   #queue li button, #np-battle button, #np-prefs button { min-width: var(--tap); }

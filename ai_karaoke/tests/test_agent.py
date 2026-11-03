@@ -93,10 +93,10 @@ class TestSearchAndQueue(QueueTestCase):
     async def _queue(self, who, singer):
         hit = [{"id": "dQw4w9WgXcQ", "title": "Never Gonna Give You Up", "channel": "Rick", "duration": 200}]
         with patch("services.agent.tools_party.smart_search.run", return_value=(hit, None)), \
-             patch("routers.queue.queue.add", new_callable=AsyncMock,
+             patch("core.queue_access.queue.add", new_callable=AsyncMock,
                    side_effect=lambda *a, **k: {"uid": "new", "title": a[1], "singer": a[4], "owner": a[6],
                                                 "status": "queued"}) as add, \
-             patch("routers.queue.worker.submit", new_callable=AsyncMock):
+             patch("core.queue_access.worker.submit", new_callable=AsyncMock):
             res = await agent.execute_tool("search_and_queue", {"query": "rick", "singer": singer}, who)
         return res, add
 

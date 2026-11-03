@@ -1,7 +1,7 @@
 // Control panel sidebar and controls: the queue with each singer's choices, projector count,
 // transport buttons, display buttons and the QR code. Same in player and controller mode: the
 // buttons talk to the Deck (tv.js or host/controller.js, set by host/boot.js) only when clicked.
-// Needs common.js, auth.js, guide.js, mics.js, mic-setup.js, ui/autodj-box.js and the markup (host/markup-*.js).
+// Needs common.js, ui/queue-rows.js, auth.js, guide.js, mics.js, mic-setup.js, ui/autodj-box.js and the markup (host/markup-*.js).
 // Below the singer queue: the Auto-DJ playlist (ui/autodj-box.js, needs ui/playlists-panel.js).
 // Exposes renderSide(queue, played, screens, current, activePlaylist) for both decks' "state" handling.
 

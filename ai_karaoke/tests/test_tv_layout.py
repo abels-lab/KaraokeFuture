@@ -14,8 +14,9 @@ class TestTvLayout(unittest.TestCase):
         markup = sorted((self.root / "static" / "host").glob("markup-*.js"))
         self.assertEqual(len(markup), 4)
         self.html = "\n".join(p.read_text(encoding="utf-8") for p in [self.html_path, *markup])
-        with open(self.css_path, "r", encoding="utf-8") as f:
-            self.css = f.read()
+        # theme.css plus the parts split out of it (theme-club.css, theme-layout.css, ...)
+        parts = [self.css_path, *sorted((self.root / "static").glob("theme-*.css"))]
+        self.css = "\n".join(p.read_text(encoding="utf-8") for p in parts)
         self.html_ids = set(re.findall(r'id=["\']([^"\']+)["\']', self.html))
 
     def test_dom_ids_coverage(self):

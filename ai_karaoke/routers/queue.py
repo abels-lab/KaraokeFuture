@@ -5,6 +5,7 @@
 - Removing / changing guide volume or mode: the host, or the guest who queued the entry.
 - Reordering: the host moves anything anywhere; a guest only swaps among their own slots
   (core/queue_personal.py), so nobody cuts ahead of other people.
+The rules themselves live in core/queue_access.py (the DJ Co-Pilot queues through them too).
 """
 import asyncio
 from typing import Literal
@@ -12,10 +13,9 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from config import MELODY_FILE
-from core import auth, cache_manager, settings, surprise
+from core import auth, cache_manager, surprise
+from core.queue_access import enqueue, entry_for, singer_for
 from core.queue_manager import queue
-from core.worker import worker
 from services import search_filter, search_memory, sources
 from services.song_names import song_key
 
@@ -45,38 +45,6 @@ class PrefsRequest(BaseModel):
     mode: Mode | None = None                                # None = the control panel's picker
 
 
-def _singer(who: auth.Who, wanted: str) -> tuple[str, int | None]:
-    """(singer name, owner guest id) for a new entry."""
-    wanted = " ".join(wanted.split())
-    if who.admin and wanted and (who.name is None or wanted.casefold() != who.name.casefold()):
-        return wanted, None   # the host queues for someone without a login
-    if who.guest_id is not None:
-        return who.name, who.guest_id
-    if who.admin:
-        raise HTTPException(422, "Singer name is required")
-    raise HTTPException(401, "Log in with your name on the remote page first")
-
-
-async def _enqueue(song_id: str, title: str, channel: str, duration, singer: str, owner: int | None,
-                   guide: int | None = None, mode: str | None = None, thumbnail: str | None = None) -> dict:
-    if len(queue.entries) >= settings.get("max_queue"):
-        raise HTTPException(429, "The queue is full — try again later")
-    entry = await queue.add(song_id, title, channel, duration, singer, thumbnail, owner, guide, mode)
-    await worker.submit(song_id)
-    if cache_manager.is_ready(song_id) and not cache_manager.song_file(song_id, MELODY_FILE).is_file():
-        await worker.submit_melody(song_id)  # cached before the singing game existed
-    return entry
-
-
-def _entry_for(request: Request, uid: str) -> tuple[auth.Who, dict]:
-    who, entry = auth.identify(request), queue.find_any(uid)
-    if entry is None:
-        raise HTTPException(404, "Queue entry not found")
-    if not auth.may_manage(who, entry):
-        raise HTTPException(403, "That's someone else's song — only they or the host can change it")
-    return who, entry
-
-
 @router.get("")
 async def get_queue():
     return queue.snapshot()
@@ -84,7 +52,7 @@ async def get_queue():
 
 @router.post("", status_code=201)
 async def add_to_queue(req: QueueRequest, request: Request):
-    singer, owner = _singer(auth.identify(request), req.singer)
+    singer, owner = singer_for(auth.identify(request), req.singer)
     if not sources.is_valid_id(req.song_id) or not all(map(sources.is_valid_id, req.mirrors)):
         raise HTTPException(400, "Invalid song id")
     cached = cache_manager.is_ready(req.song_id)   # already processed: no cost, length doesn't matter
@@ -93,20 +61,20 @@ async def add_to_queue(req: QueueRequest, request: Request):
     search_memory.add_mirrors(req.song_id, req.mirrors, title=req.title, channel=req.channel,
                               duration=req.duration, key=song_key(req.title, req.channel))
     hint = search_memory.hint(req.song_id) or {}
-    return await _enqueue(req.song_id, req.title.strip(), req.channel.strip(), req.duration, singer, owner,
-                          req.guide, req.mode, hint.get("thumbnail"))
+    return await enqueue(req.song_id, req.title.strip(), req.channel.strip(), req.duration, singer, owner,
+                         req.guide, req.mode, hint.get("thumbnail"))
 
 
 @router.post("/surprise", status_code=201)
 async def surprise_me(request: Request):
     """'I don't know what to sing': queue a random ready song for this guest, instantly."""
-    singer, owner = _singer(auth.identify(request), "")
+    singer, owner = singer_for(auth.identify(request), "")
     # Only queued / playing songs are off limits: recently sung ones stay a last resort (surprise.py)
     meta = await asyncio.to_thread(surprise.pick, queue.active_ids())
     if meta is None:
         raise HTTPException(404, "No ready song is free right now — search for one instead")
-    return await _enqueue(meta["id"], meta.get("title") or meta["id"], meta.get("channel", ""),
-                          meta.get("duration"), singer, owner, thumbnail=meta.get("thumbnail"))
+    return await enqueue(meta["id"], meta.get("title") or meta["id"], meta.get("channel", ""),
+                         meta.get("duration"), singer, owner, thumbnail=meta.get("thumbnail"))
 
 
 @router.post("/previous")
@@ -123,14 +91,14 @@ async def play_previous(request: Request):
 
 @router.delete("/{uid}")
 async def remove_from_queue(uid: str, request: Request):
-    _entry_for(request, uid)
+    entry_for(request, uid)
     await queue.remove(uid)   # your own song while it plays: removing it ends it
     return {"ok": True}
 
 
 @router.post("/{uid}/move")
 async def move_in_queue(uid: str, req: MoveRequest, request: Request):
-    who, entry = _entry_for(request, uid)
+    who, entry = entry_for(request, uid)
     if who.admin and req.to_index is not None:
         moved = await queue.move_to(uid, req.to_index)
     elif who.admin and req.scope == "all" and req.direction:
@@ -170,7 +138,7 @@ async def play_specific(uid: str, request: Request):
 @router.post("/{uid}/requeue")
 async def requeue_song(uid: str, request: Request):
     """Return a previously played song back into the queue."""
-    who, entry = _entry_for(request, uid)
+    who, entry = entry_for(request, uid)
     requeued = await queue.requeue(uid)
     if not requeued:
         raise HTTPException(404, "Song not found in played history")
@@ -180,7 +148,7 @@ async def requeue_song(uid: str, request: Request):
 @router.patch("/{uid}")
 async def set_preferences(uid: str, req: PrefsRequest, request: Request):
     """Per-song guide-vocal volume and singing mode; the control panel applies them."""
-    who, entry = _entry_for(request, uid)
+    who, entry = entry_for(request, uid)
     if queue.current and entry.get("uid") == queue.current.get("uid") and not who.admin:
         raise HTTPException(403, "Once a song starts playing, only the host can adjust vocals")
     return await queue.set_prefs(uid, guide=req.guide, mode=req.mode)
