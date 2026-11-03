@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from core import auth
 from core.playlist_manager import playlist_manager
+from core.queue_access import promote_singer
 from core.queue_manager import queue
 
 log = logging.getLogger(__name__)
@@ -141,15 +142,7 @@ async def promote_playlist_song(
     if not queue.active_playlist:
         raise HTTPException(400, "No active playlist is currently playing")
 
-    # Determine singer name and guest id
-    if who.guest_id is not None:
-        singer = who.name
-        owner = who.guest_id
-    elif who.admin:
-        singer = req.singer.strip() if req.singer and req.singer.strip() else "Host"
-        owner = None
-    else:
-        raise HTTPException(401, "Please log in on remote to add songs")
+    singer, owner = promote_singer(who, req.singer)
 
     target = req.index if req.index is not None else req.query
     if target is None:

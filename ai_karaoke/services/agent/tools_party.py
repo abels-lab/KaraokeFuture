@@ -41,12 +41,12 @@ async def library_songs(who: auth.Who, args: dict) -> dict[str, Any]:
 
 
 async def search_and_queue(who: auth.Who, args: dict) -> dict[str, Any]:
-    from routers.queue import _enqueue, _singer   # the same rules as the queue API (name, owner, limits)
+    from core.queue_access import enqueue, singer_for   # the same rules as the queue API (name, owner, limits)
     query = str(args.get("query") or "").strip()
     if not query:
         return {"error": "Empty query"}
     try:
-        singer, owner = _singer(who, str(args.get("singer") or ("" if who.guest_id is not None else "Host")))
+        singer, owner = singer_for(who, str(args.get("singer") or ("" if who.guest_id is not None else "Host")))
     except HTTPException as exc:
         return {"error": exc.detail}
     results, _ = await asyncio.to_thread(smart_search.run, query)
@@ -55,9 +55,9 @@ async def search_and_queue(who: auth.Who, args: dict) -> dict[str, Any]:
     top = results[0]
     mode = args.get("mode") if args.get("mode") in ("party", "score", "battle") else None
     try:
-        entry = await _enqueue(top.get("id") or top.get("song_id"), top.get("title", "Unknown"),
-                               top.get("channel", ""), top.get("duration", 0) or 0, singer, owner,
-                               mode=mode, thumbnail=top.get("thumbnail"))
+        entry = await enqueue(top.get("id") or top.get("song_id"), top.get("title", "Unknown"),
+                              top.get("channel", ""), top.get("duration", 0) or 0, singer, owner,
+                              mode=mode, thumbnail=top.get("thumbnail"))
     except HTTPException as exc:
         return {"error": exc.detail}
     if queue.current is None and entry.get("status") == "ready":   # idle and already processed: start now
