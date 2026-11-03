@@ -3,7 +3,7 @@
 // guide-vocal volume the control panel uses when it plays. The ＋ in the empty-queue card opens
 // the search popup (guest/app.js). Below the line: the Auto-DJ playlist's queue (ui/autodj-box.js;
 // guests may claim a song from it, the host also manages playlists), hidden under "Played".
-// Needs common.js, auth.js, lyrics.js, remote-battle.js, guest/overlay-back.js, ui/autodj-box.js.
+// Needs common.js, ui/queue-rows.js, auth.js, lyrics.js, remote-battle.js, guest/overlay-back.js, ui/autodj-box.js.
 // renderQueue(queue, played, activePlaylist) with every "state" message; songPrefs(entry).
 const MODE_CHOICES = [["", "🎮 Host's choice"], ["party", "✨ Party"], ["score", "🏆 Score"], ["battle", "⚔️ Battle / Duet (2 mics)"]];
 let lastQueue = [], lastPlayed = [], lastAutoDj = null, dragging = false;
