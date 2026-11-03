@@ -11,6 +11,7 @@ from core.playlist_manager import PlaylistManager, normalize_song, parse_song_te
 from core.queue_manager import QueueManager, queue
 from core import auth, settings
 from main import app
+from core.auth import Who
 from services import agent
 
 
@@ -347,10 +348,13 @@ class TestPlaylistsApi(unittest.TestCase):
                 self.assertEqual(res_del.status_code, 200)
 
 
+HOST = Who(laptop=True, admin=True)
+
+
 class TestAgentPlaylistTools(unittest.IsolatedAsyncioTestCase):
     async def test_agent_tools(self):
         # 1. list_playlists
-        res_list = await agent.execute_tool("list_playlists", {})
+        res_list = await agent.execute_tool("list_playlists", {}, HOST)
         self.assertIn("playlists", res_list)
         self.assertGreater(len(res_list["playlists"]), 0)
 
@@ -359,12 +363,12 @@ class TestAgentPlaylistTools(unittest.IsolatedAsyncioTestCase):
             "name": "Disco Night",
             "songs": ["ABBA - Dancing Queen", "Bee Gees - Stayin' Alive"],
             "description": "70s classics",
-        })
+        }, HOST)
         self.assertEqual(res_create.get("status"), "ok")
         created_id = res_create["playlist"]["id"]
 
         # 3. get_playlist
-        res_get = await agent.execute_tool("get_playlist", {"playlist_id": created_id})
+        res_get = await agent.execute_tool("get_playlist", {"playlist_id": created_id}, HOST)
         self.assertEqual(res_get.get("name"), "Disco Night")
         self.assertEqual(len(res_get.get("songs", [])), 2)
 
@@ -373,22 +377,22 @@ class TestAgentPlaylistTools(unittest.IsolatedAsyncioTestCase):
             "playlist_id": created_id,
             "songs": ["Donna Summer - Hot Stuff"],
             "action": "add_songs",
-        })
+        }, HOST)
         self.assertEqual(res_up.get("status"), "ok")
         self.assertEqual(len(res_up["playlist"]["songs"]), 3)
 
         # 5. play_playlist
         with patch("core.queue_manager.queue.start_playlist", new=AsyncMock(return_value={"id": created_id})):
-            res_play = await agent.execute_tool("play_playlist", {"playlist_id": created_id})
+            res_play = await agent.execute_tool("play_playlist", {"playlist_id": created_id}, HOST)
             self.assertEqual(res_play.get("status"), "ok")
 
         # 6. stop_playlist
         with patch("core.queue_manager.queue.stop_playlist", new=AsyncMock(return_value=True)):
-            res_stop = await agent.execute_tool("stop_playlist", {})
+            res_stop = await agent.execute_tool("stop_playlist", {}, HOST)
             self.assertEqual(res_stop.get("status"), "ok")
 
         # 7. delete_playlist
-        res_del = await agent.execute_tool("delete_playlist", {"playlist_id": created_id})
+        res_del = await agent.execute_tool("delete_playlist", {"playlist_id": created_id}, HOST)
         self.assertEqual(res_del.get("status"), "ok")
 
 

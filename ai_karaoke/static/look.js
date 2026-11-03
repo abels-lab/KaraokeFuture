@@ -4,7 +4,9 @@
 // where the lyrics sit ([data-lyrics-box]), whether music videos show (body.no-video) and the
 // lyrics mode (body.lyrics-plain: no word fill, body.lyrics-off: no lyrics), video & background
 // shading intensity (--stage-dim), QR code display (body.no-qr, body.no-qr-link, --qr-scale),
-// and side panel width (--side-panel-width) on the control panel.
+// and side panel width (--side-panel-width) on the control panel. The party's custom style
+// (Settings → Custom style, the DJ Co-Pilot's set_style) is applyStyle: style-fx.css classes and
+// variables, and the custom CSS (checked on the server by core/css_guard.py) in a <style> of its own.
 // Needs common.js (Settings). Look.infoCard(time, duration) -> should the song info card show now?
 const ACCENTS = { gold: ["#f4c25b", "#d99a2b"], neon: ["#ff5fd2", "#d01f9e"], ice: ["#7fd8ff", "#2b9bd9"],
                   lime: ["#c6f25b", "#86b51f"], fire: ["#ff7a3d", "#d8341a"], silver: ["#eef0f6", "#9ea7ba"] };
@@ -14,9 +16,12 @@ const Look = (() => {
   function apply() {
     const theme = Settings.get("theme", "theater"), preset = Settings.get("accent", "theme");
     document.body.dataset.theme = theme;
-    const [gold, deep] = ACCENTS[preset === "theme" ? THEME_ACCENT[theme] : preset] || ACCENTS.gold;
+    const hex = Settings.get("style_accent_hex", "");
+    const [gold, deep] = /^#[0-9a-f]{6}$/i.test(hex) ? [hex, `color-mix(in srgb, ${hex} 70%, #000)`]
+      : ACCENTS[preset === "theme" ? THEME_ACCENT[theme] : preset] || ACCENTS.gold;
     document.documentElement.style.setProperty("--gold", gold);
     document.documentElement.style.setProperty("--gold-deep", deep);
+    applyStyle();
 
     // Tunable video & stage background shading (0% - 100%, default 40%)
     const rawDim = Settings.get("stage_dim", 40);
@@ -69,6 +74,34 @@ const Look = (() => {
     if (supportFooter) {
       supportFooter.classList.toggle("hidden", !showSupportOnRemote || !supportUrl);
     }
+  }
+  // One class per choice (fx-font-rounded …), dropped again at the theme's default
+  function choiceClass(prefix, value, off) {
+    document.body.classList.forEach((c) => { if (c.startsWith(prefix)) document.body.classList.remove(c); });
+    if (value && value !== off) document.body.classList.add(prefix + value);
+  }
+
+  function applyStyle() {
+    const body = document.body, root = document.documentElement.style;
+    if (!document.getElementById("fx-bg")) body.prepend(Object.assign(document.createElement("div"), { id: "fx-bg" }));
+    choiceClass("fx-font-", Settings.get("style_font", "theme"), "theme");
+    choiceClass("fx-title-", Settings.get("style_title_effect", "none"), "none");
+    choiceClass("fx-bg-", Settings.get("style_background", "theme"), "theme");
+    const glow = Number(Settings.get("style_glow", 0)) / 100, pulse = Number(Settings.get("style_pulse", 0)) / 100;
+    const corners = Number(Settings.get("style_corners", 100)) / 100;
+    body.classList.toggle("fx-glow", glow > 0);
+    body.classList.toggle("fx-pulse", pulse > 0);
+    body.classList.toggle("fx-corners", corners !== 1);
+    body.classList.toggle("fx-square", corners === 0);
+    root.setProperty("--fx-glow", glow);
+    root.setProperty("--fx-pulse", pulse);
+    root.setProperty("--fx-r", corners);
+    let tag = document.getElementById("party-custom-css");
+    if (!tag) {
+      tag = Object.assign(document.createElement("style"), { id: "party-custom-css" });
+      document.head.appendChild(tag);   // last, so it wins over the theme
+    }
+    tag.textContent = Settings.get("custom_css", "") || "";
   }
   Settings.onChange(apply);
 

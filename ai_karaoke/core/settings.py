@@ -8,9 +8,11 @@ import json
 import logging
 import math
 import os
+import re
 import threading
 
 from config import SETTINGS_FILE
+from core import css_guard
 from core.settings_schema import RETIRED, SPECS
 
 log = logging.getLogger(__name__)
@@ -37,6 +39,10 @@ def coerce(spec: dict, value):
     if kind == "text":
         if spec.get("allow_empty", False) and (value == "" or (isinstance(value, str) and not value.strip())):
             return ""
+        if spec.get("css"):   # kept as written (line breaks too), but nothing that loads from outside
+            return css_guard.check(value).strip()
+        if spec.get("pattern") and not (isinstance(value, str) and re.fullmatch(spec["pattern"], value.strip())):
+            raise ValueError(f"{label}: {spec.get('pattern_help', 'not a valid value')}")
         if not isinstance(value, str) or not value.strip() or len(value.strip()) > spec["max_len"]:
             raise ValueError(f"{label}: must be 1 to {spec['max_len']} characters")
         return " ".join(value.split())

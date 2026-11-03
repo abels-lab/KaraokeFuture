@@ -29,7 +29,7 @@
       history.push({ role: "user", content: msg });
       history.push({ role: "assistant", content: res.reply || "" });
       if (history.length > 10) history = history.slice(-10);
-      AgentRender.agent(res.reply || "Done!", res.tool_calls || [], res.proposals || []);
+      AgentRender.agent(res.reply || "Done!", res.tool_calls || []);
     } catch (err) {
       thinking.remove();
       AgentRender.agent(`❌ Failed: ${err.message || "Could not reach AI Co-Pilot"}`, []);
