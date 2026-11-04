@@ -4,7 +4,7 @@
 // Changes save at once; the server validates them and refuses anyone but the host.
 // No page ids or globals besides the constructor. Opens no WebSocket: call .refresh() when a
 // "settings" message arrives (changed in another tab); host mode switching refreshes by itself.
-// Needs common.js, auth.js, ui/settings-rows.js, ui/party-panel.js.
+// Needs common.js, auth.js, ui/settings-rows.js, ui/party-panel.js (ui/cache-panel.js optional).
 // createSettingsPanel() -> element with .refresh()
 function createSettingsPanel() {
   const root = el("div", "space-y-5");
@@ -13,6 +13,7 @@ function createSettingsPanel() {
       🔒 View only — settings can be changed on the laptop running the karaoke, or on this device after
       <button data-k="unlock" type="button" class="font-semibold underline">entering the host PIN</button>.</p>
     <div data-k="party"></div>
+    <div data-k="cache"></div>
     <section class="panel flex flex-wrap items-center gap-3 p-3">
       <input data-k="filter" type="search" placeholder="Find a setting…"
              class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400">
@@ -23,10 +24,14 @@ function createSettingsPanel() {
     <div data-k="groups" class="space-y-5"></div>`;
   const part = (k) => root.querySelector(`[data-k="${k}"]`);
   part("party").replaceWith(createPartyPanel());
+  // Song cache tools: only on pages that load ui/cache-panel.js (the host app)
+  const cache = typeof createCachePanel === "function" ? createCachePanel() : el("div", "hidden");
+  part("cache").replaceWith(cache);
   let page = { groups: [], settings: [], can_edit: false };
 
   async function refresh() {
     try { page = await api("/api/settings"); render(); } catch (err) { fail(err); }
+    cache.refresh?.();
   }
 
   async function save(key, value) {

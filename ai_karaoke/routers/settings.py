@@ -5,10 +5,12 @@ the karaoke, or a device unlocked with the host PIN. This replaced the old "Allo
 from other devices" switch — one lock instead of two (an old settings.json that still has
 that key loads fine; core/settings.py drops it quietly).
 """
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
-from core import auth, settings
+from core import auth, cache_admin, settings
 from core.hub import hub
 from core.settings_schema import GROUPS
 
@@ -45,6 +47,8 @@ async def change(req: Changes, request: Request):
         settings.update(req.values)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    if "cache_limit_gb" in req.values and (await asyncio.to_thread(cache_admin.trim))["evicted"]:
+        await hub.broadcast({"type": "library"})   # a lowered limit frees space now, not at the next download
     await hub.broadcast({"type": "settings"})   # open pages reload the values they use
     return _page(request)
 
@@ -55,5 +59,7 @@ async def reset(req: ResetRequest, request: Request):
     if unknown:
         raise HTTPException(422, f"Unknown setting: {', '.join(unknown)}")
     settings.reset(req.keys)
+    if (req.keys is None or "cache_limit_gb" in req.keys) and (await asyncio.to_thread(cache_admin.trim))["evicted"]:
+        await hub.broadcast({"type": "library"})
     await hub.broadcast({"type": "settings"})
     return _page(request)

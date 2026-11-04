@@ -118,11 +118,13 @@ async def song_pulse(song_id: str):
 
 @router.delete("/songs/{song_id}", dependencies=HOST)
 async def delete_song(song_id: str, lyrics: bool = False):
-    """Remove a song from the cache; ?lyrics=true also forgets its pasted lyrics."""
+    """Remove a song from the cache; ?lyrics=true also forgets its pasted lyrics and the lyrics
+    found online for it (both are kept outside the cache otherwise)."""
     _check(song_id)
     if queue.has_song(song_id) or song_id in worker.stages:
         raise HTTPException(409, "Remove it from the queue first")
     cache_manager.evict(song_id)
     if lyrics:
         lyrics_source.delete_user(song_id)
+        lyrics_source.forget_found(song_id)
     return {"ok": True}

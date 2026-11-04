@@ -66,6 +66,8 @@ async def _process(w, song_id: str) -> None:
         await pipeline.run(song_id, w.report, lambda: guest_protect(w))
         cache_manager.update_meta(song_id, status="ready", last_accessed=time.time())
         log.info("%s ready in %.0fs", song_id, time.perf_counter() - started)
+        # the video and stems arrive after ensure_space reserved room: fit the limit again
+        await asyncio.to_thread(cache_manager.ensure_space, guest_protect(w), 0)
     await queue.set_song_status(song_id, "ready")
 
 

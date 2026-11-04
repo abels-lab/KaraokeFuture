@@ -67,6 +67,8 @@ def download(song_id: str, protect: set[str] | None = None) -> Path:
         return target
 
     cache_manager.ensure_space(protect=(protect or set()) | {song_id})
+    if not cache_manager.disk_room():   # deleting every unprotected song wasn't enough
+        raise DownloadError("The disk is almost full: free some space on the karaoke laptop")
     folder = cache_manager.song_dir(song_id)
     folder.mkdir(parents=True, exist_ok=True)
 

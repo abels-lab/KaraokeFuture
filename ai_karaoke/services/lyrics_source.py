@@ -8,8 +8,8 @@ import re
 
 import syncedlyrics
 
-from config import LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
-from core import cache_manager, settings
+from config import KEPT_FILES, LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
+from core import cache_files, cache_manager, settings
 from services import genius, guitar_tabs, lrclib
 from services.song_names import build_query  # shared with the search de-duplication
 
@@ -80,7 +80,7 @@ def online_for(song_id: str, title: str, channel: str = "", duration: float | No
     """Online lyrics for a cached song: searched once (with one retry, providers often miss
     a request at random), then reused so a re-sync never silently swaps the lyrics.
     A cached LRC timed past the end of the audio (another version) is searched again."""
-    path = cache_manager.song_file(song_id, ONLINE_LYRICS_FILE)
+    path = cache_files.kept_file(song_id, ONLINE_LYRICS_FILE)   # outside the cache: survives eviction
     cached = path.read_text(encoding="utf-8") if path.is_file() else None
     if cached and lrclib.fits(cached, duration):
         return cached
@@ -90,13 +90,19 @@ def online_for(song_id: str, title: str, channel: str = "", duration: float | No
         if raw := fetch_online(title, channel, duration):
             if cached and not lrclib.fits(raw, duration):
                 return cached  # nothing better found: keep the text, the aligner drops its timestamps
-            path.write_text(raw, encoding="utf-8")
+            cache_files.write_atomic(path, raw)
             return raw
     return cached
 
 
 def forget_online(song_id: str) -> None:
-    cache_manager.song_file(song_id, ONLINE_LYRICS_FILE).unlink(missing_ok=True)
+    cache_files.kept_file(song_id, ONLINE_LYRICS_FILE).unlink(missing_ok=True)
+
+
+def forget_found(song_id: str) -> None:
+    """Every lyric file found online for this song (online LRC, UltraStar), without touching the cache."""
+    for name in KEPT_FILES:
+        cache_files.kept_file(song_id, name).unlink(missing_ok=True)
 
 
 def detect_language(text: str) -> str | None:

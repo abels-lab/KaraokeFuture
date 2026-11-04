@@ -16,11 +16,11 @@ from fastapi.staticfiles import StaticFiles
 from config import CACHE_DIR, HOST, PORT, STATIC_DIR, get_local_ip, setup_logging
 import contextlib
 
-from core import cache_manager, no_browser
+from core import cache_admin, cache_heal, no_browser
 from core.queue_manager import queue as queue_mgr
 from core.warmer import warmer
 from core.worker import worker
-from routers import agent, api, auth, battle, library, playlists, queue, settings, ws
+from routers import agent, api, auth, battle, cache, library, playlists, queue, settings, ws
 from services import tailscale, watcher
 
 setup_logging()
@@ -40,13 +40,15 @@ logging.getLogger("asyncio").addFilter(_IgnoreClientResets())
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    await asyncio.to_thread(cache_heal.heal)   # crash leftovers, before anything reads the cache
     queue_mgr.restore()
-    removed = cache_manager.purge_incomplete(protect=queue_mgr.protected_ids())
+    removed = cache_heal.purge_incomplete(protect=queue_mgr.protected_ids())
     if removed:
         log.info("Removed %d half-processed song folder(s)", len(removed))
+    await asyncio.to_thread(cache_admin.trim)   # the limit may have been lowered while we were off
     worker.start()
     for entry in queue_mgr.entries + ([queue_mgr.current] if queue_mgr.current else []):
-        if entry.get("status") != "ready" and entry.get("song_id"):
+        if entry.get("song_id"):   # skips ready songs itself, also entries saved "ready" whose files went missing
             await worker.submit(entry["song_id"])
     warmer.start()   # popular songs, in the background, after a short delay
     from core import settings
@@ -77,6 +79,7 @@ app.include_router(queue.router)
 app.include_router(battle.router)
 app.include_router(auth.router)
 app.include_router(library.router)
+app.include_router(cache.router)
 app.include_router(playlists.router)
 app.include_router(settings.router)
 app.include_router(agent.router)
