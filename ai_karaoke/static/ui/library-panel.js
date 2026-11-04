@@ -68,7 +68,8 @@ function createLibraryPanel() {
     const question = target === "all"
       ? `Rebuild “${s.title}” from scratch?\nDownload, vocal separation and lyrics run again (about a minute).`
       : reset ? `Forget the pasted lyrics for “${s.title}” and detect them automatically again?` : null;
-    if (question && !confirm(question)) return;
+    if (question && !(await Confirm.ask({ title: target === "all" ? "Rebuild the song?" : "Forget the pasted lyrics?",
+      message: question, ok: target === "all" ? "⟳ Rebuild" : "Forget them", danger: target !== "all" }))) return;
     try {
       await api(`/api/songs/${s.id}/regenerate`, { method: "POST", body: { target, reset } });
       toast({ all: "Rebuilding — this takes about a minute…", video: "Downloading the video…" }[target] || "Re-syncing lyrics…");
@@ -77,9 +78,11 @@ function createLibraryPanel() {
   }
 
   async function remove(s) {
-    if (!confirm(`Delete “${s.title}” from the cache (${Math.round(s.size / MB)} MB)?`)) return;
-    const forgetLyrics = s.has_user_lyrics &&
-      confirm("Also forget its pasted lyrics?\nOK = forget them · Cancel = keep them for next time");
+    const answer = await Confirm.ask({ title: "Delete the song?", ok: "🗑 Delete song",
+      message: `Delete “${s.title}” from the cache (${Math.round(s.size / MB)} MB)? It can be downloaded again later.`,
+      check: s.has_user_lyrics ? "Also forget its pasted lyrics (otherwise they are kept for next time)" : null });
+    if (!answer) return;
+    const forgetLyrics = answer.checked;
     try {
       await api(`/api/songs/${s.id}?lyrics=${forgetLyrics}`, { method: "DELETE" });
       toast(`Deleted “${s.title}”`);

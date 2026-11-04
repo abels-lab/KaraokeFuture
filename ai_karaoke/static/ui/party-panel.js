@@ -40,8 +40,9 @@ function createPartyPanel() {
   };
 
   part("wipe").onclick = async () => {
-    if (!confirm("Wipe the party?\nEvery guest login and session is deleted and their waiting songs leave the queue.\n"
-      + "Cached songs, lyrics, settings and the host PIN stay.")) return;
+    if (!(await Confirm.ask({ title: "Wipe the party?", ok: "🧹 Wipe Party DB", type: "WIPE",
+      message: "Every guest login and session is deleted and their waiting songs leave the queue. This can't be undone.\n"
+        + "Cached songs, lyrics, settings and the host PIN stay." }))) return;
     try {
       const { guests, songs_removed: removed } = await api("/api/party/wipe", { method: "POST" });
       toast(`Party wiped: ${guests} guest${guests === 1 ? "" : "s"}, ${removed} queued song${removed === 1 ? "" : "s"} removed`);

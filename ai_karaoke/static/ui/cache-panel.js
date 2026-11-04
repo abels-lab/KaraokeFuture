@@ -51,7 +51,7 @@ function createCachePanel() {
   }
 
   async function run(path, body, question) {
-    if (question && !confirm(question)) return;
+    if (question && !(await Confirm.ask({ title: "Delete songs from the cache?", message: question, ok: "🗑 Delete" }))) return;
     try {
       const res = await api(path, { method: "POST", body });
       const n = res.evicted.length;
