@@ -31,6 +31,10 @@ LYRICS_FILE = "lyrics.json"
 META_FILE = "meta.json"
 VOCAL_MAP_FILE = "vocals.json"   # where singing actually happens: {"regions": [[start, end], ...]}
 ONLINE_LYRICS_FILE = "online.lrc"  # lyrics found online, kept so re-syncs don't depend on flaky providers
+ULTRASTAR_FILE = "ultrastar.txt"   # matched UltraStar file from usdb.animux.de
+# The two above are small and hard to find again (providers are flaky, another version may
+# turn up), so they live in LYRICS_STORE_DIR/found/ and survive eviction and "Clear cache".
+KEPT_FILES = (ONLINE_LYRICS_FILE, ULTRASTAR_FILE)
 MELODY_FILE = "melody.json"      # reference pitch, loudness and notes for the singing game
 VIDEO_STEM = "video"             # muted video track: video.mp4 / video.webm
 
@@ -41,6 +45,9 @@ PORT = int(os.getenv("KARAOKE_PORT", "8000"))
 # ── Cache ────────────────────────────────────────────────────────────────────
 CACHE_LIMIT_BYTES = 5 * 1024**3          # hard 5 GB ceiling for ./cache
 CACHE_HEADROOM_BYTES = 300 * 1024**2     # room reserved for the incoming song
+# Disk space always left free for Windows and other programs: below it unprotected songs are
+# deleted even under the limit, and new downloads and warm-ups are refused.
+MIN_FREE_DISK_BYTES = int(float(os.getenv("KARAOKE_MIN_FREE_GB", "2")) * 1024**3)
 
 # ── Downloading ──────────────────────────────────────────────────────────────
 SEARCH_RESULTS = 5

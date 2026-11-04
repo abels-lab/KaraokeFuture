@@ -14,6 +14,7 @@ from typing import Iterable
 from config import (
     CACHE_DIR,
     CACHE_HEADROOM_BYTES,
+    MIN_FREE_DISK_BYTES,
     INSTRUMENTAL_FILE,
     LYRICS_FILE,
     META_FILE,
@@ -114,20 +115,25 @@ def evict(song_id: str) -> None:
         log.info("Evicted %s from cache", song_id)
 
 
-def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYTES) -> list[str]:
-    """Evict songs until cache + headroom fits in the limit: unplayed warm-ups of an old
-    rotation first, then least recently used.
+def disk_room(headroom: int = CACHE_HEADROOM_BYTES) -> bool:
+    """True when `headroom` more bytes still leave MIN_FREE_DISK_BYTES free on the disk."""
+    return cache_files.disk_free(CACHE_DIR) - headroom >= MIN_FREE_DISK_BYTES
 
-    `protect` = ids that must survive (now playing / still queued / being processed).
+
+def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYTES) -> list[str]:
+    """Evict songs until cache + headroom fits in the limit AND on the disk: unplayed
+    warm-ups of an old rotation first, then least recently used. `protect` = ids that must
+    survive (playing / queued / being processed); if only those are left the cache stays over.
     """
     protected = set(protect)
     evicted: list[str] = []
     with _lock:
         dirs = {d.name: d for d in song_dirs()}
         sizes = {d: folder_size(d) for d in dirs.values()}
-        total = sum(sizes.values())
+        total, limit = sum(sizes.values()), settings.get("cache_limit_gb") * 1024**3
+        fits = lambda: total + headroom <= limit and disk_room(headroom)  # noqa: E731
         for folder in (dirs[i] for i in eviction.order([_meta_of(d) for d in dirs.values()])):
-            if total + headroom <= settings.get("cache_limit_gb") * 1024**3:
+            if fits():
                 break
             if folder.name in protected:
                 continue
@@ -138,5 +144,8 @@ def ensure_space(protect: Iterable[str] = (), headroom: int = CACHE_HEADROOM_BYT
             evicted.append(folder.name)
     if evicted:
         log.info("Cache now %.2f GB after evicting %d song(s)", total / 1024**3, len(evicted))
+    if not fits():
+        log.warning("Cache %.2f GB of %.2f GB, %.2f GB free on disk: only protected songs left to delete",
+                    total / 1024**3, limit / 1024**3, cache_files.disk_free(CACHE_DIR) / 1024**3)
     return evicted
 

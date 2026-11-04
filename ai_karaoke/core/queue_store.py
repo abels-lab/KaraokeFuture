@@ -9,6 +9,7 @@ from core.hub import hub
 from core.media import media_urls
 
 log = logging.getLogger(__name__)
+UPCOMING_KEPT = 2   # next Auto-DJ songs the cache keeps (only the first is prepared ahead today)
 
 
 class QueueStore:
@@ -123,5 +124,8 @@ class QueueStore:
         return {e["song_id"] for e in self.entries + ([self.current] if self.current else []) if e.get("song_id")}
 
     def protected_ids(self) -> set[str]:
-        """Songs the cache must not evict: now playing + everything queued + recent played."""
-        return self.active_ids() | {e["song_id"] for e in self.played[-10:] if e.get("song_id")}
+        """Songs the cache must not evict: now playing + everything queued + recent played
+        + the next Auto-DJ songs (prepared in the background before they move into the queue)."""
+        upcoming = ((self.active_playlist or {}).get("queue") or [])[:UPCOMING_KEPT]
+        return (self.active_ids() | {e["song_id"] for e in self.played[-10:] if e.get("song_id")}
+                | {i["song_id"] for i in upcoming if isinstance(i, dict) and i.get("song_id")})

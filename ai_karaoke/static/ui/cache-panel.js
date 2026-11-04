@@ -16,12 +16,13 @@ function createCachePanel() {
       <div data-k="bar" class="h-full rounded-full bg-amber-400 transition-all"></div>
     </div>
     <p data-k="detail" class="text-sm text-stone-400"></p>
+    <p data-k="warn" class="hidden rounded-xl border border-red-500/40 p-2 text-sm text-red-200"></p>
     <div class="flex flex-wrap gap-2 border-t border-white/10 pt-3">
       <button data-k="trim" type="button" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20">✂ Trim to limit</button>
       <button data-k="warm" type="button" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold hover:bg-white/20 disabled:opacity-30">🔥 Clear unplayed warm-ups</button>
       <button data-k="all" type="button" class="rounded-xl bg-red-900/70 px-4 py-2 text-sm font-semibold hover:bg-red-800 disabled:opacity-30">🗑 Clear cache</button>
     </div>
-    <p class="text-xs text-stone-500">Songs that are playing, queued or being prepared are always kept. Pasted lyrics are never deleted.</p>`;
+    <p class="text-xs text-stone-500">Songs that are playing, queued or being prepared are always kept, and so are the next Auto-DJ songs. Pasted lyrics and lyrics found online are never deleted.</p>`;
   const part = (k) => box.querySelector(`[data-k="${k}"]`);
 
   function paint(s) {
@@ -34,6 +35,12 @@ function createCachePanel() {
       `${s.protected} kept for the queue (${gb(s.protected_used)})`,
       `${gb(s.disk_free)} free on disk`,
     ].join(" · ");
+    const warn = [
+      s.stuck && "Over the limit, but every song left is playing or queued: it shrinks as songs are played.",
+      s.disk_low && `The disk is almost full (under ${gb(s.min_free)} free): new songs can't be downloaded until you free space.`,
+    ].filter(Boolean).join(" ");
+    part("warn").textContent = warn;
+    part("warn").classList.toggle("hidden", !warn);
     part("warm").disabled = !s.warm_songs;
     part("all").disabled = s.songs <= s.protected;
   }

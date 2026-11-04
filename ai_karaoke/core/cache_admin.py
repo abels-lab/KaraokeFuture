@@ -4,10 +4,8 @@ Nothing here ever deletes a protected song: playing, queued, recently played (th
 protected_ids) or with worker jobs pending (worker.busy_ids). On Windows a file being
 streamed can't be removed, so "freed" is measured, not assumed.
 """
-import shutil
-
-from config import CACHE_DIR
-from core import cache_manager, eviction, warm_budget
+from config import CACHE_DIR, MIN_FREE_DISK_BYTES
+from core import cache_files, cache_manager, eviction, warm_budget
 
 
 def protected() -> set[str]:
@@ -28,7 +26,10 @@ def stats() -> dict:
         "warm_songs": len(warm), "warm_used": used["warm"], "warm_budget": used["budget"],
         "stale_warm": sum(1 for s in warm if eviction.is_stale_warm(s)),
         "protected": len(kept), "protected_used": sum(s["size"] for s in kept),
-        "disk_free": shutil.disk_usage(CACHE_DIR).free,
+        "disk_free": (free := cache_files.disk_free(CACHE_DIR)), "disk_low": free < MIN_FREE_DISK_BYTES,
+        "min_free": MIN_FREE_DISK_BYTES,
+        # over the limit with nothing left that may be deleted: the queue alone is bigger than the cache
+        "stuck": used["total"] > used["limit"] and len(kept) == len(songs),
     }
 
 

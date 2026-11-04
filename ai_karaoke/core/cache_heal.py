@@ -9,6 +9,8 @@ being written then, so every temp file is a leftover):
   (lyrics, melody, vocal map and pulse are all recomputed from the stems);
 - a truncated download (original.wav without the "downloaded" mark in meta.json) is deleted,
   so a queued song doesn't get its half audio separated;
+- found lyrics (online.lrc, ultrastar.txt) left in a song folder by older versions move to
+  LYRICS_STORE_DIR/found/, where eviction can't reach them;
 - a song with stems and lyrics but a lost/corrupt meta.json gets a minimal one back instead
   of being thrown away with minutes of GPU work.
 Then `purge_incomplete` removes what still isn't ready and isn't queued.
@@ -18,8 +20,10 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from config import INSTRUMENTAL_FILE, META_FILE, ORIGINAL_FILE, VOCALS_FILE
-from core import cache_manager
+import os
+
+from config import INSTRUMENTAL_FILE, KEPT_FILES, META_FILE, ORIGINAL_FILE, VOCALS_FILE
+from core import cache_files, cache_manager
 
 log = logging.getLogger(__name__)
 TEMP_ENDINGS = (".tmp", ".part", ".ytdl")
@@ -48,7 +52,19 @@ def _broken(path: Path) -> bool:
     return False
 
 
+def _move_kept(folder: Path, report: dict) -> None:
+    """Found lyrics stored in the song folder by older versions move out of the cache."""
+    for name in KEPT_FILES:
+        if (old := folder / name).is_file():
+            if (new := cache_files.kept_file(folder.name, name)).is_file():
+                old.unlink()
+            else:
+                os.replace(old, new)
+            report["lyrics_kept"] += 1
+
+
 def heal_folder(folder: Path, report: dict) -> None:
+    _move_kept(folder, report)
     for path in [p for p in folder.iterdir() if p.is_file()]:
         if is_leftover(path.name):
             report["leftovers"] += 1
@@ -74,13 +90,13 @@ def heal_folder(folder: Path, report: dict) -> None:
 
 def heal() -> dict:
     """Repair every song folder; returns what was done (counts and bytes freed)."""
-    report = {"leftovers": 0, "broken": 0, "partial_downloads": 0, "meta_rebuilt": 0, "freed": 0}
+    report = {"leftovers": 0, "broken": 0, "partial_downloads": 0, "meta_rebuilt": 0, "lyrics_kept": 0, "freed": 0}
     for folder in cache_manager.song_dirs():
         try:
             heal_folder(folder, report)
         except OSError as exc:   # a locked file: try again next start
             log.warning("Could not repair cache folder %s: %s", folder.name, exc)
-    if any(report[k] for k in ("leftovers", "broken", "partial_downloads", "meta_rebuilt")):
+    if any(report[k] for k in ("leftovers", "broken", "partial_downloads", "meta_rebuilt", "lyrics_kept")):
         log.info("Cache repaired: %s", report)
     return report
 

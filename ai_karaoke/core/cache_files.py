@@ -4,6 +4,7 @@
   The temp name is unique per thread and ends in ".tmp" (core/cache_heal.py removes leftovers).
 - `scan`: size and file names of a folder in one os.scandir pass (on Windows the sizes come
   with the listing, no extra stat per file).
+- `kept_file`: where a song's found lyrics live (outside the cache, never evicted).
 - `read_json` / `write_json`: meta.json parsed once and kept in memory, checked against the
   file's mtime + size on every read, so lookups don't re-parse the whole cache. Writes from
   this process refresh the memory copy directly; callers always get their own copy.
@@ -11,8 +12,11 @@
 import copy
 import json
 import os
+import shutil
 import threading
 from pathlib import Path
+
+from config import LYRICS_STORE_DIR
 
 _lock = threading.Lock()
 _parsed: dict[str, tuple[tuple[int, int], dict]] = {}   # path -> (stamp, parsed content)
@@ -89,3 +93,17 @@ def forget(folder: Path) -> None:
     with _lock:
         for key in [k for k in _parsed if k.startswith(prefix)]:
             del _parsed[key]
+
+
+def kept_file(song_id: str, name: str) -> Path:
+    """Small lyric files kept outside the cache (config.KEPT_FILES): survive eviction."""
+    folder = LYRICS_STORE_DIR / "found"
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / f"{song_id}.{name}"
+
+
+def disk_free(path: Path) -> int:
+    try:
+        return shutil.disk_usage(path).free
+    except OSError:
+        return 0

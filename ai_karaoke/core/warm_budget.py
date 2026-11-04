@@ -44,7 +44,10 @@ def make_room(protect: set[str]) -> bool:
         songs = _songs()
         need, used = max(estimate(songs), CACHE_HEADROOM_BYTES), usage(songs)
         if used["warm"] + need <= used["budget"] and used["total"] + need <= used["limit"]:
-            return True
+            if cache_manager.disk_room(need):
+                return True
+            log.info("Warm-up paused: the disk is almost full")   # never deletes a guest's song for it
+            return False
         stale = {s["id"] for s in songs if eviction.is_stale_warm(s)}
         victims = [i for i in eviction.order(songs) if i in stale and i not in protect]
         if not victims:

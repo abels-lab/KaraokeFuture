@@ -14,13 +14,13 @@ import re
 import numpy as np
 import soundfile as sf
 
-from config import LYRICS_FILE, MELODY_FILE, VOCALS_FILE
+from config import LYRICS_FILE, MELODY_FILE, ULTRASTAR_FILE, VOCALS_FILE
 from core import cache_files, cache_manager, settings
 from services import lyrics_source, melody, ultrastar, ultrastar_sync, usdb, vocal_activity
 
 log = logging.getLogger(__name__)
 
-FILE = "ultrastar.txt"
+FILE = ULTRASTAR_FILE   # kept outside the cache (config.KEPT_FILES): survives eviction
 MAX_CANDIDATES = 4      # txt downloads per song at most
 MIN_COVERAGE = 0.75     # share of note time that must fall on detected singing
 MIN_AGREEMENT = 0.35    # share of pitched note frames whose pitch the singer matches (any octave, ±1)...
@@ -57,7 +57,7 @@ def fetch_for(song_id: str) -> str | None:
 
 
 def _fetch(song_id: str) -> str | None:
-    path = cache_manager.song_file(song_id, FILE)
+    path = cache_files.kept_file(song_id, FILE)
     meta = cache_manager.read_meta(song_id)
     if path.is_file() or not usdb.configured() or meta.get("usdb") is not None:
         return (meta.get("usdb") or {}).get("match")
@@ -87,7 +87,7 @@ def _fetch(song_id: str) -> str | None:
 
 def forget(song_id: str) -> None:
     """Lyrics reset to automatic: drop the stored file so USDB is searched afresh."""
-    cache_manager.song_file(song_id, FILE).unlink(missing_ok=True)
+    cache_files.kept_file(song_id, FILE).unlink(missing_ok=True)
     cache_manager.update_meta(song_id, usdb=None)
 
 
@@ -107,7 +107,7 @@ def _write(song_id: str, name: str, data) -> None:
 
 
 def _apply(song_id: str) -> bool:
-    path = cache_manager.song_file(song_id, FILE)
+    path = cache_files.kept_file(song_id, FILE)
     if not path.is_file() or lyrics_source.load_user(song_id):
         return False
     song = ultrastar.parse(path.read_text(encoding="utf-8"))
