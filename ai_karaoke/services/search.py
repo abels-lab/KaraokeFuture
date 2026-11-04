@@ -1,6 +1,6 @@
-"""Smart song search: YouTube + SoundCloud, filtered, de-duplicated and checked.
+"""Smart song search: YouTube, SoundCloud and the host's own links, filtered, de-duplicated, checked.
 
-1. Both sources are searched at once. Flat search is fast but says nothing about whether a
+1. Every switched-on source (Settings › Sources) is searched at once. Flat search is fast but says nothing about whether a
    result can actually be downloaded.
 2. search_filter hides whatever isn't a singable song; search_merge folds uploads of the
    same recording into one result with mirrors.
@@ -12,10 +12,10 @@
 import logging
 import re
 import time
-from concurrent.futures import ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout, wait
 
-from core import cache_manager, settings
-from services import search_filter, search_memory, search_merge, sources
+from core import cache_manager, settings, sources_registry
+from services import custom_songs, search_filter, search_memory, search_merge, sources
 
 log = logging.getLogger(__name__)
 _pool = ThreadPoolExecutor(max_workers=16, thread_name_prefix="search")
@@ -23,13 +23,37 @@ MAX_TRIES = 3   # uploads opened per song before giving up on it
 SPARES = 2      # extra songs checked so broken ones can be replaced
 
 
-def _flat(source: str, query: str, count: int, stats: dict) -> list[dict]:
+def _flat(entry: dict, query: str, count: int, stats: dict) -> list[dict]:
     try:
-        return sources.flat_search(source, query, count)
-    except Exception as exc:  # one source being down must not break the other
-        log.warning("%s search failed for %r: %s", source, query, exc)
-        stats["errors"].append(source)
+        if entry["builtin"]:
+            return sources.flat_search(entry["id"], query, count)
+        return custom_songs.search(entry, query, count)
+    except Exception as exc:  # one source being down must not break the others
+        log.warning("%s search failed for %r: %s", entry["name"], query, exc)
+        stats["errors"].append(entry["id"])
         return []
+
+
+def _gather(query: str, limit: int, stats: dict) -> list[dict]:
+    """Every switched-on song source at once, results in the host's source order
+    (Settings › Sources), which is also the merge's tie-break. A custom link that hangs
+    is given up on after custom_songs.TIMEOUT seconds."""
+    links = sources_registry.ordered("songs")
+    if not links:
+        raise RuntimeError("every song source is switched off (Settings › Sources)")
+    jobs = [(e, _pool.submit(_flat, e, query, max(10, limit * 2) if e["id"] == sources.YOUTUBE else max(5, limit), stats))
+            for e in links]
+    deadline = time.monotonic() + custom_songs.TIMEOUT
+    raw = []
+    for entry, job in jobs:
+        try:
+            raw += job.result(timeout=None if entry["builtin"] else max(0.1, deadline - time.monotonic()))
+        except FutureTimeout:
+            log.warning("%s search took too long for %r", entry["name"], query)
+            stats["errors"].append(entry["id"])
+    if len(set(stats["errors"])) == len(links):
+        raise RuntimeError("no search source answered")
+    return raw
 
 
 def check(song_id: str) -> bool:
@@ -86,16 +110,12 @@ def run(query: str, limit: int | None = None) -> tuple[list[dict], dict]:
     started = time.perf_counter()
     limit = int(limit or settings.get("search_results"))
     stats = {"raw": 0, "hidden": 0, "merged": 0, "unavailable": 0, "swapped": 0, "unchecked": 0, "errors": []}
-    use_sc = settings.get("use_soundcloud")
-    youtube = _pool.submit(_flat, sources.YOUTUBE, query, max(10, limit * 2), stats)
-    soundcloud = _pool.submit(_flat, sources.SOUNDCLOUD, query, max(5, limit), stats) if use_sc else None
-    raw = youtube.result() + (soundcloud.result() if soundcloud else [])
-    if len(stats["errors"]) == (2 if use_sc else 1):
-        raise RuntimeError("no search source answered")
+    raw = _gather(query, limit, stats)
     kept = [r for r in raw if search_filter.keep(r)]
     groups = search_merge.merge(kept, cache_manager.is_ready)
     stats.update(raw=len(raw), hidden=len(raw) - len(kept), merged=len(kept) - len(groups),
-                 soundcloud=sum(r["source"] == sources.SOUNDCLOUD for r in raw))
+                 soundcloud=sum(r["source"] == sources.SOUNDCLOUD for r in raw),
+                 custom=sum(r["source"] not in (sources.YOUTUBE, sources.SOUNDCLOUD) for r in raw))
     shown = _validate(groups[:limit + SPARES], stats)[:limit]
     for members in shown:
         search_memory.remember(members)

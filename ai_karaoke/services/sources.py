@@ -4,6 +4,8 @@ Song ids double as cache folder names and URL parts, so each source has a strict
 - YouTube keeps its plain 11-character ids, so every existing cache folder stays valid.
 - SoundCloud ids are "sc_" + the numeric track id padded to at least 10 digits. That makes
   them 13+ characters long, so one can never look like (or collide with) a YouTube id.
+- Uploads found through the host's own song links (any other yt-dlp site) are "x_" + 16 hex
+  characters; core/source_ids.py maps them back to their page (services/custom_songs.py).
 
 YouTube Music is not a separate source: yt-dlp's music search took ~25 s for one query (it
 pages through every result) and returns neither duration nor artist, so results can't be
@@ -16,16 +18,17 @@ import shutil
 
 from yt_dlp import YoutubeDL
 
+from core import source_ids, source_links
 from services.song_names import clean_channel, officialness, song_key
 
 log = logging.getLogger(__name__)
 
-YOUTUBE, SOUNDCLOUD = "youtube", "soundcloud"
+YOUTUBE, SOUNDCLOUD, CUSTOM = "youtube", "soundcloud", "custom"
 _YT_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 _SC_ID = re.compile(r"^sc_(\d{10,15})$")
 _SEARCH = {YOUTUBE: "ytsearch", SOUNDCLOUD: "scsearch"}
 # SoundCloud "Go+" tracks only offer a 30 s preview to us: never pick that stream
-_AUDIO_FORMAT = {YOUTUBE: "bestaudio/best", SOUNDCLOUD: "bestaudio[format_id!*=preview]/best[format_id!*=preview]"}
+_AUDIO_FORMAT = {YOUTUBE: "bestaudio/best", CUSTOM: "bestaudio/best", SOUNDCLOUD: "bestaudio[format_id!*=preview]/best[format_id!*=preview]"}
 
 
 class _Quiet:
@@ -61,6 +64,8 @@ def source_of(song_id: str | None) -> str | None:
         return YOUTUBE
     if song_id and _SC_ID.match(song_id):
         return SOUNDCLOUD
+    if song_id and source_ids.PATTERN.match(song_id):
+        return CUSTOM
     return None
 
 
@@ -75,6 +80,10 @@ def soundcloud_id(track_id) -> str:
 def page_url(song_id: str) -> str:
     if source_of(song_id) == SOUNDCLOUD:
         return f"https://api.soundcloud.com/tracks/{int(song_id[3:])}"
+    if source_of(song_id) == CUSTOM:   # checked again before every request: public hosts only
+        if not (url := source_ids.url_for(song_id)):
+            raise source_links.LinkError(f"The page of {song_id} is no longer known: search for the song again")
+        return source_links.check_url(url)
     return f"https://www.youtube.com/watch?v={song_id}"
 
 
@@ -83,8 +92,8 @@ def audio_format(song_id: str) -> str:
 
 
 def has_video(song_id: str) -> bool:
-    """SoundCloud is audio only."""
-    return source_of(song_id) == YOUTUBE
+    """SoundCloud is audio only; other sites may have a video (a failed try just means none)."""
+    return source_of(song_id) in (YOUTUBE, CUSTOM)
 
 
 def thumbnail(song_id: str, artwork: str | None = None) -> str | None:

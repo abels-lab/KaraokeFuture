@@ -13,7 +13,7 @@ import re
 import urllib.parse
 import requests
 
-from core import settings
+from core import settings, sources_registry
 from services.chord_text import clean_chord_sheet, is_chord_or_noise
 
 log = logging.getLogger(__name__)
@@ -141,4 +141,6 @@ def fetch(query: str, title: str = "") -> str | None:
     """Fetch clean lyrics without chords from Ultimate Guitar or AmDm.ru. Never raises."""
     if not settings.get("use_chords_lyrics"):
         return None
-    return fetch_ultimate_guitar(query, title) or fetch_amdm(query, title)
+    sites = {"ultimate-guitar": fetch_ultimate_guitar, "amdm": fetch_amdm}
+    return next((text for e in sources_registry.ordered("chords") if e["id"] in sites
+                 for text in [sites[e["id"]](query, title)] if text), None)

@@ -4,7 +4,8 @@
 // Changes save at once; the server validates them and refuses anyone but the host.
 // No page ids or globals besides the constructor. Opens no WebSocket: call .refresh() when a
 // "settings" message arrives (changed in another tab); host mode switching refreshes by itself.
-// Needs common.js, auth.js, ui/settings-rows.js, ui/party-panel.js (ui/cache-panel.js optional).
+// Needs common.js, auth.js, ui/settings-rows.js, ui/party-panel.js (ui/cache-panel.js and
+// ui/sources-panel.js + ui/sources-form.js optional).
 // createSettingsPanel() -> element with .refresh()
 function createSettingsPanel() {
   const root = el("div", "space-y-5");
@@ -14,6 +15,7 @@ function createSettingsPanel() {
       <button data-k="unlock" type="button" class="font-semibold underline">entering the host PIN</button>.</p>
     <div data-k="party"></div>
     <div data-k="cache"></div>
+    <div data-k="sources"></div>
     <section class="panel flex flex-wrap items-center gap-3 p-3">
       <input data-k="filter" type="search" placeholder="Find a setting…"
              class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400">
@@ -27,11 +29,15 @@ function createSettingsPanel() {
   // Song cache tools: only on pages that load ui/cache-panel.js (the host app)
   const cache = typeof createCachePanel === "function" ? createCachePanel() : el("div", "hidden");
   part("cache").replaceWith(cache);
+  // Song and lyrics websites: on pages that load ui/sources-panel.js (host app, phone remote)
+  const sources = typeof createSourcesPanel === "function" ? createSourcesPanel() : el("div", "hidden");
+  part("sources").replaceWith(sources);
   let page = { groups: [], settings: [], can_edit: false };
 
   async function refresh() {
     try { page = await api("/api/settings"); render(); } catch (err) { fail(err); }
     cache.refresh?.();
+    sources.refresh?.();
   }
 
   async function save(key, value) {

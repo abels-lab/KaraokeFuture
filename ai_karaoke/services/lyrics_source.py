@@ -6,11 +6,9 @@ import json
 import logging
 import re
 
-import syncedlyrics
-
 from config import KEPT_FILES, LYRICS_FILE, LYRICS_STORE_DIR, ONLINE_LYRICS_FILE
 from core import cache_files, cache_manager, settings
-from services import genius, guitar_tabs, lrclib
+from services import lrclib, lyrics_chain
 from services.song_names import build_query  # shared with the search de-duplication
 
 log = logging.getLogger(__name__)
@@ -55,25 +53,17 @@ def _format(lines) -> str:
 
 
 def fetch_online(title: str, channel: str = "", duration: float | None = None) -> str | None:
-    """Lyrics for this exact version from LRCLIB (matched by duration), else from syncedlyrics
-    (Musixmatch, LRCLIB, NetEase, Megalobiz, Genius), else plain text from the Genius API.
-    LRC timestamps kept."""
+    """Lyrics for this exact version: synced (LRCLIB matched by duration, syncedlyrics), else
+    plain text (Genius, the host's own links), else chord sheets, in the order and with the
+    switches of Settings › Sources (services/lyrics_chain.py). LRC timestamps kept."""
     query = build_query(title, channel)
-    raw = lrclib.search(query, duration) if duration else None
-    try:
-        raw = raw or syncedlyrics.search(query)
-    except Exception as exc:  # providers fail in many ways; never block the pipeline
-        log.warning("syncedlyrics failed for %r: %s", query, exc)
-        raw = None
-    lines = parse_lines(raw)
-    if len(lines) < settings.get("min_lyric_lines"):
-        lines = parse_lines(genius.fetch(query, build_query(title)))
-    if len(lines) < settings.get("min_lyric_lines"):
-        lines = parse_lines(guitar_tabs.fetch(query, build_query(title)))
-    if len(lines) < settings.get("min_lyric_lines"):
-        return None
-    log.info("Found %d lyric lines for %r (%s)", len(lines), query, "timed" if timed(lines) else "plain")
-    return _format(lines)
+    for source, raw in lyrics_chain.found(query, build_query(title), channel, duration):
+        lines = parse_lines(raw)
+        if len(lines) >= settings.get("min_lyric_lines"):
+            log.info("Found %d lyric lines for %r on %s (%s)", len(lines), query, source,
+                     "timed" if timed(lines) else "plain")
+            return _format(lines)
+    return None
 
 
 def online_for(song_id: str, title: str, channel: str = "", duration: float | None = None) -> str | None:

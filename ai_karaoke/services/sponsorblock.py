@@ -9,6 +9,7 @@ import json
 import logging
 import requests
 
+from core import sources_registry
 from services import sources
 
 log = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ def get_intro_end(song_id: str) -> float | None:
     Only applies to YouTube videos. Never raises: on any network issue or when no
     segments exist, returns None.
     """
-    if sources.source_of(song_id) != sources.YOUTUBE:
+    if sources.source_of(song_id) != sources.YOUTUBE or not sources_registry.enabled("sponsorblock"):
         return None
 
     try:

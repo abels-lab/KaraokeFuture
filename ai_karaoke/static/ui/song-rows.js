@@ -17,7 +17,7 @@ const SongRows = (() => {
     const li = el("li", "panel flex items-center gap-3 p-2");
     const info = el("div", "min-w-0 flex-1");
     const meta = [r.cached ? "⚡ Instant" : "", r.genre || "", r.decade || "",
-      r.source === "soundcloud" ? "SoundCloud" : (!r.genre ? r.channel : ""),
+      r.source === "soundcloud" ? "SoundCloud" : r.source_name || (!r.genre ? r.channel : ""),
       r.duration ? fmt(r.duration) : ""].filter(Boolean);
     info.append(el("p", "line-clamp-2 text-sm font-semibold", ReadySongs.name(r)),
       el("p", "truncate text-xs text-stone-400", meta.join(" · ")));

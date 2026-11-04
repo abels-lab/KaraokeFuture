@@ -10,7 +10,7 @@ import re
 import urllib.parse
 import requests
 
-from core import cache_manager
+from core import cache_manager, sources_registry
 from services.metadata_tags import build_tags, compute_decade, detect_language, normalize_genre
 from services.song_names import build_query, clean_channel
 
@@ -25,6 +25,8 @@ _DASH_SPLIT = re.compile(r"\s+[-–—]\s+")
 
 
 def _query_itunes(term: str) -> dict | None:
+    if not sources_registry.enabled("itunes"):   # Settings › Sources: local guesses only
+        return None
     try:
         url = f"{ITUNES_URL}?term={urllib.parse.quote(term)}&entity=song&limit=1"
         r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
