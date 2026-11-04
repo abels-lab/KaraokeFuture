@@ -79,5 +79,6 @@ function createSettingsPanel() {
   part("unlock").onclick = () => Auth.unlock();
   Auth.onChange(refresh); // host mode switched on/off: the server decides what may be edited
   refresh();
-  return Object.assign(root, { refresh });
+  // Side contents list where ui/settings-toc.js is loaded (the host app)
+  return Object.assign(typeof SettingsToc === "object" ? SettingsToc.wrap(root) : root, { refresh });
 }

@@ -48,6 +48,7 @@ const SettingsRows = (() => {
   function row(spec, canEdit, { save, reset }) {
     const r = el("div", `flex flex-wrap items-start gap-3 border-l-2 py-3 pl-3 ${spec.changed ? "border-amber-400" : "border-transparent"}`);
     r.dataset.key = spec.key;
+    if (spec.changed) r.dataset.changed = "";   // counted by the contents list (ui/settings-toc.js)
     const text = el("div", "min-w-[14rem] flex-1");
     const [when, cls] = APPLIES[spec.applies] || [spec.applies, "bg-white/10"];
     const title = el("p", "flex flex-wrap items-center gap-2 font-semibold", spec.label);
