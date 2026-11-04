@@ -15,7 +15,7 @@ import numpy as np
 import soundfile as sf
 
 from config import LYRICS_FILE, MELODY_FILE, ULTRASTAR_FILE, VOCALS_FILE
-from core import cache_files, cache_manager, settings
+from core import cache_files, cache_manager, settings, sources_registry
 from services import lyrics_source, melody, ultrastar, ultrastar_sync, usdb, vocal_activity
 
 log = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def fetch_for(song_id: str) -> str | None:
 def _fetch(song_id: str) -> str | None:
     path = cache_files.kept_file(song_id, FILE)
     meta = cache_manager.read_meta(song_id)
-    if path.is_file() or not usdb.configured() or meta.get("usdb") is not None:
+    if path.is_file() or not usdb.configured() or not sources_registry.enabled("usdb") or meta.get("usdb") is not None:
         return (meta.get("usdb") or {}).get("match")
     query = lyrics_source.build_query(meta.get("title", ""), meta.get("channel", ""))
     found = candidates(meta)

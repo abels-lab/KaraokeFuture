@@ -4,11 +4,13 @@ Two results are the same song when their normalised artist + title (song_names.s
 match and their lengths differ by at most a few seconds (a live take or the music video
 with a long intro differs more and stays separate). The guest sees one representative:
 already cached first (instant), then the artist's own upload (Topic / VEVO / official),
-then YouTube over SoundCloud (it has a video), then search rank. The others are kept as
+then the source the host put first (Settings › Sources; YouTube by default, it has a
+video), then search rank. The others are kept as
 `mirrors` so a failed download can switch to them automatically.
 """
 from typing import Callable
 
+from core import sources_registry
 from services.song_names import same_song
 
 DURATION_TOLERANCE = 5   # seconds
@@ -21,7 +23,7 @@ def _same(group: list[dict], item: dict) -> bool:
 
 
 def group(results: list[dict]) -> list[list[dict]]:
-    """Groups in order of their best-ranked member (results arrive YouTube first)."""
+    """Groups in order of their best-ranked member (results arrive in source order)."""
     groups: list[list[dict]] = []
     for item in results:
         match = next((g for g in groups if _same(g, item)), None)
@@ -36,7 +38,7 @@ def rank(members: list[dict], is_cached: Callable[[str], bool]) -> list[dict]:
     """Best representative first; `members` must be in search-rank order."""
     order = {m["id"]: i for i, m in enumerate(members)}
     return sorted(members, key=lambda m: (not is_cached(m["id"]), -m.get("official", 0),
-                                          m["source"] != "youtube", order[m["id"]]))
+                                          sources_registry.rank(m["source"]), order[m["id"]]))
 
 
 def as_result(members: list[dict], is_cached: Callable[[str], bool]) -> dict:
