@@ -1,9 +1,10 @@
 // DJ Co-Pilot chat bubbles: the host's message, the Co-Pilot's answer (a little markdown) and chips
 // for the tools it ran (setting changed, song queued, style changed, layout customized). Split from
-// agent.js, which sends the messages. Needs common.js and #agent-messages (host/markup-left.js).
-// AgentRender = { user(text), agent(text, toolCalls), thinking() -> element, clear() }
-const AgentRender = (() => {
-  const box = $("agent-messages");
+// agent.js, which sends the messages; the guest remote's chat (guest/copilot.js) draws with it too.
+// Needs common.js. createAgentRender(box) draws into that element; AgentRender draws into the host's
+// #agent-messages (host/markup-left.js), and only once a page that has it calls one of its methods.
+// { user(text) -> element, agent(text, toolCalls) -> element, thinking() -> element, clear() }
+function createAgentRender(box) {
   const escapeHtml = (str) => String(str || "").replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]);
   const formatMarkdown = (text) => escapeHtml(text)
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
@@ -36,6 +37,7 @@ const AgentRender = (() => {
     node.innerHTML = `<div class="max-w-[85%] rounded-2xl bg-amber-500/20 border border-amber-400/30 px-4 py-2.5 text-stone-100">${escapeHtml(text)}</div>`;
     box.append(node);
     scrollDown();
+    return node;
   }
 
   function agent(text, toolCalls = []) {
@@ -44,12 +46,13 @@ const AgentRender = (() => {
     node.innerHTML = `
       <div class="flex items-start gap-2.5">
         <span class="text-xl">✨</span>
-        <div class="flex-1 space-y-2">${tools}
+        <div class="min-w-0 flex-1 space-y-2">${tools}
           <div class="rounded-2xl bg-white/5 border border-white/10 p-4 text-stone-200 leading-relaxed">${formatMarkdown(text)}</div>
         </div>
       </div>`;
     box.append(node);
     scrollDown();
+    return node;
   }
 
   function thinking() {
@@ -65,4 +68,5 @@ const AgentRender = (() => {
       <p class="font-semibold text-gold">👋 Chat cleared. Ready for your next command!</p></div>`;
   };
   return { user, agent, thinking, clear };
-})();
+}
+const AgentRender = createAgentRender($("agent-messages"));
