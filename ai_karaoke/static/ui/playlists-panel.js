@@ -41,7 +41,7 @@ const Playlists = (() => {
       actions.append(btn("✏️ Edit", "bg-white/10 text-stone-200 hover:bg-white/20", async () => {
         try { PlaylistForm.open(await api(`/api/playlists/${encodeURIComponent(pl.id)}`), reload); } catch (err) { fail(err); }
       }, "Edit the name and songs"), btn("🗑️", "bg-red-500/15 text-red-300 hover:bg-red-500/25", async () => {
-        if (!confirm(`Delete the playlist "${pl.name}"?`)) return;
+        if (!(await Confirm.ask({ title: "Delete playlist?", message: `Delete the playlist “${pl.name}”? Its songs stay in the library.`, ok: "🗑 Delete playlist" }))) return;
         try { await api(`/api/playlists/${encodeURIComponent(pl.id)}`, { method: "DELETE" }); toast(`Deleted "${pl.name}"`); reload(); } catch (err) { fail(err); }
       }, `Delete "${pl.name}"`));
     }

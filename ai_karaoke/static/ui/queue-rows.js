@@ -1,6 +1,7 @@
 // Queue list rows shared by the control panel (tv-side.js) and the guest remote (my-queue.js):
 // a waiting entry with reorder / remove buttons (drag and drop for the host), and a played one.
-// Needs common.js (el, api, fail, toast, iconButton, thumbFor, singers, STATUS); lyrics.js optional.
+// Needs common.js (el, api, fail, toast, iconButton, thumbFor, singers, STATUS), ui/undo.js and
+// ui/confirm.js; lyrics.js optional. Removing a song offers Undo; "Play now" asks first.
 // One queue entry: title on its own line, then singer + status + sing-next / drag / remove.
 // manage: "all" (host: drag handle to move anywhere) | "mine" (a guest's own song: swap among their own slots,
 // first/last = its place among them) | null (someone else's: look only). The server checks too.
@@ -9,6 +10,7 @@ function queueRow(e, i, total, { thumb = true, extras = [], manage = "all", firs
   const li = el("li", "flex items-center gap-3 rounded-xl bg-black/45 p-2 ring-1 ring-white/5 transition-all");
   li.dataset.uid = e.uid;
   li.dataset.index = i;
+  if (Undo.isPending(e.uid)) li.classList.add("hidden");   // removed a moment ago, Undo still offered
 
   if (manage === "all") {
     const handle = el("div", "drag-handle cursor-grab active:cursor-grabbing p-1 text-stone-500 hover:text-amber-400 select-none shrink-0 transition flex items-center justify-center");
@@ -85,7 +87,7 @@ function queueRow(e, i, total, { thumb = true, extras = [], manage = "all", firs
     const top = iconButton("⤒", scope === "mine" ? "Make this your first song" : "Sing next", () => move("top"));
     const up = iconButton("▲", scope === "mine" ? "Swap with your earlier song" : "Move up", () => move("up"));
     const down = iconButton("▼", scope === "mine" ? "Swap with your later song" : "Move down", () => move("down"));
-    const del = iconButton("✕", "Remove from queue", () => api(`/api/queue/${e.uid}`, { method: "DELETE" }).catch(fail), "hover:bg-red-800");
+    const del = iconButton("✕", "Remove from queue", () => removeLater(e, "Removed"), "hover:bg-red-800");
     top.disabled = up.disabled = first;
     down.disabled = last;
     if (typeof openLyrics === "function") {
@@ -101,6 +103,8 @@ function queueRow(e, i, total, { thumb = true, extras = [], manage = "all", firs
 // Row for an already played song: displays singer, title, with buttons to play immediately or return to queue.
 function playedRow(e, i, { onPlay, onRequeue, onRemove } = {}) {
   const li = el("li", "flex items-center gap-2.5 rounded-xl bg-black/40 p-2 ring-1 ring-white/5 opacity-85 hover:opacity-100 transition group");
+  li.dataset.uid = e.uid;
+  if (Undo.isPending(e.uid)) li.classList.add("hidden");
   li.append(Object.assign(el("img", "h-11 w-14 shrink-0 rounded-lg object-cover brightness-75 group-hover:brightness-95 transition"), {
     src: e.thumbnail || thumbFor(e.song_id), alt: ""
   }));
@@ -113,7 +117,9 @@ function playedRow(e, i, { onPlay, onRequeue, onRemove } = {}) {
   );
   
   const actions = el("div", "flex items-center gap-1 shrink-0");
-  const playBtn = iconButton("▶", "Play this song now", () => {
+  const playBtn = iconButton("▶", "Play this song now", async () => {
+    if (!(await Confirm.ask({ title: "Play it now?", message: `Play “${e.title}” right now?\nIf someone is singing, their song stops.`,
+      ok: "▶ Play now", danger: false }))) return;
     if (onPlay) onPlay(e);
     else api(`/api/queue/${e.uid}/play`, { method: "POST" }).catch(fail);
   }, "hover:bg-amber-400 hover:text-stone-950 font-bold px-2 py-1");
@@ -125,10 +131,19 @@ function playedRow(e, i, { onPlay, onRequeue, onRemove } = {}) {
   
   const delBtn = iconButton("✕", "Remove from history", () => {
     if (onRemove) onRemove(e);
-    else api(`/api/queue/${e.uid}`, { method: "DELETE" }).catch(fail);
+    else removeLater(e, "Removed from the history");
   }, "hover:bg-red-800 text-stone-400 px-1.5 py-1");
   
   actions.append(playBtn, reqBtn, delBtn);
   li.append(info, actions);
   return li;
+}
+
+// Remove an entry after the Undo moment (ui/undo.js); keepalive when the page is closing
+function removeLater(e, what) {
+  const url = `/api/queue/${e.uid}`;
+  const unhide = () => document.querySelectorAll(`[data-uid="${CSS.escape(String(e.uid))}"]`).forEach((r) => r.classList.remove("hidden"));
+  Undo.later(e.uid, `${what}: “${e.title}”`, (urgent) => (urgent
+    ? fetch(url, { method: "DELETE", keepalive: true }).catch(() => {})
+    : api(url, { method: "DELETE" }).catch((err) => { unhide(); fail(err); })));
 }

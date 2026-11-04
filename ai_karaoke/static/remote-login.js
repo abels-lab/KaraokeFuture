@@ -49,7 +49,8 @@ const GuestLogin = (() => {
   };
 
   async function logout() {
-    if (!confirm("Log out on this device? Your songs stay in the queue; log in again with the same name and password.")) return false;
+    if (!(await Confirm.ask({ title: "Log out?", message: "Log out on this device? Your songs stay in the queue; log in again with the same name and password.",
+      ok: "Log out", danger: false }))) return false;
     await api("/api/auth/logout", { method: "POST" }).catch(fail);
     await Auth.load();
     return true;

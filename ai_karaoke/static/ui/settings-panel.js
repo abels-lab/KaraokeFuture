@@ -42,11 +42,14 @@ function createSettingsPanel() {
     render(); // also snaps an invalid value back to the stored one
   }
 
+  // One setting: at once, with Undo (ui/undo.js). A group or everything: asks first (ui/confirm.js).
   async function reset(keys, what) {
-    if (!confirm(`Reset ${what} to the default value${keys && keys.length === 1 ? "" : "s"}?`)) return;
+    const one = keys?.length === 1 && page.settings.find((s) => s.key === keys[0]);
+    const What = `${what[0].toUpperCase()}${what.slice(1)}`;
+    if (!one && !(await Confirm.ask({ title: "Reset settings?", message: `Reset ${what} to the default values?`, ok: "↺ Reset" }))) return;
     try {
       page = await api("/api/settings/reset", { method: "POST", body: { keys } });
-      toast(`${what[0].toUpperCase()}${what.slice(1)} reset to defaults`);
+      one ? Undo.now(`${What} back to the default`, () => save(one.key, one.value)) : toast(`${What} reset to defaults`);
     } catch (err) { fail(err); }
     render();
   }
