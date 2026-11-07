@@ -12,6 +12,7 @@ document.getElementById("host-header").innerHTML = `
     <button type="button" data-go="library" class="host-nav rounded-lg px-3 py-1.5" title="Song library (B)">📚 Library</button>
   </nav>
   <div class="min-w-0 flex-1"></div>
+  <button type="button" data-act="custom" class="shrink-0 rounded-xl bg-amber-500/10 border border-amber-400/30 px-3 py-1.5 text-sm font-semibold text-gold hover:bg-amber-500/20" title="Upload audio file or link">📁 Load song</button>
   <button type="button" data-act="add" class="btn-gold shrink-0 rounded-xl px-3 py-1.5 text-sm" title="Add a song to the queue (A or /)">＋ Add song</button>
   <button type="button" data-go="copilot" class="only-tablet shrink-0 rounded-xl bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20" title="DJ Co-Pilot (Ctrl+J)">✨ Co-Pilot</button>
   <button type="button" data-act="settings" class="shrink-0 rounded-xl bg-white/10 px-3 py-1.5 text-sm font-semibold hover:bg-white/20" title="Settings (,)">⚙️<span class="hide-tablet"> Settings</span></button>

@@ -13,6 +13,17 @@ function createSearchPanel({ onAdded = null, singerName = null, getState = null,
     <label data-k="singer-box" class="block hidden"><span class="text-xs font-semibold text-stone-400">Singer name for songs you add (host only)</span>
       <input data-k="singer" maxlength="32" placeholder="e.g. Freddie" class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2 outline-none focus:border-amber-400">
     </label>
+    <!-- Load Custom Song Banner -->
+    <div class="flex items-center justify-between rounded-xl border border-amber-400/30 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent p-2.5 px-3">
+      <div class="min-w-0 flex-1 pr-2">
+        <p class="text-xs font-bold text-gold">📁 Have your own song?</p>
+        <p class="text-[11px] text-stone-300">Upload audio file (MP3, WAV, M4A) or paste link</p>
+      </div>
+      <button data-k="load-custom-btn" type="button" class="btn-gold shrink-0 rounded-xl px-3.5 py-1.5 text-xs font-bold shadow hover:brightness-110 active:scale-95">
+        Load song
+      </button>
+    </div>
+
     <form data-k="form" class="flex gap-2">
       <input data-k="query" type="search" maxlength="120" placeholder="Search song or artist…" enterkeyhint="search"
              class="min-w-0 flex-1 rounded-xl border border-white/10 bg-black/50 px-4 py-3 outline-none focus:border-amber-400">
@@ -118,12 +129,16 @@ function createSearchPanel({ onAdded = null, singerName = null, getState = null,
     toast(`🎲 Picked: ${ReadySongs.name(song)}`);
   };
 
-  part("custom").onclick = () => {
+  const openCustom = () => {
     CustomSongModal.open({
-      onQueued: onAdded,
+      onQueued: (entry) => {
+        onAdded?.(entry);
+      },
       singerName: part("singer")?.value.trim() || Auth.me?.guest?.name || "",
     });
   };
+  part("load-custom-btn").onclick = openCustom;
+  part("custom").onclick = openCustom;
 
   // Guests sing as their login (the server ignores the name for them); the host names anyone
   async function add(r, btn) {

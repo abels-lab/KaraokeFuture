@@ -26,6 +26,7 @@
     <header id="header" class="flex items-center gap-2">
       <img src="/static/img/microphone.png" alt="" class="mic-glow h-10 w-auto -rotate-12">
       <h1 class="font-display min-w-0 flex-1 truncate text-2xl font-black text-gold" data-title>Golden Mic Karaoke</h1>
+      <button type="button" data-open="custom" class="hide-phone tap rounded-xl bg-amber-500/10 border border-amber-400/30 px-3 py-2 text-sm font-semibold text-gold hover:bg-amber-500/20" title="Upload audio file or link">📁 Load song</button>
       <button type="button" data-open="search" class="hide-phone btn-gold tap rounded-xl px-4 py-2 text-sm">＋ Find a song</button>
       <button id="btn-remote-playlists" type="button" data-open="playlists" class="hidden tap rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold text-amber-300 hover:bg-white/20" title="Auto-DJ playlists (host)" aria-label="Auto-DJ playlists">📻<span class="hide-phone"> Playlists</span></button>
       <button id="btn-fullscreen" type="button" class="hide-phone tap tap-square flex items-center justify-center rounded-xl bg-white/10 px-3 py-2 hover:bg-white/20" title="Fullscreen" aria-label="Fullscreen" aria-pressed="false"></button>
@@ -71,7 +72,10 @@
           </div>
           <p id="transport-note" class="mt-3 hidden text-xs text-stone-400">Only the singer and the host can pause or skip this song.</p>
         </section>
-        <button type="button" data-open="search" class="only-phone btn-gold tap w-full rounded-xl py-3 text-base">＋ Find a song to sing</button>
+        <div class="space-y-2 only-phone">
+          <button type="button" data-open="search" class="btn-gold tap w-full rounded-xl py-3 text-base">＋ Find a song to sing</button>
+          <button type="button" data-open="custom" class="tap w-full rounded-xl bg-white/10 border border-white/10 py-2.5 text-sm font-semibold text-stone-200 hover:bg-white/15">📁 Load custom song (file or link)</button>
+        </div>
       </div>
 
       <!-- Queue: up next, with the my-songs filter and per-song controls (my-queue.js), then the Auto-DJ playlist -->
@@ -88,7 +92,10 @@
         <div id="queue-empty" class="panel space-y-3 p-6 text-center">
           <p id="empty-title" class="text-lg font-bold text-stone-200">Nobody in line</p>
           <p id="empty-sub" class="text-sm text-stone-400">Be the first to queue a song!</p>
-          <button type="button" data-open="search" class="btn-gold tap rounded-xl px-5 py-2.5 text-sm font-bold">＋ Find a song to sing</button>
+          <div class="flex flex-wrap justify-center gap-2">
+            <button type="button" data-open="search" class="btn-gold tap rounded-xl px-5 py-2.5 text-sm font-bold">＋ Find a song to sing</button>
+            <button type="button" data-open="custom" class="tap rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-stone-200 hover:bg-white/20">📁 Load custom song</button>
+          </div>
         </div>
         <!-- Auto-DJ playlist queue below the singer queue (ui/autodj-box.js via my-queue.js) -->
         <div id="autodj-mount"></div>
