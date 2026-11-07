@@ -20,7 +20,7 @@ from core import cache_admin, cache_heal, no_browser
 from core.queue_manager import queue as queue_mgr
 from core.warmer import warmer
 from core.worker import worker
-from routers import agent, api, auth, battle, cache, library, playlists, queue, settings, sources, ws
+from routers import agent, api, auth, battle, cache, custom_songs, library, playlists, queue, settings, sources, ws
 from services import tailscale, watcher
 
 setup_logging()
@@ -81,6 +81,7 @@ app.include_router(auth.router)
 app.include_router(library.router)
 app.include_router(cache.router)
 app.include_router(sources.router)
+app.include_router(custom_songs.router)
 app.include_router(playlists.router)
 app.include_router(settings.router)
 app.include_router(agent.router)

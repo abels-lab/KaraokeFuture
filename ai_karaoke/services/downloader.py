@@ -129,7 +129,7 @@ def download_video(song_id: str) -> Path | None:
     if (existing := find_video(song_id)) is not None:
         return existing
     upload_id = cache_manager.read_meta(song_id).get("source_id") or song_id
-    if not sources.has_video(upload_id):
+    if not sources.has_video(upload_id) or sources.page_url(upload_id).startswith('upload://'):
         log.info("No video for %s: %s audio has none", song_id, sources.source_of(upload_id))
         return None
     h = settings.get("video_max_height")

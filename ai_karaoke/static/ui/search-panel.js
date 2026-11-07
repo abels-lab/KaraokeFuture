@@ -20,6 +20,8 @@ function createSearchPanel({ onAdded = null, singerName = null, getState = null,
     </form>
     <div class="flex items-center gap-2">
       <div data-k="pills" class="pill-row min-w-0 flex-1 py-1 text-xs"></div>
+      <button data-k="custom" type="button" class="flex shrink-0 items-center gap-1 rounded-xl bg-white/10 px-3 py-1.5 text-xs font-bold text-stone-200 ring-1 ring-white/10 transition hover:bg-white/20 active:scale-95" title="Upload audio or paste a custom song link">
+        <span>＋</span> Custom</button>
       <button data-k="lucky" type="button" class="flex shrink-0 items-center gap-1.5 rounded-xl bg-amber-400/20 px-3 py-1.5 text-xs font-bold text-amber-300 ring-1 ring-amber-400/40 transition hover:bg-amber-400/30 active:scale-95" title="Pick an accidental cached song">
         <span>🎲</span> Good luck</button>
     </div>
@@ -70,6 +72,14 @@ function createSearchPanel({ onAdded = null, singerName = null, getState = null,
     e.preventDefault();
     const q = part("query").value.trim();
     if (!q) { showReady(); return; }
+    if (/^https?:\/\//i.test(q)) {
+      CustomSongModal.open({
+        defaultUrl: q,
+        onQueued: onAdded,
+        singerName: part("singer")?.value.trim() || Auth.me?.guest?.name || "",
+      });
+      return;
+    }
     part("query").blur();
     part("go").disabled = true;
     part("title").textContent = "Searching…";
@@ -106,6 +116,13 @@ function createSearchPanel({ onAdded = null, singerName = null, getState = null,
     card.replaceChildren(...SongRows.lucky(song, add, () => card.classList.add("hidden")));
     card.className = "space-y-2 rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-stone-900 to-amber-950/20 p-3";
     toast(`🎲 Picked: ${ReadySongs.name(song)}`);
+  };
+
+  part("custom").onclick = () => {
+    CustomSongModal.open({
+      onQueued: onAdded,
+      singerName: part("singer")?.value.trim() || Auth.me?.guest?.name || "",
+    });
   };
 
   // Guests sing as their login (the server ignores the name for them); the host names anyone

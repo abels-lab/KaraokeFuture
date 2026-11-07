@@ -10,6 +10,7 @@ A guest's pasted lyrics always win; any doubt keeps the normal pipeline.
 import json
 import logging
 import re
+import unicodedata
 
 import numpy as np
 import soundfile as sf
@@ -28,12 +29,14 @@ MARGIN = 0.15           # ... and this far above chance (random notes already ma
 
 
 def _tokens(text: str) -> set[str]:
-    return set(re.findall(r"\w+", lyrics_source.build_query(text).lower()))
+    clean = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+    return set(re.findall(r"\w+", lyrics_source.build_query(clean)))
 
 
 def _similar(song: dict, query: str) -> float:
-    want, got = _tokens(query), _tokens(f"{song['headers'].get('ARTIST', '')} {song['headers'].get('TITLE', '')}")
-    return len(want & got) / max(len(want), 1)
+    want = _tokens(query)
+    got = _tokens(f"{song['headers'].get('ARTIST', '')} {song['headers'].get('TITLE', '')}")
+    return len(want & got) / max(len(want | got), 1)
 
 
 def candidates(meta: dict) -> list[int]:
@@ -42,8 +45,21 @@ def candidates(meta: dict) -> list[int]:
     clean = re.sub(r"\s+(ft\.?|feat\.?|featuring)\s.*$", "", clean, flags=re.IGNORECASE)  # USDB lists the main artist
     channel = re.sub(r"\s*(- topic|vevo|official)\s*$", "", meta.get("channel", ""), flags=re.IGNORECASE)
     artist, _, title = (s.strip() for s in (clean.partition(" - ") if " - " in clean else (channel, "", clean)))
-    return (usdb.search(artist, title) or usdb.search(artist, title.replace("'", "").replace("’", ""))
-            or usdb.search("", title))
+    enriched_artist = (meta.get("artist") or "").strip()
+    enriched_title = (meta.get("clean_title") or "").strip()
+    tries: list[tuple[str, str]] = []
+    for a in (enriched_artist, artist):
+        for t in (enriched_title, title):
+            if a and t and (a, t) not in tries:
+                tries.append((a, t))
+            if a and t:
+                t_clean = t.replace("'", "").replace("’", "")
+                if (a, t_clean) not in tries:
+                    tries.append((a, t_clean))
+    for a, t in tries:
+        if ids := usdb.search(a, t):
+            return ids
+    return usdb.search("", title)
 
 
 def fetch_for(song_id: str) -> str | None:
@@ -63,7 +79,8 @@ def _fetch(song_id: str) -> str | None:
         return (meta.get("usdb") or {}).get("match")
     query = lyrics_source.build_query(meta.get("title", ""), meta.get("channel", ""))
     found = candidates(meta)
-    best, why = None, None
+    best, best_score, why = None, 0.0, None
+    known_ids = {song_id} | set(meta.get("mirrors") or [])
     for usdb_id in found[:MAX_CANDIDATES]:
         try:
             song = ultrastar.parse(text := usdb.fetch_txt(usdb_id) or "")
@@ -73,11 +90,12 @@ def _fetch(song_id: str) -> str | None:
         if issues:
             log.info("USDB %d skipped for %s: %s", usdb_id, song_id, "; ".join(issues))
             continue
-        if song_id in ultrastar.video_ids(song):
+        if ultrastar.video_ids(song) & known_ids:
             best, why = (usdb_id, text), "video"
             break
-        if best is None and _similar(song, query) >= 0.6:
-            best, why = (usdb_id, text), "title"
+        score = _similar(song, query)
+        if score >= 0.6 and score > best_score:
+            best, best_score, why = (usdb_id, text), score, "title"
     cache_manager.update_meta(song_id, usdb={"id": best[0], "match": why} if best else {})
     if best:
         cache_files.write_atomic(path, best[1])
@@ -113,7 +131,8 @@ def _apply(song_id: str) -> bool:
     song = ultrastar.parse(path.read_text(encoding="utf-8"))
     duration = sf.info(str(cache_manager.song_file(song_id, VOCALS_FILE))).duration
     vocal_map = vocal_activity.map_for(song_id)
-    exact = song_id in ultrastar.video_ids(song)
+    known_ids = {song_id} | set(cache_manager.read_meta(song_id).get("mirrors") or [])
+    exact = bool(ultrastar.video_ids(song) & known_ids)
     offset, coverage = ultrastar_sync.find_offset(song, vocal_map["regions"], duration, exact)
     if coverage < MIN_COVERAGE or ultrastar.problems(song, duration):
         log.info("UltraStar file for %s not used: %.0f%% of its notes on singing (offset %+.2f s)",

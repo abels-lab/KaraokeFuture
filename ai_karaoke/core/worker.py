@@ -50,6 +50,11 @@ class Worker:
         if not cache_manager.is_ready(song_id):
             await self._put(("process", song_id))
 
+    async def submit_library(self, song_id: str) -> None:
+        """Enqueue a song for library processing without requiring it to be queued."""
+        if not cache_manager.is_ready(song_id):
+            await self._put(("process_library", song_id))
+
     async def submit_lyrics(self, song_id: str) -> None:
         """Re-align lyrics (pasted, edited or reset to automatic), after earlier jobs."""
         await self._put(("lyrics", song_id))
