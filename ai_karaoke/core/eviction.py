@@ -26,5 +26,7 @@ def order(metas: list[dict], rotation: str | None = None) -> list[str]:
     """Song ids in the order they should be evicted."""
     stale = sorted((m for m in metas if is_stale_warm(m, rotation)), key=last_access)
     stale_ids = {m["id"] for m in stale}
-    rest = sorted((m for m in metas if m["id"] not in stale_ids), key=last_access)
-    return [m["id"] for m in stale + rest]
+    rest = [m for m in metas if m["id"] not in stale_ids]
+    unpinned = sorted((m for m in rest if not m.get("pinned")), key=last_access)
+    pinned = sorted((m for m in rest if m.get("pinned")), key=last_access)
+    return [m["id"] for m in stale + unpinned + pinned]

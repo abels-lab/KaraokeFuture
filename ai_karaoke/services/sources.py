@@ -81,7 +81,10 @@ def page_url(song_id: str) -> str:
     if source_of(song_id) == SOUNDCLOUD:
         return f"https://api.soundcloud.com/tracks/{int(song_id[3:])}"
     if source_of(song_id) == CUSTOM:   # checked again before every request: public hosts only
-        if not (url := source_ids.url_for(song_id)):
+        url = source_ids.url_for(song_id)
+        if not url:
+            if song_id.startswith("u_"):
+                return "upload://local"
             raise source_links.LinkError(f"The page of {song_id} is no longer known: search for the song again")
         return source_links.check_url(url)
     return f"https://www.youtube.com/watch?v={song_id}"

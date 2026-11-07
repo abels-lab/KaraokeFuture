@@ -18,7 +18,7 @@ from config import DATA_DIR
 log = logging.getLogger(__name__)
 ID_FILE = DATA_DIR / "source_ids.json"
 MAX_IDS = 3000
-PATTERN = re.compile(r"^x_[0-9a-f]{16}$")
+PATTERN = re.compile(r"^[xu]_[0-9a-f]{16}$")
 _lock = threading.Lock()
 _ids: dict[str, str] | None = None
 
@@ -39,6 +39,11 @@ def _map() -> dict[str, str]:
 
 def make_id(url: str) -> str:
     return "x_" + hashlib.sha1(url.encode("utf-8")).hexdigest()[:16]
+
+
+def make_upload_id(seed: str | bytes) -> str:
+    raw = seed if isinstance(seed, bytes) else seed.encode("utf-8")
+    return "u_" + hashlib.sha1(raw).hexdigest()[:16]
 
 
 def remember(urls: list[str]) -> list[str]:
