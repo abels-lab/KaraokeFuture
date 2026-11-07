@@ -26,6 +26,7 @@ const LibraryCard = (() => {
     const [srcLabel, srcCls] = LYRICS_SOURCE[s.lyrics_source] || ["No lyrics", "bg-white/10"];
     if (s.ready) box.append(badge(`${srcLabel}${s.lyric_lines ? ` · ${s.lyric_lines} lines` : ""}`, srcCls));
     if (s.has_video) box.append(badge("🎬 Video", "bg-white/10 text-stone-200"));
+    if (s.custom) box.append(badge(s.source === "upload" ? "📁 Custom upload" : "🔗 Custom link", "bg-amber-500/20 text-amber-300 ring-1 ring-amber-400/40"));
     if (s.source === "soundcloud" || s.fallback_used) box.append(badge(s.source === "soundcloud" ? "☁ SoundCloud" : "↺ Backup upload", "bg-white/10 text-stone-200"));
     if (s.warmed) box.append(badge("🔥 Prepared in advance", "bg-violet-900/70 text-violet-200"));
     if (s.ready && s.timing_poor) { // words don't line up with the singing

@@ -45,7 +45,7 @@ def _summary(meta: dict) -> dict:
         "unmatched_vocals": meta.get("unmatched_vocals") or [],   # sung parts the lyrics miss
         "timing_poor": bool((meta.get("timing") or {}).get("poor")),  # alignment lost its place
         "stage": worker.stages.get(song_id),
-        "source": meta.get("source") or sources.source_of(song_id), "fallback_used": bool(meta.get("fallback_used")),
+        "source": meta.get("source") or sources.source_of(song_id), "fallback_used": bool(meta.get("fallback_used")), "custom": bool(meta.get("custom")),
         "warmed": eviction.is_warm(meta), "rotation": meta.get("rotation"),
         "in_queue": queue.has_song(song_id), "playing": queue.is_playing(song_id),
         "artist": meta.get("artist"), "clean_title": meta.get("clean_title"),

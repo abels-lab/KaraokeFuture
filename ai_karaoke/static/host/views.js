@@ -49,7 +49,7 @@ const HostViews = (() => {
     return moreBox;
   }
 
-  const ACTIONS = { add: openAdd, settings: openSettings, more: openMore, mode: () => HostMode.openSwitch() };
+  const ACTIONS = { add: openAdd, custom: () => CustomSongModal.open({ onQueued: () => { if (libraryPanel) libraryPanel.refreshSoon(); }, onSaved: () => { if (libraryPanel) libraryPanel.refreshSoon(); } }), settings: openSettings, more: openMore, mode: () => HostMode.openSwitch() };
   document.addEventListener("click", (e) => {
     const target = e.target.closest("[data-go], [data-act]");
     if (!target) return;

@@ -15,6 +15,9 @@ LOOK_SPECS = [
     _s("show_support_on_remote", "access", "Show ☕ Support link on guest phones", True, "bool",
        "Shows a subtle 'Buy the host/creator a coffee' pill at the bottom of the mobile remote page.",
        NOW, client=True),
+    _s("allow_guest_uploads", "access", "Allow guest custom uploads & links", True, "bool",
+       "When enabled, guests can upload audio files or paste song links to add custom songs to the queue.",
+       NOW, client=True),
     # ── Layout ──────────────────────────────────────────────────────────────
     _n("side_panel_width", "layout", "Side panel width", 28, 20, 50, 1, "rem",
        "Width of the queue, controls and history sidebar on the control panel (/tv). Default is 28 rem (increased from 25 rem).",

@@ -22,11 +22,16 @@ function createLibraryPanel() {
         <input data-k="singer" maxlength="32" placeholder="e.g. Freddie"
                class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400 sm:w-48">
       </label>
-      <label class="block">
-        <span class="text-xs font-semibold text-stone-400">Filter</span>
-        <input data-k="filter" type="search" placeholder="Title or artist…"
-               class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400 sm:w-56">
-      </label>
+      <div class="flex items-end gap-2">
+        <label class="block flex-1">
+          <span class="text-xs font-semibold text-stone-400">Filter</span>
+          <input data-k="filter" type="search" placeholder="Title or artist…"
+                 class="mt-1 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 outline-none focus:border-amber-400 sm:w-48">
+        </label>
+        <button data-k="add-custom" type="button" class="btn-gold shrink-0 rounded-xl px-3 py-2 text-xs font-bold" title="Upload audio file or import web link">
+          ＋ Custom
+        </button>
+      </div>
     </section>
     <div data-k="songs" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
     <p data-k="empty" class="hidden panel p-6 text-center text-stone-400">No songs yet — queue something from the remote and it will appear here.</p>`;
@@ -92,6 +97,13 @@ function createLibraryPanel() {
 
   const actions = { queue, regenerate, remove, lyrics: (s) => openLyrics(s) };
   part("filter").oninput = render;
+  part("add-custom").onclick = () => {
+    CustomSongModal.open({
+      onSaved: () => refreshSoon(),
+      onQueued: () => refreshSoon(),
+      singerName: part("singer")?.value.trim() || Auth.me?.guest?.name || "",
+    });
+  };
   part("singer").value = store("singer") || "";
   part("singer").oninput = () => store("singer", part("singer").value.trim());
   const paintHost = ({ admin }) => part("singer-box").classList.toggle("hidden", !admin);

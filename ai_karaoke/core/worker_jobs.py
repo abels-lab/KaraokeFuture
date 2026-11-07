@@ -33,6 +33,8 @@ async def dispatch(w, kind: str, song_id: str) -> bool:
         await _process(w, song_id)
     elif kind == "warm":
         return await _warm(w, song_id)
+    elif kind == "process_library":
+        await _process(w, song_id)
     elif queue.has_song(song_id):
         await _process(w, song_id)
     else:

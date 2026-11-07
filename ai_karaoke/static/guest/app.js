@@ -36,6 +36,7 @@ const GuestApp = (() => {
 
   const actions = {
     search: openSearch,
+    custom: () => { if (!Popup.depth) CustomSongModal.open({ onQueued: (entry) => GuestPrefs.applyTo(entry) }); },
     settings: () => { if (!Popup.depth) GuestSettings.open(); },
     lyrics: () => openNowLyrics(),
     copilot: () => GuestCopilot.open(),   // the ✨ button (guest/copilot.js)
