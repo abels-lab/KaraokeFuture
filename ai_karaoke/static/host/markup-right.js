@@ -69,7 +69,6 @@ document.getElementById("col-right").innerHTML = `
           <span id="all-count" class="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px] font-mono font-bold">0</span>
         </button>
       </div>
-      <button id="queue-custom" type="button" data-act="custom" class="tap-square shrink-0 grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-stone-200 hover:bg-white/20 transition" title="Load custom audio or link">📁</button>
       <button id="queue-add" type="button" data-act="add" class="tap-square btn-gold grid h-9 w-9 shrink-0 place-items-center rounded-xl text-lg leading-none" title="Add a song (A or /)">＋</button>
     </div>
 
